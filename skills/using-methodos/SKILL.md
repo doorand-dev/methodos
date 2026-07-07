@@ -1,0 +1,83 @@
+---
+name: using-methodos
+description: |
+  Methodos — 이 워크스페이스의 분산 AI 코딩 하네스(우산 이름, 중앙 라우터 없음). 작업이 시작되면 게이트들이 *각자 self-trigger*한다: grill-me(신규 기능 spec) · plan(구현 전 계획) · plan-verify/impl-verify(격리 검증) · impl(슬라이스 자율주행). 이 메타-스킬은 게이트를 *대신 라우팅하지 않는다* — 프레임워크 전체를 설명·오리엔테이션할 때만 발동.
+  발동: "methodos가 뭐야" · "이 하네스/게이트 어떻게 동작" · "어떤 게이트 있어" · `/using-methodos` 명시 호출.
+  발동 안 함: "X 추가해줘" · "Y 구현해줘" · "Z 만들자" (← grill-me/plan 게이트가 *직접* self-trigger. 이 스킬은 라우터 아님 — 부르지 말 것).
+---
+
+# using-methodos — 분산 게이트 하네스 오리엔테이션 ([ADR 0022](../../docs/adr/0022-conv-methodos-distributed-gates.md))
+
+> **Methodos** (μέθοδος = *meta* 따라 + *hodos* 길). 우산 *이름*이지 스킬이 아니다. 앞단=메소드 *연기*(사용자 체화 서사로 빠진 디테일 발굴), 뒷단=*방법론*/규율(편향 교정·Deep Module [3I]·수직슬라이싱 [3H] 자율주행).
+> 이 파일은 **패시브 메타-doc**이다 — 프레임워크를 설명할 때만 읽는다. 작업을 *시작*하면 아래 게이트들이 알아서 켜진다 (중앙 라우터 없음, [ADR 0022]).
+
+## 핵심 — 라우터가 없다
+
+**각 게이트가 자기 상황 조건으로 자동발동**한다 — quick fix는 무거운 게이트에 *안 걸리고*(창발 XS), 대형 기능은 grill-me부터 걸린다. 사용자는 `/methodos`·"tier M" 같은 프레임워크 의례를 *체감하지 않는다* (AC5).
+
+→ 그래서 이 메타-스킬은 *부르는 게 아니다*. "X 추가해줘"에 이 스킬을 호출하면 그게 곧 라우터 부활이다. 게이트가 알아서 engage하게 둘 것.
+
+## 게이트 지도 (각자 self-trigger)
+
+| 게이트 (top-level 스킬) | self-trigger 시점 | 산출 artifact |
+|---|---|---|
+| `grill-me` | 신규 기능·비-trivial 작업, *코드 작성 전* | `docs/specs/<slug>.md` (approved) |
+| `plan` | spec 있거나 다슬라이스 비-trivial, *구현 전* | `.claude/plans/<slug>.md` (approved) |
+| `plan-verify` | plan approved 직후, impl 전 (격리 적대 검증) | `.claude/verify-reports/plan-<slug>-...json` |
+| `impl` | plan approved, 슬라이스 구현·자율주행 | git commit (`WHY:` prefix) |
+| `impl-verify` | 슬라이스 commit 후 "통과" 단언 전 (격리 검증 + 오라클 판정 내장) | `.claude/verify-reports/slice-<N>-...json` |
+| codex 게이트 (impl 내부) | 대형·아키텍처 변경, *마무리 직전* 1회 | `.claude/verify-reports/codex-impl-<slug>.json` |
+| narrative novelist (#2/#4) | spec 직후 / 조립 실물 최종 시점 | spec fold / `narrative-<slug>-final.json` |
+| `context-novelist` | 문서·handoff·review packet·runtime context가 scope일 때 | 최소충분컨텍스트 판정 |
+| `decision` (빌트인) | 옵션 비교·비가역·임시방편 자리 | `docs/adr/NNNN-*.md` 또는 `WHY:` 주석 |
+| `/simplify` (빌트인, G-D) | 전체 diff 마무리 *선택* 1회 | (working tree 정리) |
+
+순서·강도는 **트리거 조건에서 창발**한다 (plan은 spec 있을 때, impl은 plan approved일 때). 라우터가 순서를 *보장*하지 않는다.
+
+## tier = 트리거 *설계 근거* (런타임 라벨 아님, [ADR 0007]/[ADR 0022])
+
+tier(XS~L)는 v1에선 라우터가 사용자에게 선언하던 런타임 라벨이었다. v2에선 **런타임에 존재하지 않는다** — 대신 *각 게이트의 트리거·right-sizing 조건을 일관되게 짜기 위한 설계 근거*로만 여기 보존한다. 게이트는 상황(touched_files·결정 자리·flow)을 *조용히 자체 평가*해 무게를 정하지, "tier M입니다"라고 알리지 않는다 (AC5).
+
+| tier | 상황 (게이트 자체 평가) | 어느 게이트가 걸리나 (창발) |
+|---|---|---|
+| **XS** | touched=1·결정0·flow無 | 어느 무거운 게이트도 안 걸림 → 바로 수정 + verify 1개 |
+| **S** | ≤3·결정0-1·flow minor | grill-me 짧게(Q≤3) 또는 skip + plan + 검증 권장 |
+| **M** | 4-10·결정2-4·flow有 | grill-me + plan + plan-verify + impl + impl-verify + (조건부) decision-reviewer·codex |
+| **L** | >10 or architectural/security or 결정≥5 | 풀 + decision-reviewer + impl-verify THOROUGH + codex 1회 + narrative #2/#4 |
+
+→ 이 표는 "왜 grill-me가 다파일 신규기능에만 HARD-GATE이고 quick fix엔 안 걸리나"의 *근거*다. 게이트 트리거 조건을 수정할 때 이 right-sizing 의도와 어긋나지 않게 맞춘다. 사용자 "S로 해줘" 식 명시 발화는 해당 게이트가 무게를 낮추는 escape hatch.
+
+## FORCE vs OPEN (거버닝 원칙 — 모든 게이트 설계를 지배, [ADR 0022] AC6)
+
+하네스는 모델(세션 Fable/Opus)이 *체계적 bias로 틀리는* 자리만 HARD-GATE로 강제하고(FORCE), 모델이 context로 잘 판단하는 자리는 *trade-off만 surface*하고 판단은 모델에 연다(OPEN).
+
+| | **FORCE** (강제·HARD-GATE) | **OPEN** (surface·판단 열기) |
+|---|---|---|
+| 언제 | 모델이 *체계적 bias*로 틀림 | 모델이 context로 잘 판단 |
+| 예 | Evidence([2J] "passed" 위조 본능), 누더기([1C] patch 쌓기), 검증 *존재*(skip 방지), 신규기능 spec-before-multifile | 실행모드 inline/dispatch(G-A), oracle *타입*(G-B), batch 여부, right-sizing, *어떤* 검증일지 |
+| 하네스 행위 | 차단·"MUST" | trade-off를 떠올리게 surface, **답은 모델** |
+
+**⚠️ OPEN ≠ 무규율**: OPEN 결정도 `decision` 원칙을 통과해 판단한다 (decision 스킬이 이 패턴의 정본 — 답을 강제 안 하되 쉬운/어려운 길·비용/부채·Evidence·"안 만들면?"을 반드시 거치게 함). 즉 **OPEN = decision-gated judgment**. decision 렌즈를 빼고 "OPEN=모델 맘대로"로 구현하면 열린 판단이 편향 디폴트(over-process·누더기·시간 과대평가)로 회귀한다. → G-A/G-B/G-C/G-D는 전부 OPEN으로 배선 (rigid rule 금지).
+
+## 강제력 = 격리 적대 reviewer + 영속 artifact
+
+"이렇게 해라" advisory 마크다운은 압박 시 건너뛴다. 진짜 강제력 두 가지:
+- **격리 적대 reviewer** — 별도 컨텍스트 AI가 "틀렸다"를 잡음 (plan-verify-reviewer · impl-verify-reviewer · decision-reviewer · novelist 2종, `agents/claude/`).
+- **영속 artifact** — `.claude/verify-reports/*.json` · `WHY:` commit · `docs/adr/` 존재. "통과"는 명령 출력 *직접 인용*([2J])으로만 인정.
+
+이게 분산 트리거의 *2차 방어*이기도 하다 — 게이트가 켜야 할 때 안 켜지는 mis-fire가 나도, 검증 artifact가 없으면 "통과"를 단언 못 한다.
+
+## 핵심 리스크 = 분산 트리거 신뢰성
+
+라우터의 중앙 통제를 버린 대가는 *게이트가 제때 안 켜질 수 있음*이다. 완화: (1) 게이트 description의 HARD-GATE 강제어, (2) 위 영속 artifact 2차 방어, (3) 이 메타-doc의 description이 always-loaded 리마인더로 게이트 존재를 환기. **수용하되 dogfood로 mis-fire 관측**(ADR 0022 Reeval).
+
+## 참고 (도달 시 로드 — progressive disclosure)
+
+- artifact 표준·JSON schema → `SKILL-ARTIFACTS.md (패키지 동봉)`
+- 실사용 서사 렌즈 (novelist #2/#4) → `narrative-dry-run.md (패키지 동봉)`
+- 컨텍스트 패킷·세션 상류 컨텍스트 감사 → `context-novelist` (scope일 때만)
+- 게이트별 상세 절차 → 각 top-level 스킬 본문 (도달 시 읽음)
+- 설계 결정 → [ADR 0022](../../docs/adr/0022-conv-methodos-distributed-gates.md) (분산 전환) · [ADR 0021](../../docs/adr/0021-conv-goal-demote-router-oracle.md) (/goal 드롭·oracle) · [ADR 0007](../../docs/adr/0007-conv-tier-and-cache.md) (tier 근거)
+
+## CONV-GATE 위임
+CONV-GATE mapping is maintained in the private source workspace. In this public package, follow each skill's local trigger and boundary text.
