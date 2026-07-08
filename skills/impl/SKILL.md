@@ -12,7 +12,7 @@ description: |
 > *얇은 stub*: 핵심 절차 + 산출 형식만 포함. 실사용 데이터로 본문 확장 예정.
 
 > **약어 지도** — 이 문서는 cross-project 수신자가 raw URL로 가져간다. 맥락을 공유하지 않는 cold reader가 외부 문서 없이 읽게:
-> - `G-A` = 실행모드 결정 — `inline`(컨트롤러가 직접 짬) vs `sdd`/dispatch(격리 서브에이전트로 떼어 보냄). 정본 본 문서 §4
+> - `G-A` = 실행모드 결정 — `inline`(컨트롤러가 직접 짬) vs `sdd`/dispatch(격리 서브에이전트로 떼어 보냄). 기준은 이 문서 §4
 > - `surface` = 게이트가 판단을 강제하지 않고 *트레이드오프만 드러내 보임* — 값은 모델이 판단
 > - `ralph` = impl-verify 자동 재시도 루프(내부 카운터 N=10) / `advisory-fold` = 차단 없이 기록만(todos·사용자 알림)
 > - `narrative #4` = 출하 직전 실사용 서사 게이트(impl-novelist) / `G-D` = 마지막 `/simplify` 1회 패스
@@ -31,7 +31,7 @@ description: |
 - plan frontmatter status=approved
 - `Test-Path .claude/verify-reports/plan-<slug>-verify-attempt-*.json` (최신) + status=DONE/DONE_WITH_CONCERNS (D13 attempt schema)
 - 현재 slice id의 `touched_files` 명시되어 있음
-- plan frontmatter `drive_config.dispatch`에 현재 slice의 `mode`(inline/sdd) 기재 — **부재 시 멈춤·보고** (자율주행 진입 정책 누락, plan으로 돌아가 drive_config 합성). 2차 그물 — plan 승인 ask를 우회해 impl 직행한 경우 대비 (정본 슬롯은 plan, § drive_config).
+- plan frontmatter `drive_config.dispatch`에 현재 slice의 `mode`(inline/sdd) 기재 — **부재 시 멈춤·보고** (자율주행 진입 정책 누락, plan으로 돌아가 drive_config 합성). 2차 그물 — plan 승인 ask를 우회해 impl 직행한 경우 대비 (이 슬롯은 plan의 drive_config에서 닫힘).
 
 위 부족하면 `/plan` 또는 `/plan-verify`로 돌아감.
 
@@ -40,7 +40,7 @@ description: |
 각 슬라이스 commit 후 *자동* impl-verify-reviewer 호출:
 
 - attempt 1 호출 → JSON 산출 (`slice-<N>-attempt-1.json`)
-- status=BLOCKED → impl이 fix → attempt 2 → ... attempt 10
+- status=BLOCKED → impl이 fix → attempt 2 → .. attempt 10
 - attempt 10 BLOCKED 또는 `repeated_from_attempt`로 동일 critical 재등장 → `escalation_required: true` + 사용자 escalate
 - **자율주행 자리** — 사용자 의도 "끝까지 자동" 정합. model-driven 순차 구동에서 머무름 (D28 cache 윈도우)
 - **무한 spinning 가드**: ralph 루프 자체의 내부 카운터(N=10)가 가드 — 빌트인 turn 한도에 의존 안 함
@@ -57,9 +57,9 @@ attempt M 호출 시 attempt M-1 결과 paste 전달 → impl-verify-reviewer가
 
 **절차** (컨트롤러 1턴, foreground — background polling은 model-driven 순차 구동에 결과 회수 행위자가 없어 못 씀):
 0. **precheck**: codex CLI 가용? 아니면 dispatch 생략 + 1회 안내 "대형·아키텍처 변경엔 codex 게이트 있음 — codex 설치/로그인 시 cross-model 검증 활성. 지금은 skip." → artifact `verdict: "error"`, `status: "SKIPPED"` 기록 후 통과.
-1. **base 결정 + 빈-diff precheck**: plan frontmatter `approved_plan_revision` SHA. 이 시점엔 모든 슬라이스가 *커밋됨* → working-tree diff가 비어 있으니 **반드시 branch-diff 모드** (`--base <approved_plan_revision>`). **codex 부르기 전 `git diff --shortstat <base>..HEAD`로 diff 비었는지 확인 — 비어 있으면 codex 호출 생략하고 `status: "SKIPPED"`(verdict `error`, reason "empty_diff: base 오설정 의심") 기록.** (smoke test 실측: codex는 빈 diff에 **거짓 `approve` 반환** → 그대로 믿으면 거짓 DONE. 빈 diff = base 설정 문제이지 "결함 없음"이 아님.)
+1. **base 결정 + 빈-diff precheck**: plan frontmatter `approved_plan_revision` SHA. 이 시점엔 모든 슬라이스가 *커밋됨* → working-tree diff가 비어 있으니 **반드시 branch-diff 모드** (`--base <approved_plan_revision>`). **codex 부르기 전 `git diff --shortstat <base>.HEAD`로 diff 비었는지 확인 — 비어 있으면 codex 호출 생략하고 `status: "SKIPPED"`(verdict `error`, reason "empty_diff: base 오설정 의심") 기록.** (smoke test 실측: codex는 빈 diff에 **거짓 `approve` 반환** → 그대로 믿으면 거짓 DONE. 빈 diff = base 설정 문제이지 "결함 없음"이 아님.)
 2. **foreground + timeout 단일 호출** (argv는 *분리 토큰* — 따옴표 한 덩어리면 `--base` 인식 못 해 "nothing to review"로 빠짐, smoke test 검증): `node <plugin-root>/scripts/codex-companion.mjs adversarial-review --wait --base <approved_plan_revision>`를 *bounded timeout*(예: 5분)으로 1회 실행. `<plugin-root>`는 절대 경로(예 `~/.claude/plugins/cache/openai-codex/codex/<ver>`) — `CLAUDE_PLUGIN_ROOT` env는 mine 스킬 컨텍스트에선 미설정이라 절대 경로 권장. dispatch+capture+timeout이 한 Bash 호출에 (cross-turn polling 없음). 1회·맨끝이라 이 턴 1개 block 허용.
-3. **결과 → artifact** (`.claude/verify-reports/codex-impl-<slug>.json`, schema는 [SKILL-ARTIFACTS.md](../SKILL-ARTIFACTS.md) `codex-impl`). stdout은 *렌더 markdown*(raw JSON 아님, smoke test 실측):
+3. **결과 → artifact** (`.claude/verify-reports/codex-impl-<slug>.json`). 저장 필드: `kind: "codex-impl"`, `target_slug`, `base`, `status`, `verdict`, `raw_review`, `findings`, `created_at`. stdout은 *렌더 markdown*(raw JSON 아님, smoke test 실측):
    - stdout에서 `Verdict: approve` grep → `status: "DONE"`
    - `Verdict: needs-attention` grep → `status: "DONE_WITH_CONCERNS"` + advisory-fold(4단계). `raw_review`에 stdout 원문 저장, findings는 `- [high|medium|low]` 줄에서 best-effort 추출.
    - **빈 stdout·verdict 줄 부재·error·timeout 초과** (사용자 실측: codex 가끔 무응답, 신뢰 과다 금지) → `verdict: "skipped_no_response"`/`"error"`, `status: "SKIPPED"` + 한 줄 알림 "Codex 무응답/미완료 — 게이트 skip하고 진행 (Claude 검증은 이미 통과)". **재시도 없음.**
@@ -100,12 +100,12 @@ attempt M 호출 시 attempt M-1 결과 paste 전달 → impl-verify-reviewer가
 
    oracle 수식자의 *쌍대* 결정. 라우터가 정해주지 않는다 — 게이트가 아래 trade-off를 *surface*하고 모델이 판단한다 (rigid rule 아님, OPEN = decision-gated judgment):
    - **기준 = context-locality**(컨트롤러가 이미 이 코드를 쥐고 있나) + **coupling**(슬라이스가 다른 슬라이스와 파일 공유·의존하나)
-   - 둘 다 yes(**보유 + 결합**) → **inline** (dispatch 격리이득 < 재로딩 비용) ← *중간 케이스, 이전 harness에 누락됐던 자리* (실전 dogfood gap)
+   - 둘 다 yes(**보유 + 결합**) → **inline** (dispatch 격리이득 < 재로딩 비용) ← *중간 케이스, 이전 harness에 누락됐던 자리* (실전 실사용 gap)
    - **isolable + 미보유**(독립·큰 슬라이스, est_min ≥ 15 또는 touched ≥ 5) → **dispatch** (아래 템플릿)
    - **순수이동(AST 0 diff)** → inline (controller self-review + AST diff만, 격리 한계효용 0)
    - 작은·로컬 슬라이스 → 컨트롤러 직접 (inline)
 
-   > **불변식 (dispatch = isolated subagent의 유일한 채널)**: subagent는 세션 상속이 없어 *프롬프트에 적힌 것만* 안다. 따라서 impl-verify가 **BLOCK으로 강제하는 기준(out_of_slice 경계 · caller impact-radius · TDD red-green · evidence 무결성)을 모두 여기서 echo**한다. impl-verify에 새 BLOCK 기준이 생기면 이 템플릿도 동기 (정본 = impl-verify, [1D]).
+   > **불변식 (dispatch = isolated subagent의 유일한 채널)**: subagent는 세션 상속이 없어 *프롬프트에 적힌 것만* 안다. 따라서 impl-verify가 **BLOCK으로 강제하는 기준(out_of_slice 경계 · caller impact-radius · TDD red-green · evidence 무결성)을 모두 여기서 echo**한다. impl-verify에 새 BLOCK 기준이 생기면 이 템플릿도 동기 (같은 BLOCK 기준을 양쪽에 맞춘다).
 
    위임(dispatch) 시 prompt 형식 (Task tool, general-purpose):
    ```
@@ -160,11 +160,7 @@ attempt M 호출 시 attempt M-1 결과 paste 전달 → impl-verify-reviewer가
 
 ---
 
-## CONV-GATE 위임
-
-CONV-GATE mapping is maintained in the private source workspace. In this public package, follow this skill's local trigger and boundary text.
+## 실행 전후 확인
 
 - 슬라이스 commit 직전 → [3H] 한 슬라이스 단독 동작·검증 가능 / [1C] 누더기 거부
 - (다flow) narrative #4 DONE 후 (대형·아키텍처 변경) → Codex cross-model 적대 게이트 1회, 최종 diff 대상·advisory-fold ([2J] cross-model Evidence)
-
-신규 시점 추가 시 CONV-GRAPH.md 매핑 표 한 줄 갱신.

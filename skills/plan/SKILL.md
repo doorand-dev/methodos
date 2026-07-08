@@ -9,7 +9,7 @@ description: |
 
 # /plan — PRD 상세화 (standalone, 사용자 결정 공간)
 
-> **약어 지도** — 이 문서만 읽어도 아래가 그 자리에서 이해되게 한다. ("정본 가서 읽어"는 빠져나갈 구멍 — 이 문서는 다른 시기에 홀로 로드된다.)
+> **약어 지도** — 이 문서만 읽어도 아래가 그 자리에서 이해되게 한다. ("외부 문서로 넘기기"는 빠져나갈 구멍 — 이 문서는 다른 시기에 홀로 로드된다.)
 > - `FORCE` = 슬롯의 *존재*는 강제, 빈 채 통과 금지 / `OPEN` = 그 안의 *값*은 모델이 판단
 > - `M1` = 사전에 사용자가 정해야 할 결정 리스트(§7) / `M2` = 승인본 대비 *사용자 체감 변화*만 추려 다시 받는 서사(§11)
 > - `G-A` = impl이 슬라이스를 직접 짤지(`inline`) 격리 서브에이전트로 떼어 보낼지(`sdd`) 정하는 결정 / `drive_config` = 그 결정을 plan 단계에 미리 박아두는 자율주행 진입 정책(§ drive_config)
@@ -57,14 +57,14 @@ verify_attempt: 0                  # cycle 내부 0~3 카운터
 escalation_reason: null            # N=3 또는 같은 critical 2회 반복 시 한 줄 (매 cycle reset)
 goal: <한 문장>
 architecture: <2-3 문장>
-tech_stack: [...]
+tech_stack: [..]
 slices:
   - id: 1
     title: <한 줄>
     files:
-      create: [<exact path>, ...]
-      modify: [<exact path>, ...]
-      test: [<exact path>, ...]
+      create: [<exact path>, ..]
+      modify: [<exact path>, ..]
+      test: [<exact path>, ..]
     verification:
       type: unit_test | command | fixture | artifact | custom
       command: <executable command>
@@ -75,7 +75,7 @@ slices:
     decision_needed: false           # 기본 false (단순 HOW는 AI 결정)
     user_facing_scenario: null       # decision_needed=true일 때 쉬운 용어 시나리오
     recommended: null                # AI 추천
-    options: []                      # [{label, consequence}, ...]
+    options: []                      # [{label, consequence}, ..]
 self_review:
   coverage_gaps: []
   placeholders_found: []
@@ -125,7 +125,7 @@ def update_profile(user_id: int, fields: ProfileUpdateRequest) -> User:
     """Validates and persists. Raises ValidationError on invalid input."""
 
 class ProfileUpdateRequest(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(.., min_length=1, max_length=100)
     email: EmailStr
     avatar_url: HttpUrl | None = None
 ```
@@ -144,7 +144,7 @@ class ProfileUpdateRequest(BaseModel):
    - frontmatter `spec_ref: docs/specs/<slug>.md` 기재
    - spec의 user_stories/out_of_scope/edge_cases/modules를 *입력으로 받음* (추가 인터뷰 없이, to-prd 정신)
    - 충돌 ADR 검색은 spec.md에서 이미 했음 — plan은 *받아 합성*만
-   - **novelist preflight (소비자-측 forcing, FORCE)**: spec frontmatter `novelist.required: true && novelist.status != done`이면 **합성 중단** — spec이 실사용 서사 게이트(grill-me §6b)를 안 거친 채 넘어옴. 사용자에게 보고하고 grill-me §6b(spec-novelist 1회 dispatch → fold → `status: done`) 선행 요청. `novelist` 필드 부재(구버전 spec)면 경고만, 진행 허용. (대화 합성 모드가 인터뷰와 novelist를 동반 skip하는 dogfood 누락점의 2차 그물 — [grill-me](../grill-me/SKILL.md) § 인터뷰 skip ≠ novelist skip)
+   - **novelist preflight (소비자-측 forcing, FORCE)**: spec frontmatter `novelist.required: true && novelist.status != done`이면 **합성 중단** — spec이 실사용 서사 게이트(grill-me §6b)를 안 거친 채 넘어옴. 사용자에게 보고하고 grill-me §6b(spec-novelist 1회 dispatch → fold → `status: done`) 선행 요청. `novelist` 필드 부재(구버전 spec)면 경고만, 진행 허용. (대화 합성 모드가 인터뷰와 novelist를 동반 skip하는 실사용 누락점의 2차 그물 — grill-me의 "인터뷰 skip ≠ novelist skip" 규칙)
 
 2. **File Structure 설계**: task 정의 *전*에 file map 그리기.
    - Create / Modify / Test 라벨 명시
@@ -183,7 +183,7 @@ class ProfileUpdateRequest(BaseModel):
    ```yaml
    slices:
      - id: N
-       ...
+       ..
        decision_needed: true
        user_facing_scenario: "<쉬운 용어 시나리오>"
        recommended: "<AI 추천>"
@@ -256,11 +256,11 @@ class ProfileUpdateRequest(BaseModel):
 
     수정 도중 *옵션·임시방편 발화* 감지 시 → `decision` 스킬 자연어 자동 발동 (band-aid 방지).
 
-    사용자 체감: escalate 시 *옵션·결과 같이* 표시 (라운드트립 X). 결정 후 *자동 재진행* — "(다시 검증 중...)" 알림만.
+    사용자 체감: escalate 시 *옵션·결과 같이* 표시 (라운드트립 X). 결정 후 *자동 재진행* — "(다시 검증 중..)" 알림만.
 
 11. **M2 scenario delta approval** (조건부):
 
-    **delta 서사 (narrative-dry-run #3, inline)**: M2는 diff *제시*(presentation)에 더해, 변화를 **실사용자 시점 delta 서사**로 푼다 — "기존엔 …였는데, 이제 사용자가 …하면 …된다". inline 실행(기계적 SHA diff라 오염 여지 적어 외부 agent 불필요). 이때 *새 보완점*이 잡히면(서사화가 노출) → spec `edge_cases` / plan slice에 fold(presentation-only 아님). 정본: `narrative-dry-run.md`.
+    **delta 서사 (inline)**: M2는 diff *제시*(presentation)에 더해, 변화를 **실사용자 시점 delta 서사**로 푼다 — "기존엔 …였는데, 이제 사용자가 …하면 …된다". inline 실행(기계적 SHA diff라 오염 여지 적어 외부 agent 불필요). 이때 *새 보완점*이 잡히면(서사화가 노출) → spec `edge_cases` / plan slice에 fold(presentation-only 아님).
 
     plan-verify 통과 후 *수정된 최종 plan* vs *사용자 승인 plan* diff 평가:
 
@@ -369,8 +369,8 @@ self-review placeholders_found에 잡히면 **반드시 fix 후 재self-review**
 
 | type | command/필드 | expected | 사용 |
 |---|---|---|---|
-| `unit_test` | `command: pytest tests/.../test_X.py -v` | `expected_exit_code: 0` | pure function, schema, parser |
-| `command` | `command: <shell cmd>` | `expected_exit_code: 0` + (옵션) `expected_output_contains: "..."` | scripts, integration smoke |
+| `unit_test` | `command: pytest tests/../test_X.py -v` | `expected_exit_code: 0` | pure function, schema, parser |
+| `command` | `command: <shell cmd>` | `expected_exit_code: 0` + (옵션) `expected_output_contains: ".."` | scripts, integration smoke |
 | `fixture` | `command: diff <actual> <expected>` 또는 snapshot tool | `expected_exit_code: 0` | data shape, render output |
 | `artifact` | `path: <file>` | `must_exist: true` + (옵션) `must_match: <regex 또는 checksum>` | files, config, migration |
 | `visual` | (command 없거나 screenshot/preview) `observe: "<무엇을 육안 확인>"` | 명시 기준 충족 (자율주행 시 스크린샷+비전 — impl-verify G-C) | UI·렌더·대시보드 (테스트 오라클 부재) |

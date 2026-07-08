@@ -13,7 +13,7 @@ description: |
 
 > **약어 지도** — 이 문서는 cross-project 수신자가 raw URL로 가져간다. 맥락을 공유하지 않는 cold reader가 외부 문서 없이 읽게:
 > - `오라클(oracle)` = 이 슬라이스가 "됐다"를 *무엇으로 판정*하나 — 테스트 통과냐 측정값이냐 육안이냐. 검증법을 정하는 기준
-> - `G-B` = 그 오라클 *타입*을 슬라이스마다 판정(아래 표) / `G-C` = visual(UI 육안) 오라클 — 정본 본 문서
+> - `G-B` = 그 오라클 *타입*을 슬라이스마다 판정(아래 표) / `G-C` = visual(UI 육안) 오라클 — 기준은 이 문서
 > - `surface` = 게이트가 판단을 강제하지 않고 *트레이드오프만 드러내 보임* / `fold` = 옛 라우터가 쥐던 수식자를 이 게이트 안으로 접어 넣음
 > - `seam` = 독립 실행 가능한 이음새 — 저위험 슬라이스를 묶어 1회 검증하는 경계
 > - `[2J]` = "통과" 단언 전 실제 명령 출력을 직접 인용(미실행 명령 evidence 금지) / `[1C]` = 슬라이스 밖 파일 건드림 거부 / `[3I]` = 새 클래스·래퍼는 "지우면?" 자문 / `[1D]` = 같은 값·결정이 여러 곳이면 DRY 위반 / `FORCE`·`OPEN` = 슬롯 존재 강제·값은 모델 판단
@@ -33,7 +33,7 @@ description: |
 
 ## 산출 artifact (강제)
 
-`.claude/verify-reports/slice-<N>.json` — schema는 `contract/SKILL-ARTIFACTS.md` 참고. 필수 필드:
+`.claude/verify-reports/slice-<N>.json` — 필수 필드:
 - `kind`: "impl-verify"
 - `target`: slice N
 - `status`: 4상태
@@ -87,7 +87,7 @@ description: |
 
 1. plan에서 해당 slice 본문 paste (file read X — superpowers "Never make subagent read plan file" 정신)
 2. commit diff 점검:
-   - `git diff <prev-commit>..HEAD --stat` → touched_files 확인
+   - `git diff <prev-commit>.HEAD --stat` → touched_files 확인
    - **out_of_slice_touches 검출**: plan slice.touched_files에 없는 파일 발견 시 → BLOCKED ([1C] 신호)
    - **plan 의도 초과 자동 신호** (superpowers `implementer-prompt.md` L51 차용): 생성·확장된 파일이 plan slice 의도 *명백히 초과* (예: slice 1줄 짜리인데 신규 파일 3개 생성, 또는 단일 함수 추가 의도였는데 모듈 신설) → 자동 *important issue* 등록 + status 최소 DONE_WITH_CONCERNS
    - **영향범위(caller) 누락 검출** — `out_of_slice_touches`의 대칭(범위 밖 건드림이 아니라 *범위 안인데 파급 미확인*): touched_files 안에서 *시그니처·동작이 바뀐 public 함수·artifact*마다 `git grep`/AST로 호출처를 열거 → 각 caller가 (a) 같은 슬라이스에서 함께 갱신됐거나 (b) 영향 없음이 직접 확인됐거나 (c) `issues`에 *잔여 불확실성*으로 명시돼야 함. 셋 다 아닌 caller 1개라도 존재 시 → BLOCKED (impact-radius 미확인). "일부만 읽고 파급 못 봄" 방지 — 게이트 통과는 graph/grep·코드·테스트 *합의* 또는 잔여 불확실성 *명시*로만
@@ -109,9 +109,9 @@ Stage 1 ✅이어야 진입.
 4. **gc-skill 임계치**: `py -3 ~/.claude/skills/gc/gc_audit.py`. 임계치 초과 있으면 important issue
 5. **TDD 흔적 — *red-green 양방향 관찰 강제*** ("If you didn't watch the test fail, you don't know if it tests the right thing"):
    - 새 테스트 존재만으로 부족. *실패→통과* 양방향 흔적 필수
-   - 검증 방법: `git log --oneline <prev>..HEAD -- <test_path>` 에 red commit + green commit 분리, **또는** verify 단계에서 *fix를 임시 revert → 테스트 실행해서 실제 fail → restore → 다시 pass* 사이클 직접 실행
+   - 검증 방법: `git log --oneline <prev>.HEAD -- <test_path>` 에 red commit + green commit 분리, **또는** verify 단계에서 *fix를 임시 revert → 테스트 실행해서 실제 fail → restore → 다시 pass* 사이클 직접 실행
    - 양방향 관찰 흔적 없으면 → testing 차원 *important issue* + evidence에 사이클 명령 출력 인용
-6. **Evidence**: 각 검증마다 *실제 실행한* 명령 + 출력 인용. 미실행 명령은 evidence에 기재하지 말 것 (OMC `verify` "Report only what was actually verified" — 정본 [SKILL-ARTIFACTS.md](../SKILL-ARTIFACTS.md))
+6. **Evidence**: 각 검증마다 *실제 실행한* 명령 + 출력 인용. 미실행 명령은 evidence에 기재하지 말 것
 
 ### 통합 status
 
@@ -124,7 +124,7 @@ Stage 1 ✅이어야 진입.
 
 JSON 저장: `.claude/verify-reports/slice-<N>.json`.
 
-> **drift 동기화 ([1D])**: 여기 BLOCK급 기준(out_of_slice 경계 · caller impact-radius · TDD red-green · evidence 무결성)을 추가·변경하면 [impl dispatch 위임 템플릿](../impl/SKILL.md)의 "Your job"도 echo 갱신 — producer(dispatch)-verifier 비대칭 방지 (실측 2회: TDD·caller). 격리 dispatch subagent는 프롬프트에 없는 기준을 못 지킴.
+> **기준 동기화**: 여기 BLOCK급 기준(out_of_slice 경계 · caller impact-radius · TDD red-green · evidence 무결성)을 추가·변경하면 impl의 dispatch "Your job" 템플릿에도 같은 기준을 적는다. producer(dispatch)-verifier 비대칭 방지. 격리 dispatch subagent는 프롬프트에 없는 기준을 못 지킴.
 
 ## 안 하는 것 (Red Flags)
 
@@ -150,7 +150,7 @@ verify status에 따라 자연 흐름 (OMC `ultraqa` 반복 사이클 정신 차
 **중요**: fix 사이클은 *기존 slice-N.json을 덮어쓰지 않음*. 새 슬라이스로 처리 (각 사이클이 *재현 가능 흔적* — [2J] 그대로).
 
 **scoped re-verify (재검증 attempt 2~3)**:
-- attempt 1만 코드베이스 fresh 독립 재독(Stage 1+2 풀). **fix 재검증 attempt는 전체 재독 금지** — 이전 `slice-<N>-attempt-<M>.json`의 `issues`(걸린 것) + `git diff <prev-fix-sha>..HEAD`만 읽고 범위 한정:
+- attempt 1만 코드베이스 fresh 독립 재독(Stage 1+2 풀). **fix 재검증 attempt는 전체 재독 금지** — 이전 `slice-<N>-attempt-<M>.json`의 `issues`(걸린 것) + `git diff <prev-fix-sha>.HEAD`만 읽고 범위 한정:
   - 걸린 issue가 fix됐나 (해소 판정은 diff 직접 확인 — JSON 주장 인용 금지)
   - touched_files에 fix-introduced regression 생겼나
 - **scope 이탈 안전판**: fix diff가 `out_of_slice_touches` 신호(슬라이스 밖 광범위 수정) 내면 scoped 가정 깨짐 → 그 라운드만 **full 재독으로 승격**.
@@ -164,10 +164,6 @@ verify status에 따라 자연 흐름 (OMC `ultraqa` 반복 사이클 정신 차
 
 ---
 
-## CONV-GATE 위임
-
-CONV-GATE mapping is maintained in the private source workspace. In this public package, follow this skill's local trigger and boundary text.
+## 실행 전후 확인
 
 - '통과' 단언 직전 → [2J] Evidence (verify-report JSON `evidence` 필드 강제)
-
-신규 시점 추가 시 CONV-GRAPH.md 매핑 표 한 줄 갱신.

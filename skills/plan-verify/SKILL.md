@@ -44,7 +44,7 @@ plan approved → 본 plan-verify-reviewer attempt 1~3
 
 ## 산출 artifact (강제)
 
-`.claude/verify-reports/plan-<slug>-verify-attempt-<N>.json` (N=1, 2, 3) — schema는 `SKILL-ARTIFACTS.md` plan-verify (v1.1) 참고. 필수 필드:
+`.claude/verify-reports/plan-<slug>-verify-attempt-<N>.json` (N=1, 2, 3) — 필수 필드:
 - `kind`: "plan-verify"
 - `attempt`: 1, 2, 또는 3 (D13 N=3 한계)
 - `status`: DONE / DONE_WITH_CONCERNS / BLOCKED / NEEDS_CONTEXT
@@ -69,7 +69,7 @@ plan approved → 본 plan-verify-reviewer attempt 1~3
 2. ***적대적 검증* (격리 부재를 외부 자료 대조로 보완)** — 다음 4 차원 모두 점검:
    - **A. 과거 결정 충돌**: `Select-String -Path docs/adr/ -Pattern '<유사 키워드>'`. 충돌 결정 발견 시 issues.critical.
    - **B. decision 원칙 정합성** (조건부): decision-reviewer 산출이 paste에 있으면(돌았음 — [0][1A][1B][3H][3J] 이미 함) 그 5개는 *재순회 말고 해소만 확인*, `[1C][1D][2H][3I]`만 직접 walk. 없으면(skip된 작은 plan) 전체 walk — [1C][1D][2H][3I]는 *항상*. (walk 시: [3H] 적용? [1B] 옵션 표? [3J] 섣부른 *재사용* 추출 위반? — 크기·응집 분해·명시 요청은 위반 아님)
-   - **C. 사용자 글로벌 룰** (`~/.claude/CLAUDE.md`): "위임 문서 = 글쓰기" 위반? — plan 본문이 그 자리에서 완결되나(원칙·용어를 "정본 가서 읽어"로 떠넘기지 않았나)·헐거운 조건문("적절히/필요하면")이나 미정의 코드(잠김) 없나·사용자 결정 자리를 체감 시나리오로 기술했나.
+   - **C. 사용자 글로벌 룰** (`~/.claude/CLAUDE.md`): "위임 문서 = 글쓰기" 위반? — plan 본문이 그 자리에서 완결되나(원칙·용어를 "외부 문서로 넘기기"로 떠넘기지 않았나)·헐거운 조건문("적절히/필요하면")이나 미정의 코드(잠김) 없나·사용자 결정 자리를 체감 시나리오로 기술했나.
    - **D. plan 자체 정합성 + 재사용 계약 실재**: 슬라이스 의존성 순환? touched_files 겹침? estimated_minutes 합리적? **(조건부) plan이 *기존 코드를 재사용/가정*하는 자리("reuse X", "call Y", "기존 Z 그대로")마다 실코드 grep → 실재 + 시그니처/필드 일치 확인.** 불일치(가정한 함수·필드·계약 부재/상이) → critical/important — 허구 계약 위 슬라이스(impl-verify서 튕겨 헛구현). 재사용 없으면(greenfield) skip. 존재·시그니처만 — 코드 품질은 impl-verify 영역.
 3. **Evidence 강제** ([2J]):
    - 각 issue마다 `where` (file:line) + `recommend` (수정 방향)
@@ -95,7 +95,7 @@ plan approved → 본 plan-verify-reviewer attempt 1~3
 
 - 추상 통과 ("괜찮아 보임", "should be fine") — 모든 issue *원문 인용*
 - evidence 빈 채 DONE 기재 ([2J] 위반)
-- **미실행 명령을 evidence에 기재** — "Report only what was actually verified" 위반 (OMC `verify`, 정본 [SKILL-ARTIFACTS.md](../SKILL-ARTIFACTS.md))
+- **미실행 명령을 evidence에 기재** — "Report only what was actually verified" 위반 — 이 스킬의 Evidence 규칙 위반
 - plan 본문 *수정* (검증자는 read-only)
 - "Should I proceed?" 중간 확인 — 자동 진행
 
@@ -107,10 +107,6 @@ plan approved → 본 plan-verify-reviewer attempt 1~3
 
 ---
 
-## CONV-GATE 위임
-
-CONV-GATE mapping is maintained in the private source workspace. In this public package, follow this skill's local trigger and boundary text.
+## 실행 전후 확인
 
 - 4 차원 verdict 직전 → [2J] Evidence (격리 검증 + 명령 출력 직접 인용)
-
-신규 시점 추가 시 CONV-GRAPH.md 매핑 표 한 줄 갱신.
