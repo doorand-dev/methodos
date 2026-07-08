@@ -14,7 +14,8 @@ the pieces to your own Claude, Codex, or other agent runtime.
 |---|---|
 | Runtime contract | Stable reference |
 | Claude skills and agents | Usable reference |
-| Codex support | Experimental runtime notes and hook candidates |
+| Codex skills | Usable reference |
+| Codex hooks | Reference scripts; inactive until registered and trusted |
 | Installer | Not provided |
 | Public ADR archive | Not included |
 
@@ -112,9 +113,14 @@ comparison, irreversible changes, temporary patches, and FORCE/OPEN judgment.
 
 ### Runtime Guards
 
-These are hook candidates, not installed policy. They are intentionally narrower
-than the skills: each guard catches a mechanical runtime mismatch and leaves
-semantic judgment to the relevant Methodos gate or novelist lens.
+These are reference hook scripts, not active policy. Codex has a lifecycle hook
+system, but this repository does not ship a ready-to-load Codex `hooks.json`,
+plugin manifest, or installer. A runtime must explicitly register and trust a
+hook before it runs.
+
+The guards are intentionally narrower than the skills: each one catches a
+mechanical runtime mismatch and leaves semantic judgment to the relevant
+Methodos gate or novelist lens.
 
 | Hook | Role |
 |---|---|
@@ -129,9 +135,9 @@ semantic judgment to the relevant Methodos gate or novelist lens.
 contract/              Shared artifact schemas and Methodos reference contract
 skills/                Core gates, governance, continuity, learning-loop, and extension skills
 agents/claude/         Claude reviewer and novelist agent definitions
-hooks/common/          Hook candidates usable across runtimes
-hooks/claude/          Claude-only hook candidates
-hooks/codex/           Codex-only hook candidates
+hooks/common/          Reference hook scripts usable across runtimes
+hooks/claude/          Claude-only hook scripts
+hooks/codex/           Codex-only hook scripts
 runtime-notes/codex.md Codex runtime notes
 ```
 
@@ -145,15 +151,19 @@ agent. A practical adoption pass usually means:
    Start with core gates and `decision`; add continuity, learning-loop, and
    extension skills as needed.
 3. Adapt reviewer/novelist agents only if the runtime supports isolated agents.
-4. Treat `hooks/*` as candidates, not automatically installed policy.
+4. Treat `hooks/*` as reference scripts, not automatically installed policy.
+   For Codex, copying a `.py` file is not enough: register it in
+   `~/.codex/hooks.json`, `<repo>/.codex/hooks.json`, inline `[hooks]` in
+   `config.toml`, or a Codex plugin manifest, then review/trust the hook.
 5. Keep artifact paths and schemas stable when changing prose or runtime setup.
 
 `hooks/common/context_surface_guard.py` is intentionally mechanical. It can
 notice broken references or suspicious hot-context placement, then suggest a
 `context-novelist` pass; it does not run a model or replace that judgment.
 
-Codex support is experimental. Hook candidates and runtime notes are included,
-but no stable Codex setup is provided.
+Codex hook support is not the uncertain part; activation is. The scripts here
+remain disabled/reference until a runtime registers and trusts them. No stable
+Codex setup is provided.
 
 ## Contract Boundary
 
