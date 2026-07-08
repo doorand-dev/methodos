@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>report-kit — 정렬 목업 (7 아키타입 · 3 family)</title>
+<style>
+  /* ============================================================
+     report-kit  ·  공유 시각 DNA  (단일 LIGHT 테마)
+     여러 실제 산출물에서 추출한 팔레트 + 컴포넌트.
+     이 파일 자체가 키트의 첫 인스턴스(reference-use).
+     축(작업물/reference) 구분은 테마가 아니라 배지·좌측 스트라이프로.
+     ============================================================ */
+  :root{
+    --bg:#fafbfb; --card:#ffffff; --card2:#f5f8f7; --inset:#f1f5f4;
+    --line:#e3e9e8; --line-soft:#eef2f1;
+    --fg:#1a2b2a; --mute:#6b7c7a; --soft:#3c4d4b;
+    /* 의미색 — 5개 산출물 공통 (라이트) */
+    --ok:#16a34a;      /* 정상·코드생성·라이브 */
+    --warn:#d97706;    /* 경고·하이브리드·수기 */
+    --info:#2563eb;    /* 공식·정보 */
+    --danger:#b91c1c;  /* 문제·블록·손작성 */
+    --accent:#0d9488;  /* 강조·링크 (teal) */
+    --muted-src:#7b8493;
+    --clock:#7c3aed;   /* 시간·cron·축A */
+    --radius:12px;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:15px/1.6 -apple-system,"Segoe UI",Roboto,"Malgun Gothic","Noto Sans KR",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:32px 22px 90px}
+
+  /* ---- 헤더 / 타이포 ---- */
+  .kicker{color:var(--accent);font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+  h1{font-size:27px;margin:8px 0 6px;letter-spacing:-.4px;line-height:1.2}
+  .sub{color:var(--mute);font-size:13.5px}
+  .sub code,.lead code,.foot code{background:var(--inset);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px;color:#0f3a35;font-family:var(--mono)}
+  h2{font-size:14px;margin:42px 0 4px;color:var(--mute);text-transform:uppercase;letter-spacing:.12em;font-weight:700}
+  h2 .x{color:var(--soft);text-transform:none;letter-spacing:0;font-weight:400;font-size:13px;margin-left:6px}
+  .lead{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:var(--radius);padding:15px 19px;font-size:14.5px;margin:14px 0;box-shadow:0 1px 2px rgba(20,40,38,.04)}
+  .lead b{color:var(--accent)}
+  .secnote{color:var(--mute);font-size:13px;margin:8px 0 14px}
+
+  /* ---- 공통 카드 ---- */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 1px 2px rgba(20,40,38,.04)}
+
+  /* ---- 배지(재생성 모드 / 축) ---- */
+  .badge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:999px;
+    border:1px solid;vertical-align:middle}
+  .b-code{color:var(--ok);border-color:rgba(22,163,74,.4);background:rgba(22,163,74,.1)}
+  .b-hyb{color:var(--warn);border-color:rgba(217,119,6,.4);background:rgba(217,119,6,.1)}
+  .b-hand{color:var(--danger);border-color:rgba(185,28,28,.35);background:rgba(185,28,28,.08)}
+  .b-axisA{color:var(--clock);border-color:rgba(124,58,237,.38);background:rgba(124,58,237,.09)}
+  .b-axisB{color:var(--info);border-color:rgba(37,99,235,.36);background:rgba(37,99,235,.08)}
+
+  /* ============ 1) 아키타입 카탈로그 (family 그룹) ============ */
+  .fam{margin:18px 0}
+  .fam-hd{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap}
+  .fam-hd .tag{font-size:11px;font-weight:800;padding:3px 10px;border-radius:7px}
+  .fam-A .tag{background:rgba(124,58,237,.1);color:var(--clock);border:1px solid rgba(124,58,237,.32)}
+  .fam-B .tag{background:rgba(22,163,74,.1);color:var(--ok);border:1px solid rgba(22,163,74,.32)}
+  .fam-C .tag{background:rgba(37,99,235,.1);color:var(--info);border:1px solid rgba(37,99,235,.32)}
+  .fam-hd .lbl{font-weight:700;font-size:14px}
+  .fam-hd .meta{color:var(--mute);font-size:12.5px}
+  .arch-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:760px){.arch-grid{grid-template-columns:1fr}}
+  .arch{padding:13px 15px;position:relative;overflow:hidden}
+  .arch::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px}
+  .arch.ax-A::before{background:var(--clock)} .arch.ax-B::before{background:var(--info)}
+  .arch .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px}
+  .arch .nm{font-weight:700;font-size:15px}
+  .arch .ex{font-family:var(--mono);font-size:11px;color:var(--mute)}
+  .arch .desc{font-size:12.5px;color:var(--soft);margin:4px 0 8px;line-height:1.5}
+  .arch .comp{font-size:11.5px;color:var(--mute)}
+  .arch .comp b{color:var(--soft);font-weight:600}
+  .arch .badges{margin-top:9px;display:flex;gap:6px;flex-wrap:wrap}
+
+  /* ============ 컴포넌트 갤러리 공통 ============ */
+  .demo{padding:16px 18px;margin:10px 0}
+  .demo-cap{font-size:11.5px;color:var(--mute);font-family:var(--mono);margin-bottom:11px}
+  .demo-cap b{color:var(--accent)}
+
+  /* legend */
+  .legend{display:flex;flex-wrap:wrap;gap:9px}
+  .lg{display:inline-flex;align-items:center;gap:7px;background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:5px 11px;font-size:12.5px;color:var(--soft)}
+  .dot{width:11px;height:11px;border-radius:50%;flex:none}
+  .sw{width:12px;height:12px;border-radius:3px;flex:none}
+
+  /* flow diagram */
+  .flow{overflow-x:auto}
+  .frow{display:flex;align-items:stretch;min-width:720px}
+  .fcol{flex:1;display:flex;flex-direction:column;gap:7px;padding:0 7px}
+  .fcol h4{font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;text-align:center;margin:0 0 3px}
+  .fbox{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.4}
+  .fbox b{display:block;font-size:12.5px;color:var(--fg)}
+  .fbox .m{color:var(--mute);font-size:11px}
+  .fbox.s-kakao{border-left:3px solid var(--ok)} .fbox.s-heal{border-left:3px solid var(--warn)} .fbox.s-pay{border-left:3px solid var(--clock)}
+  .farrow{display:flex;align-items:center;justify-content:center;color:#9aa5a3;font-size:19px;padding:0 1px}
+
+  /* cascade ladder */
+  .casc{display:flex;flex-direction:column}
+  .lr{display:grid;grid-template-columns:64px 1fr 132px;gap:13px;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .lr:last-child{border-bottom:none}
+  .lv{font-weight:700;font-size:11.5px;text-align:center;padding:5px 2px;border-radius:6px;background:var(--inset);border:1px solid var(--line);color:var(--soft)}
+  .lv.l1{border-color:rgba(22,163,74,.5);color:var(--ok)} .lv.l2{border-color:rgba(37,99,235,.5);color:var(--info)} .lv.blk{border-color:rgba(185,28,28,.5);color:var(--danger)}
+  .lr .d{font-size:13px;color:var(--soft)} .lr .d b{color:var(--fg)}
+  .lr .src{font-size:11px;color:var(--mute);text-align:right;font-family:var(--mono)}
+
+  /* stage × variant matrix */
+  .matrix{display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:4px;min-width:560px}
+  .mwrap{overflow-x:auto}
+  .mc{background:var(--card2);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:12px}
+  .mc small{color:var(--mute);font-size:10.5px}
+  .mc.hdr{font-weight:700;text-align:center;color:var(--soft)}
+  .mc.hdr small{display:block;font-weight:400}
+  .mc.st{font-weight:600;font-size:11.5px;background:var(--inset);color:var(--soft)}
+  .mc.ok{background:rgba(22,163,74,.09);border-color:rgba(22,163,74,.32)}
+  .mc.warn{background:rgba(185,28,28,.07);border-color:rgba(185,28,28,.3)}
+  .mc.div{background:rgba(217,119,6,.09);border-color:rgba(217,119,6,.32)}
+  .okt{color:var(--ok);font-size:10.5px}
+
+  /* case card (시나리오 타임라인 + 판정) */
+  .tl{display:flex;flex-direction:column;gap:8px;margin-bottom:13px}
+  .ev{display:flex;gap:11px;align-items:flex-start}
+  .ev .day{font-size:11px;color:var(--mute);width:46px;flex:none;padding-top:6px;font-family:var(--mono)}
+  .ev .body{flex:1;background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:13px}
+  .ev .who{font-weight:700}
+  .ev.bL .body{border-left:3px solid var(--ok)} .ev.bC .body{border-left:3px solid var(--muted-src)} .ev.bO .body{border-left:3px solid var(--info)}
+  .ev .res{font-size:12px;margin-top:3px;color:var(--mute)}
+  .state{display:flex;flex-wrap:wrap;gap:8px;background:var(--inset);border:1px dashed var(--line);border-radius:10px;padding:11px 13px;margin-bottom:12px}
+  .state .lbl{font-size:11px;color:var(--mute);width:100%;margin-bottom:1px}
+  .fc{display:flex;flex-direction:column;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 11px;min-width:104px}
+  .fc .f{font-size:10.5px;color:var(--mute)} .fc .v{font-size:14px;font-weight:700} .fc .s{font-size:10px;font-weight:700}
+  .fc.live{border-color:rgba(22,163,74,.45)} .fc.live .s{color:var(--ok)}
+  .fc.curator{border-color:rgba(123,132,147,.5)} .fc.curator .s{color:var(--muted-src)}
+  .fc.official{border-color:rgba(37,99,235,.45)} .fc.official .s{color:var(--info)}
+  .take{font-size:13px;background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.28);border-radius:9px;padding:9px 13px}
+  .take b{color:var(--ok)}
+
+  /* diff table (통제 A/B) */
+  .difsum{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:11px}
+  .ds{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:9px 14px;text-align:center}
+  .ds .n{font-size:20px;font-weight:700;color:var(--ok)} .ds .n.hot{color:var(--warn)}
+  .ds .l{font-size:10.5px;color:var(--mute);margin-top:2px}
+  table{width:100%;border-collapse:collapse;font-size:13px;font-family:var(--mono)}
+  th,td{border:1px solid var(--line);padding:6px 10px;text-align:center}
+  th{background:var(--card2);color:var(--soft);font-weight:600;font-size:11px;font-family:-apple-system,sans-serif}
+  td.w{text-align:left}
+  tr.num td.w{font-weight:700;color:var(--info)}
+  tr.hot td{background:rgba(217,119,6,.12)}
+  .pos{color:var(--ok)} .neg{color:var(--danger)}
+
+  /* verdict card (round-trip 판정폼) */
+  .vcard{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+  .vhd{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--mute);margin-bottom:8px}
+  .vhd .n{font-weight:700;color:var(--soft)} .vhd .job{flex:1;font-family:var(--mono);font-size:11px}
+  .vbadge{padding:2px 9px;border-radius:20px;font-size:11px}
+  .vbadge.low{background:rgba(217,119,6,.14);color:var(--warn)} .vbadge.human{background:rgba(124,58,237,.13);color:var(--clock)}
+  .vaudio{height:34px;border-radius:6px;background:linear-gradient(90deg,#eef3f2,#e6efed);border:1px solid var(--line);display:flex;align-items:center;padding:0 12px;gap:9px;color:var(--mute);font-size:12px;margin:6px 0}
+  .vaudio .play{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;flex:none}
+  .vctx{font-size:15px;margin:9px 0;color:var(--soft)} .vctx mark{background:var(--accent);color:#fff;padding:1px 4px;border-radius:3px}
+  .vcands{font-size:12.5px;color:var(--mute);margin:6px 0} .vcands b{color:var(--soft)} .vcands .cap b{color:var(--ok)}
+  .vrow{display:flex;gap:16px;align-items:center;margin-top:10px;flex-wrap:wrap}
+  .vrow label{font-size:12.5px;color:var(--mute)}
+  input.truth{background:var(--card);border:1px solid var(--line);color:var(--fg);padding:7px 10px;border-radius:6px;font-size:14px;width:230px}
+  input.truth:focus{border-color:var(--accent);outline:0}
+  .btn{background:var(--accent);color:#fff;border:0;padding:8px 15px;border-radius:7px;font-size:13px;cursor:pointer;font-weight:600}
+  .btn:hover{filter:brightness(1.06)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--soft)}
+
+  /* pending / honest gap */
+  .pending{color:var(--mute);font-size:13px;padding:11px 14px;background:#fffbeb;border:1px dashed #e7c98a;border-radius:9px}
+  .pending b{color:#9a6a13}
+
+  /* measurement cards */
+  .mcards{display:flex;gap:11px;flex-wrap:wrap}
+  .mcard{flex:1;min-width:120px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center}
+  .mcard .num{font-size:26px;font-weight:700;color:var(--ok)} .mcard .lbl{font-size:11.5px;color:var(--mute);margin-top:4px}
+
+  /* 축 신호 데모 (테마 아님 — 스트라이프/배지) */
+  .axes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:620px){.axes{grid-template-columns:1fr}}
+  .axdemo{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 15px 13px 18px;position:relative;overflow:hidden}
+  .axdemo::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+  .axdemo.a::before{background:var(--clock)} .axdemo.b::before{background:var(--info)}
+  .axdemo .tt{font-weight:700;font-size:13px;margin-bottom:3px}
+  .axdemo .td{font-size:12px;color:var(--mute)}
+  .axdemo .pin{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:7px}
+  .axdemo.a .pin{background:rgba(124,58,237,.1);color:var(--clock)}
+  .axdemo.b .pin{background:rgba(37,99,235,.09);color:var(--info)}
+
+  /* provenance footer */
+  .foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--mute);line-height:1.7}
+  .foot b{color:var(--soft)}
+
+  .q{background:rgba(13,148,136,.06);border:1px solid rgba(13,148,136,.28);border-radius:var(--radius);padding:14px 18px;margin:16px 0;font-size:13.5px}
+  .q b{color:var(--accent)}
+  .q ol{margin:8px 0 0;padding-left:22px} .q li{margin:5px 0}
+  .q .done{color:var(--ok);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">report-kit · 키트 레퍼런스 (prototype v0)</div>
+  <h1>생애주기 HTML 양식 — 7 아키타입 · 3 family</h1>
+  <div class="sub">이 페이지 자체가 <code>report-kit</code>의 첫 인스턴스(reference-use, <b>단일 라이트 테마</b>). 안의 모든 컴포넌트는 5개 정본 산출물 + 2개 측정/비교 양식에서 추출한 실제 데이터로 채움. 축(작업물/reference)은 테마가 아니라 <b>좌측 스트라이프·배지</b>로 구분.</div>
+
+  <div class="lead">
+    <b>이 페이지 = 키트 reference instance(reference-use).</b> 아래 팔레트(<code>:root</code>)와 9 컴포넌트 마크업을 <b>복사해서</b> 새 양식을 만든다. 7 아키타입 골격 + 실데이터 예시가 한 장에. 사용법은 <code>SKILL.md</code> 워크플로.
+  </div>
+
+  <!-- ====================================================== -->
+  <h2>1 · 아키타입 카탈로그 <span class="x">— 본체(substance)로 3 family</span></h2>
+  <div class="secnote">재생성 모드: <span class="badge b-code">코드생성</span> 안 stale · <span class="badge b-hyb">하이브리드</span> 골격코드+판단손 · <span class="badge b-hand">손작성</span> drift 관리 필요 &nbsp;|&nbsp; 축(좌측 스트라이프): <span class="badge b-axisA">A 작업물</span> <span class="badge b-axisB">B 주제/reference</span></div>
+
+  <div class="fam fam-A">
+    <div class="fam-hd"><span class="tag">A · 서사형</span><span class="lbl">설명·합의</span><span class="meta">손작성(LLM) · drift 관리 필요 · 키트+골격+provenance 규율</span></div>
+    <div class="arch-grid">
+      <div class="card arch ax-A">
+        <div class="top"><span class="nm">Spec 검토</span><span class="ex">spec-manual-data-dashboard</span></div>
+        <div class="desc">grill-me 산출. 목표·왜·in/out scope·권위 사다리 — 작업 합의를 읽히게.</div>
+        <div class="comp"><b>컴포넌트:</b> goal-box · why-list · ladder-table · scope-cols</div>
+        <div class="badges"><span class="badge b-hand">손작성</span><span class="badge b-axisA">A</span></div>
+      </div>
+      <div class="card arch ax-A">
+        <div class="top"><span class="nm">시나리오 데이터흐름</span><span class="ex">source-authority-dataflow</span></div>
+        <div class="desc">plan/설계 결정. 구체 시나리오를 시스템에 흘려 상태변화+판정으로 결정 정당화.</div>
+        <div class="comp"><b>컴포넌트:</b> case-card · timeline · field-state · take(판정)</div>
+        <div class="badges"><span class="badge b-hand">손작성</span><span class="badge b-axisA">A</span></div>
+      </div>
+      <div class="card arch ax-B">
+        <div class="top"><span class="nm">시스템 전경</span><span class="ex">pipeline-overview</span></div>
+        <div class="desc">영속 reference. 데이터 흐름+분류 캐스케이드+cron+워크플로 전체 조망.</div>
+        <div class="comp"><b>컴포넌트:</b> flow-diagram · cascade-ladder · cron-grid · workflow-table</div>
+        <div class="badges"><span class="badge b-hyb">하이브리드</span><span class="badge b-axisB">B</span></div>
+      </div>
+      <div class="card arch ax-B">
+        <div class="top"><span class="nm">생애주기 매트릭스</span><span class="ex">자막_생애주기_채널별</span></div>
+        <div class="desc">impl 진행. 단계×변형 그리드로 어디서 갈리고 뭐가 깨졌나 + 문제→개선.</div>
+        <div class="comp"><b>컴포넌트:</b> stage-matrix · problem→fix list · status(✓/P#)</div>
+        <div class="badges"><span class="badge b-hyb">하이브리드</span><span class="badge b-axisB">B</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fam fam-B">
+    <div class="fam-hd"><span class="tag">B · 데이터형</span><span class="lbl">측정·비교</span><span class="meta">코드생성 · 안 stale · 키트+빌더(data→html)</span></div>
+    <div class="arch-grid">
+      <div class="card arch ax-B">
+        <div class="top"><span class="nm">측정 스냅샷</span><span class="ex">source_bench/report</span></div>
+        <div class="desc">측정 1회 스냅샷. 커버리지·타임라인 + "아직 못 채우는 것"으로 provenance 정직.</div>
+        <div class="comp"><b>컴포넌트:</b> stat-cards · coverage-table · pending-note</div>
+        <div class="badges"><span class="badge b-code">코드생성</span><span class="badge b-axisB">B</span></div>
+      </div>
+      <div class="card arch ax-B">
+        <div class="top"><span class="nm">통제 A/B diff</span><span class="ex">_compare_aligners_294</span></div>
+        <div class="desc">변수 1개만 통제(같은 음성·prod 경로·원복). A|B|Δ + 핫스팟 + 포커스 서브셋.</div>
+        <div class="comp"><b>컴포넌트:</b> diff-summary · diff-table · hotspot · focus-subset</div>
+        <div class="badges"><span class="badge b-code">코드생성</span><span class="badge b-axisB">B</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fam fam-C">
+    <div class="fam-hd"><span class="tag">C · 루프형</span><span class="lbl">판정 수집</span><span class="meta">코드생성+인터랙티브 · 왕복 프로토콜(select→evidence→input→JSON→apply)</span></div>
+    <div class="arch-grid">
+      <div class="card arch ax-A">
+        <div class="top"><span class="nm">청취/판정 확정 폼</span><span class="ex">build_listen_pack</span></div>
+        <div class="desc">불확실 케이스만 선별 → 증거 임베드(오디오/이미지) → 사람 입력 → JSON 복사 → apply가 gold 반영.</div>
+        <div class="comp"><b>컴포넌트:</b> verdict-card · evidence-embed · candidates · json-out</div>
+        <div class="badges"><span class="badge b-code">코드생성</span><span class="badge b-axisA">A</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================== -->
+  <h2>2 · 컴포넌트 갤러리 <span class="x">— 실제 데이터로 렌더 (색·경계 판단용)</span></h2>
+
+  <div class="card demo">
+    <div class="demo-cap"><b>source-legend</b> + 상태 범례 — 모든 양식 공통 어휘</div>
+    <div class="legend">
+      <span class="lg"><i class="dot" style="background:var(--ok)"></i>kakao 공식</span>
+      <span class="lg"><i class="dot" style="background:var(--warn)"></i>healduck</span>
+      <span class="lg"><i class="dot" style="background:var(--clock)"></i>payco</span>
+      <span class="lg"><i class="sw" style="background:var(--ok)"></i>정상</span>
+      <span class="lg"><i class="sw" style="background:var(--danger)"></i>문제</span>
+      <span class="lg"><i class="sw" style="background:var(--warn)"></i>분기/주의</span>
+    </div>
+  </div>
+
+  <div class="card demo">
+    <div class="demo-cap"><b>flow-diagram</b> — 소스→랜딩 (pipeline-overview)</div>
+    <div class="flow"><div class="frow">
+      <div class="fcol"><h4>소스</h4>
+        <div class="fbox s-kakao"><b>kakao</b><span class="m">공식채널 JSON</span></div>
+        <div class="fbox s-heal"><b>healduck</b><span class="m">구글시트 CSV</span></div>
+        <div class="fbox s-pay"><b>nutriguidebook</b><span class="m">payco HTML</span></div>
+      </div>
+      <div class="farrow">→</div>
+      <div class="fcol"><h4>수집·추출 (regex)</h4>
+        <div class="fbox s-kakao"><b>observe_kakao</b><span class="m">코드·%·기간 regex</span></div>
+        <div class="fbox s-heal"><b>parse_curator</b><span class="m">CSV 컬럼</span></div>
+        <div class="fbox s-pay"><b>poll_payco</b><span class="m">할인율 추출</span></div>
+      </div>
+      <div class="farrow">→</div>
+      <div class="fcol"><h4>분류</h4>
+        <div class="fbox" style="border-left:3px solid var(--info)"><b>cascade</b><span class="m">L-1~L2 (§아래)</span></div>
+      </div>
+      <div class="farrow">→</div>
+      <div class="fcol"><h4>D1</h4>
+        <div class="fbox"><b>catalog_snapshot</b></div>
+        <div class="fbox"><b>llm_classifications</b><span class="m">변경게이트</span></div>
+      </div>
+      <div class="farrow">→</div>
+      <div class="fcol"><h4>노출</h4>
+        <div class="fbox"><b>deploy</b><span class="m">prerender</span></div>
+        <div class="fbox"><b>Worker SSR</b></div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="card demo">
+    <div class="demo-cap"><b>cascade-ladder</b> — 위에서 먼저 걸리면 멈춤 (pipeline-overview ②)</div>
+    <div class="casc">
+      <div class="lr"><div class="lv blk">L-1</div><div class="d"><b>HARD_BLOCK</b> — referral 격리코드 즉시 EXCLUDED</div><div class="src">seed.hard_block</div></div>
+      <div class="lr"><div class="lv">L0·m</div><div class="d"><b>manual_memo</b> — 사람 교정을 L1보다 먼저</div><div class="src">source='manual_label'</div></div>
+      <div class="lr"><div class="lv l1">L1·A</div><div class="d"><b>signal_a</b>(코드명) — registry → <b style="color:var(--ok)">family stem</b> → prefix</div><div class="src">signal_a_scope</div></div>
+      <div class="lr"><div class="lv l1">L1·B</div><div class="d"><b>signal_b</b>(조건문구) — 통제어휘 1클래스 매칭</div><div class="src">_B_SCOPE_KEYWORDS</div></div>
+      <div class="lr"><div class="lv l2">L2</div><div class="d"><b>LLM 심판</b> — 양쪽 불명일 때만. 불명 → <b style="color:var(--danger)">ambiguous→EXCLUDED</b></div><div class="src">classify_with_llm</div></div>
+    </div>
+  </div>
+
+  <div class="card demo">
+    <div class="demo-cap"><b>stage-matrix</b> — 단계 × 변형(채널) (자막_생애주기)</div>
+    <div class="mwrap"><div class="matrix">
+      <div class="mc hdr st">단계</div>
+      <div class="mc hdr">bh1<small>쇼츠 ko</small></div>
+      <div class="mc hdr">bh1L<small>롱폼 ko</small></div>
+      <div class="mc hdr">mic<small>밈 en→ko</small></div>
+
+      <div class="mc st">① 다운로드</div>
+      <div class="mc">무음제거</div><div class="mc">무음제거</div><div class="mc div">안 함 = 원본</div>
+
+      <div class="mc st">④ 문장분할</div>
+      <div class="mc ok">LLM 의미분할 ✓</div><div class="mc ok">LLM 의미분할 ✓</div><div class="mc warn">asr_segment 그대로 ⚠️</div>
+
+      <div class="mc st">⑤ 편집판정</div>
+      <div class="mc ok">문장당 KEEP ✓</div><div class="mc ok">문장당 블록 ✓<small>bd9eae5</small></div><div class="mc">전량 KEEP</div>
+
+      <div class="mc st">⑥ 줄바꿈</div>
+      <div class="mc warn">12자 greedy ⚠️</div><div class="mc warn">28자 greedy ⚠️</div><div class="mc warn">40자 greedy ⚠️</div>
+    </div></div>
+  </div>
+
+  <div class="card demo">
+    <div class="demo-cap"><b>case-card</b> — 시나리오 타임라인 + 필드상태 + 판정 (source-authority-dataflow)</div>
+    <div style="font-size:15px;margin-bottom:3px;font-weight:700">케이스 — 큐레이터 pct, 라이브가 expiry 정정</div>
+    <div style="color:var(--mute);font-size:13px;margin-bottom:12px">한 쿠폰의 필드가 서로 다른 소스에서 옴 → 필드별 provenance</div>
+    <div class="tl">
+      <div class="ev bC"><div class="day">D-2</div><div class="body"><span class="who">healduck CSV</span> — GOLD120 / 20% / ~6/30 수집<div class="res">→ 전 필드 curator 출처로 적재</div></div></div>
+      <div class="ev bL"><div class="day">D-0</div><div class="body"><span class="who">라이브 applyCoupon</span> — 코드 살아있음, 만료 6/15로 실측<div class="res" style="color:var(--ok)">→ expiry만 live가 덮음. pct·scope는 curator 유지</div></div></div>
+    </div>
+    <div class="state"><span class="lbl">결과 필드 상태 (필드별 권위)</span>
+      <div class="fc curator"><span class="f">pct</span><span class="v">20%</span><span class="s">curator</span></div>
+      <div class="fc curator"><span class="f">scope</span><span class="v">global</span><span class="s">curator</span></div>
+      <div class="fc live"><span class="f">expiry</span><span class="v">6/15</span><span class="s">live ✓</span></div>
+    </div>
+    <div class="take"><b>판정:</b> 줄당 1소스였으면 expiry 정정이 pct까지 curator→live로 끌어 오염. 필드별 provenance라 정정이 expiry에만 국소화 ✓</div>
+  </div>
+
+  <div class="card demo">
+    <div class="demo-cap"><b>diff-summary + diff-table</b> — 통제 A/B (294: 같은 음성, 정렬기만 MFA↔qwen-FA) <span style="color:var(--warn)">★요약통계 추가</span></div>
+    <div class="difsum">
+      <div class="ds"><div class="n">786</div><div class="l">총 단어</div></div>
+      <div class="ds"><div class="n hot">31</div><div class="l">핫스팟 |Δ|≥0.3s</div></div>
+      <div class="ds"><div class="n">+0.04s</div><div class="l">평균 Δ(MFA−qFA)</div></div>
+      <div class="ds"><div class="n">12</div><div class="l">숫자토큰(정렬핵심)</div></div>
+    </div>
+    <table>
+      <tr><th>단어</th><th>qwen-FA</th><th>MFA</th><th>Δ(MFA−qFA)</th></tr>
+      <tr class="num"><td class="w">2025</td><td>12.180</td><td>12.540</td><td class="pos">+0.360</td></tr>
+      <tr class="num hot"><td class="w">1주년</td><td>18.020</td><td>18.470</td><td class="pos">+0.450</td></tr>
+      <tr><td class="w">기자회견을</td><td>21.300</td><td>21.290</td><td class="neg">−0.010</td></tr>
+      <tr class="hot"><td class="w">말씀드리겠습니다</td><td>27.110</td><td>26.700</td><td class="neg">−0.410</td></tr>
+    </table>
+    <div style="font-size:11.5px;color:var(--mute);margin-top:8px">노랑=핫스팟 · 파랑굵게=숫자토큰. <b style="color:var(--warn)">통제 규율(같은입력·prod경로·try/finally 원복)은 HTML 아니라 finding/체크리스트로 — 표시만 키트.</b></div>
+  </div>
+
+  <div class="card demo">
+    <div class="demo-cap"><b>verdict-card</b> (round-trip) — 청취 확정 폼 (build_listen_pack). 아래 입력→복사 실제 동작</div>
+    <div class="vcard" data-sid="42">
+      <div class="vhd"><span class="n">#1 · site 42</span><span class="job">job 294 · t=27.1s</span><span class="vbadge low">low-conf</span></div>
+      <div class="vaudio"><span class="play">▶</span> 음향 클립 4초 (base64 임베드 — 목업은 자리표시)</div>
+      <div class="vctx">…올해로 취임 <mark>일주년</mark>을 맞아…</div>
+      <div class="vcands">qwen최종=<b>일주년</b> | qwen원본=<b>1주년</b> | whisper원본=<b>일 주년</b> | <span class="cap">CapCut=<b>일주년</b></span></div>
+      <div class="vrow">
+        <label>현 판정: <span style="color:var(--soft);font-weight:600">일주년</span></label>
+        <label>실제 발화: <input class="truth" value="일주년" placeholder="들어서 확정"></label>
+      </div>
+    </div>
+    <div class="vrow" style="margin-top:11px">
+      <button class="btn" onclick="copyJSON()">결과 JSON 복사</button>
+      <span id="prog" style="color:var(--mute);font-size:12.5px"></span>
+    </div>
+  </div>
+
+  <div class="card demo">
+    <div class="demo-cap"><b>stat-cards + pending-note</b> — 측정 스냅샷의 정직 장치 (source_bench)</div>
+    <div class="mcards" style="margin-bottom:12px">
+      <div class="mcard"><div class="num">1</div><div class="lbl">kakao 코드</div></div>
+      <div class="mcard"><div class="num">1</div><div class="lbl">healduck 코드</div></div>
+      <div class="mcard"><div class="num">0</div><div class="lbl">nutriguidebook</div></div>
+    </div>
+    <div class="pending"><b>아직 못 채우는 것 (기간 관찰 필요):</b> 속도(누가 먼저 잡았나) — 단일 run은 전부 동시라 거짓값. cron N주 누적 후 "코드 X: healduck 6/4 → nutriguidebook 6/6" 리드타임 표가 여기 채워짐.</div>
+  </div>
+
+  <!-- ====================================================== -->
+  <h2>3 · 축 신호 <span class="x">— 테마 아님(라이트 단일). 좌측 스트라이프 + 배지</span></h2>
+  <div class="secnote">5개 산출물이 우연히 dark/light로 갈랐던 걸 <b>색 스트라이프</b>로 대체: 작업물=보라 · reference=파랑. 한눈에 "이게 한 작업물인가 영속 reference인가" 구분.</div>
+  <div class="axes">
+    <div class="axdemo a"><span class="pin">축 A · 작업물 (보라)</span><div class="tt">Spec 검토 · 시나리오 흐름 · 판정 폼</div><div class="td">한 작업과 함께 태어나 끝나면 졸업/폐기. 결정·합의·수집.</div></div>
+    <div class="axdemo b"><span class="pin">축 B · reference (파랑)</span><div class="tt">시스템 전경 · 생애주기 · 측정 스냅샷</div><div class="td">서브시스템을 장기 추적. 여러 작업을 가로지르는 영속 reference.</div></div>
+  </div>
+
+  <!-- ====================================================== -->
+  <div class="q">
+    <b>규약 (확정 — prototype v0):</b>
+    <ol>
+      <li class="done">✓ <b>팔레트</b> — ok 녹 / warn 황 / danger 적 / info 청 / clock 보라 / accent 청록(teal).</li>
+      <li class="done">✓ <b>컴포넌트 9종</b> — flow / cascade / matrix / case-card / diff-table / verdict-card / stat-cards / pending-note / provenance-footer.</li>
+      <li class="done">✓ <b>테마</b> — 라이트 단일. 축 신호는 좌측 스트라이프(보라=작업물 / 파랑=reference).</li>
+      <li class="done">✓ <b>방법론 분리</b> — 통제 규율·provenance 갱신은 <code>finding</code>으로 (키트는 표시만).</li>
+    </ol>
+  </div>
+
+  <div class="foot">
+    생성 <b>2026-06-12</b> · 성격 <b>키트 reference</b>(prototype v0, 복붙 출처) · 테마 <b>라이트 단일</b> · 스킬 <code>skills/report-kit/</code> ·
+    근거 <code>spec review</code> + <code>system overview</code> + <code>lifecycle report</code> + <code>measurement snapshot</code><br>
+    <b>쓰는 법:</b> 아키타입 골격 + <code>:root</code> 복사 → 실데이터로 채움 → provenance 푸터 → 자기완결 단일 파일. 마찰은 evolve로.
+  </div>
+
+</div>
+
+<script>
+  function copyJSON(){
+    const out=[];
+    document.querySelectorAll('.vcard').forEach(c=>{
+      const sid=+c.dataset.sid, t=c.querySelector('.truth').value.trim();
+      if(t) out.push({site_id:sid, truth:t});
+    });
+    const json=JSON.stringify(out);
+    navigator.clipboard?.writeText(json).then(
+      ()=>flash('복사됨: '+out.length+' site → 채팅에 붙여넣기'),
+      ()=>flash('복사 실패 — '+json)
+    );
+  }
+  function flash(m){const p=document.getElementById('prog');p.textContent=m;}
+  function upd(){const n=[...document.querySelectorAll('.truth')].filter(i=>i.value.trim()).length;
+    document.getElementById('prog').textContent=n+' 건 입력됨';}
+  document.querySelectorAll('.truth').forEach(i=>i.addEventListener('input',upd));upd();
+</script>
+</body>
+</html>

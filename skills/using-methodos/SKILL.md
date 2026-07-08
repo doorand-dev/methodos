@@ -29,10 +29,21 @@ description: |
 | codex 게이트 (impl 내부) | 대형·아키텍처 변경, *마무리 직전* 1회 | `.claude/verify-reports/codex-impl-<slug>.json` |
 | narrative novelist (#2/#4) | spec 직후 / 조립 실물 최종 시점 | spec fold / `narrative-<slug>-final.json` |
 | `context-novelist` | 문서·handoff·review packet·runtime context가 scope일 때 | 최소충분컨텍스트 판정 |
-| `decision` (빌트인) | 옵션 비교·비가역·임시방편 자리 | `docs/adr/NNNN-*.md` 또는 `WHY:` 주석 |
-| `/simplify` (빌트인, G-D) | 전체 diff 마무리 *선택* 1회 | (working tree 정리) |
+| `decision` (governance) | 옵션 비교·비가역·임시방편 자리 | `docs/adr/NNNN-*.md` 또는 `WHY:` 주석 |
+| `/simplify` (optional external helper, G-D) | 전체 diff 마무리 *선택* 1회 | (working tree 정리) |
 
 순서·강도는 **트리거 조건에서 창발**한다 (plan은 spec 있을 때, impl은 plan approved일 때). 라우터가 순서를 *보장*하지 않는다.
+## 스킬 패밀리
+
+| 성격 | 스킬 | Methodos에서의 역할 |
+|---|---|---|
+| Core gates | `grill-me`, `plan`, `plan-verify`, `impl`, `impl-verify`, `spec-novelist`, `impl-novelist` | spec → plan → verified slice → final narrative 흐름을 직접 만든다 |
+| Governance | `decision` | gate는 아니지만 핵심 판단 렌즈. 옵션 비교, 비가역, 임시방편, FORCE/OPEN 판단을 닫는다 |
+| Continuity | `handoff`, `snapshot`, `todo`, `context-novelist` | 긴 작업을 세션·압축·문서 경계 너머로 잃지 않게 한다 |
+| Learning loop | `blame-code`, `finding`, `gc`, `improve-codebase-architecture` | 혼란·발견·stale 표면을 축적하고 구조 개선으로 되돌린다 |
+| Extensions | `ask-chatgpt-pro`, `report-kit` | 외부 second opinion과 보고서 산출처럼 상황 의존 기능을 붙인다 |
+
+`decision`은 보조가 아니다. 중앙 라우터는 아니지만 Methodos의 core governance다. 반대로 `handoff`/`snapshot`/`todo`는 파이프라인 산출물을 읽고 쓰지 않는 운영층이라 core gate가 아니다.
 
 ## tier = 트리거 *설계 근거* (런타임 라벨 아님)
 

@@ -106,7 +106,7 @@ Stage 1 ✅이어야 진입.
 1. **[3I] 점검**: 새 클래스·래퍼·매니저 발견 시 "지우면 어떻게 되나?" 자문
 2. **[3J] 점검**: 새 공유 모듈 발견 시 "두 번째 사용처 진짜 있나?"
 3. **[1D] 점검**: 같은 값·결정이 여러 곳에 있나? (DRY)
-4. **gc-skill 임계치**: `py -3 ~/.claude/skills/gc/gc_audit.py`. 임계치 초과 있으면 important issue
+4. **gc-skill 임계치**: `py -3 <gc-skill-dir>/gc_audit.py`. 임계치 초과 있으면 important issue
 5. **TDD 흔적 — *red-green 양방향 관찰 강제*** ("If you didn't watch the test fail, you don't know if it tests the right thing"):
    - 새 테스트 존재만으로 부족. *실패→통과* 양방향 흔적 필수
    - 검증 방법: `git log --oneline <prev>.HEAD -- <test_path>` 에 red commit + green commit 분리, **또는** verify 단계에서 *fix를 임시 revert → 테스트 실행해서 실제 fail → restore → 다시 pass* 사이클 직접 실행

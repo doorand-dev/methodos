@@ -49,9 +49,11 @@ The shared contract for these artifacts lives in
 [`contract/SKILL-ARTIFACTS.md`](contract/SKILL-ARTIFACTS.md). Runtime-specific
 wording, hooks, and agent formats may differ as long as they obey that contract.
 
-## Gates
+## Skill Families
 
-| Gate | Role | Artifact |
+### Core Gates
+
+| Skill | Role | Artifact |
 |---|---|---|
 | `using-methodos` | Passive orientation meta-skill, not a router | none |
 | `grill-me` | Intent alignment interview before non-trivial work | `docs/specs/<slug>.md` |
@@ -59,18 +61,44 @@ wording, hooks, and agent formats may differ as long as they obey that contract.
 | `plan-verify` | Isolated adversarial plan review | `.claude/verify-reports/plan-*.json` |
 | `impl` | Slice implementation with `WHY:` commits | git commits |
 | `impl-verify` | Isolated slice verification | `.claude/verify-reports/slice-*.json` |
-| `context-novelist` | Minimal sufficient context audit | review judgment |
+| `spec-novelist` | Fresh-context spec narrative dry-run | spec fold |
+| `impl-novelist` | Final assembled implementation narrative dry-run | `.claude/verify-reports/narrative-*.json` |
 
-Additional discovery skills:
+### Governance
 
-- `spec-novelist`: thin Codex-facing router to the spec narrative agent.
-- `impl-novelist`: thin Codex-facing router to the final implementation narrative agent.
+`decision` is not a gate, but it is core Methodos governance. It handles option
+comparison, irreversible changes, temporary patches, and FORCE/OPEN judgment.
+
+### Continuity
+
+| Skill | Role |
+|---|---|
+| `handoff` | Task-scoped next-session context packet |
+| `snapshot` | Same-session pre-compact priority snapshot |
+| `todo` | Project-persistent task list |
+| `context-novelist` | Minimal sufficient context audit for prompts, handoffs, plans, and runtime context |
+
+### Learning Loop
+
+| Skill | Role |
+|---|---|
+| `blame-code` | Turn AI confusion into code/documentation friction records |
+| `finding` | Preserve external-system facts and failed paths that code cannot encode |
+| `gc` | Surface stale artifacts, friction backlog, dead code, duplicates, and context drift |
+| `improve-codebase-architecture` | Convert accumulated friction into deeper modules and better seams |
+
+### Optional Extensions
+
+| Skill | Role |
+|---|---|
+| `ask-chatgpt-pro` | Delegate second-opinion review to a logged-in ChatGPT Pro browser session |
+| `report-kit` | Produce self-contained lifecycle/status/decision HTML reports |
 
 ## Repository Layout
 
 ```text
 contract/              Shared artifact schemas and Methodos reference contract
-skills/                Top-level skills for a runtime to adapt
+skills/                Core gates, governance, continuity, learning-loop, and extension skills
 agents/claude/         Claude reviewer and novelist agent definitions
 hooks/common/          Hook candidates usable across runtimes
 hooks/claude/          Claude-only hook candidates
@@ -85,6 +113,8 @@ agent. A practical adoption pass usually means:
 
 1. Read `contract/SKILL-ARTIFACTS.md`.
 2. Adapt the relevant `skills/*/SKILL.md` files into the runtime's skill format.
+   Start with core gates and `decision`; add continuity, learning-loop, and
+   extension skills as needed.
 3. Adapt reviewer/novelist agents only if the runtime supports isolated agents.
 4. Treat `hooks/*` as candidates, not automatically installed policy.
 5. Keep artifact paths and schemas stable when changing prose or runtime setup.

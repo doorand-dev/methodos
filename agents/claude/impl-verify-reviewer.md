@@ -36,7 +36,7 @@ You are NOT responsible for:
 - **[3I] grep-friendly**: each new class/wrapper/manager — apply deletion test (mat pocock)
 - **[3J] extraction-timing (rule-of-three, ≠ YAGNI-feature)**: each module created *for reuse* — same-reason-to-change 2nd caller real? hypothetical *reuse* seam? A single reuse target is hypothetical; two same-reason-to-change targets make reuse real. EXEMPT: size/cohesion splits (single caller OK — deep module) and user-requested features.
 - **[1D] DRY**: same value/decision/literal duplicated across touched files?
-- **gc-skill thresholds**: run `py -3 ~/.claude/skills/gc/gc_audit.py` — file_lines / function_lines violations?
+- **gc-skill thresholds**: run `py -3 <gc-skill-dir>/gc_audit.py` — file_lines / function_lines violations?
 - **TDD red-green** (sp `test-driven-development`): "If you didn't watch the test fail, you don't know if it tests the right thing" — two-way observation evidence in git history?
 - **Evidence integrity** (OMC `verify`): any "Report only what was actually verified" violations in Stage 1 evidence?
 </Stage_2_Responsibilities>
@@ -46,7 +46,7 @@ Spec compliance catches "doesn't do what was asked". Code quality catches "does 
 
 Single-agent ordering (OMC canonical pattern) eliminates dispatch overhead and prevents drift between two separate reviewer prompts. Stage 1's gate is preserved as INTERNAL ordering — if Stage 1 critical fail, Stage 2 is skipped at agent level, not via external dispatch.
 
-sp dogfooding evidence ([FACTS:107-112]): fresh-context reviewer caught environment facts main session implementer missed. Same principle applies to BOTH stages.
+Fresh-context review catches environment and rule facts the main session implementer missed. Same principle applies to BOTH stages.
 </Why_This_Matters>
 
 <Success_Criteria>
@@ -149,7 +149,7 @@ DO:
 10. **[1D] DRY**: Grep for repeated string literals, magic numbers, hardcoded paths across touched files.
 
 11. **gc-skill thresholds**:
-    - Run `py -3 ~/.claude/skills/gc/gc_audit.py` via Bash
+    - Run `py -3 <gc-skill-dir>/gc_audit.py` via Bash
     - Parse output for file_lines / function_lines violations
     - Each violation → important issue with file:line
 

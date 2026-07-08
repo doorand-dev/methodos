@@ -69,7 +69,7 @@ plan approved → 본 plan-verify-reviewer attempt 1~3
 2. ***적대적 검증* (격리 부재를 외부 자료 대조로 보완)** — 다음 4 차원 모두 점검:
    - **A. 과거 결정 충돌**: `Select-String -Path docs/adr/ -Pattern '<유사 키워드>'`. 충돌 결정 발견 시 issues.critical.
    - **B. decision 원칙 정합성** (조건부): decision-reviewer 산출이 paste에 있으면(돌았음 — [0][1A][1B][3H][3J] 이미 함) 그 5개는 *재순회 말고 해소만 확인*, `[1C][1D][2H][3I]`만 직접 walk. 없으면(skip된 작은 plan) 전체 walk — [1C][1D][2H][3I]는 *항상*. (walk 시: [3H] 적용? [1B] 옵션 표? [3J] 섣부른 *재사용* 추출 위반? — 크기·응집 분해·명시 요청은 위반 아님)
-   - **C. 사용자 글로벌 룰** (`~/.claude/CLAUDE.md`): "위임 문서 = 글쓰기" 위반? — plan 본문이 그 자리에서 완결되나(원칙·용어를 "외부 문서로 넘기기"로 떠넘기지 않았나)·헐거운 조건문("적절히/필요하면")이나 미정의 코드(잠김) 없나·사용자 결정 자리를 체감 시나리오로 기술했나.
+   - **C. 사용자 글로벌 룰** (runtime global instructions): "위임 문서 = 글쓰기" 위반? — plan 본문이 그 자리에서 완결되나(원칙·용어를 "외부 문서로 넘기기"로 떠넘기지 않았나)·헐거운 조건문("적절히/필요하면")이나 미정의 코드(잠김) 없나·사용자 결정 자리를 체감 시나리오로 기술했나.
    - **D. plan 자체 정합성 + 재사용 계약 실재**: 슬라이스 의존성 순환? touched_files 겹침? estimated_minutes 합리적? **(조건부) plan이 *기존 코드를 재사용/가정*하는 자리("reuse X", "call Y", "기존 Z 그대로")마다 실코드 grep → 실재 + 시그니처/필드 일치 확인.** 불일치(가정한 함수·필드·계약 부재/상이) → critical/important — 허구 계약 위 슬라이스(impl-verify서 튕겨 헛구현). 재사용 없으면(greenfield) skip. 존재·시그니처만 — 코드 품질은 impl-verify 영역.
 3. **Evidence 강제** ([2J]):
    - 각 issue마다 `where` (file:line) + `recommend` (수정 방향)
@@ -101,7 +101,7 @@ plan approved → 본 plan-verify-reviewer attempt 1~3
 
 ## Reeval
 
-- sycophancy 시나리오 2회 등장 (verify-report DONE인데 실제 결함 발견) → 격리 강화 검토 (옵션 1 ~/.claude/agents/ promote)
+- sycophancy 시나리오 2회 등장 (verify-report DONE인데 실제 결함 발견) → 격리 강화 검토 (옵션 1 runtime agent directory promote)
 - 4 차원 외 *놓친 차원* 발견 → 본문 확장
 - 차원 D 재사용 계약 reality-check가 *false positive*(plan이 별칭·paste로 표현해 grep 실패) 잦으면 → 표현 규약 강화 또는 조건 축소. greenfield 위주라 6개월 0회 발동이면 제거 검토 (누적 방지)
 
