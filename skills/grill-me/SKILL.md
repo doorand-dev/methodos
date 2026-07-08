@@ -13,7 +13,7 @@ description: |
 > - `to-prd` = 인터뷰 대신 *기존 대화에서 spec을 합성*하는 방식(superpowers 차용) — "이미 충분히 얘기함"이면 질문 0
 > - `novelist`/실사용 서사 = fresh-context 에이전트가 *순진한 사용자처럼* 써보며 빈칸을 노출(§3·§6b) / `fold` = 그 결과를 spec에 접어 넣음 / `dispatch` = 격리 서브에이전트로 떼어 보냄
 > - `FORCE` = 반드시 거침(HARD-GATE, 빈 채 통과 금지) / `M1`·`M2` = plan 단계의 사용자 결정 리스트·승인본 대비 변화 서사
-> - `D12` = 질문 상한 7 디폴트 / `D14` = spec status는 draft·approved 2단계뿐 / `[1D]` = 사실·값은 한 곳에만 (D12·D14 근거는 [ADR 0006](../../../../docs/adr/0006-conv-grill-me-package.md), [1D] 심화는 [decision](../../../skills/decision/SKILL.md))
+> - `D12` = 질문 상한 7 디폴트 / `D14` = spec status는 draft·approved 2단계뿐 / `[1D]` = 사실·값은 한 곳에만
 
 ## 위치 (분산 — 라우터 없음)
 
@@ -209,7 +209,7 @@ testing_priority: [<module name>, ...]
 - **Internal consistency**: 섹션 간 모순? user_stories ↔ Implementation Decisions ↔ Edge Cases
 - **Scope check**: 단일 구현 단위로 적정? 너무 크면 decompose 제안
 - **Ambiguity check**: 두 해석 가능한 요구사항 → 하나 선택 명시
-- **Decision lens** (작성자 자기검열 — reviewer에 미루지 말 것): spec 전체를 decision 렌즈로 1회 훑어 — ⓪ 이 기능/scope 정말 필요한가(불필요하면 줄이거나 멈춤) · 미확정 주장엔 확신도 라벨(확신/추론/모름) · 결정 자리마다 근거 출처(사용자 발화·grep·ADR·명시 가정) 1개. *전문 원칙은 [decision](../../../skills/decision/SKILL.md) 정본* — 여기선 spec-time 단축형만(슬라이스 의존 [3H]·[3J]는 plan decision-reviewer 몫, 여기서 X). 약한 framing(증상-수준 요구·근거 없는 AI 단정·노출 안 된 사용자 체감 분기)은 즉시 `edge_cases`/`user_stories`로 fix.
+- **Decision lens** (작성자 자기검열 — reviewer에 미루지 말 것): spec 전체를 decision 렌즈로 1회 훑어 — ⓪ 이 기능/scope 정말 필요한가(불필요하면 줄이거나 멈춤) · 미확정 주장엔 확신도 라벨(확신/추론/모름) · 결정 자리마다 근거 출처(사용자 발화·grep·기존 결정 기록·명시 가정) 1개. 여기서는 spec-time 단축형만 적용한다(슬라이스 의존 [3H]·[3J]는 plan decision-reviewer 몫, 여기서 X). 약한 framing(증상-수준 요구·근거 없는 AI 단정·노출 안 된 사용자 체감 분기)은 즉시 `edge_cases`/`user_stories`로 fix.
 
 fix 후 *재 self-review 없음* — 한 번만, 발견되면 인라인 fix하고 진행.
 
@@ -254,7 +254,7 @@ spec 작성 완료: docs/specs/<slug>.md
 - spec status 3단계 (`reviewed` 추가 X — D14)
 - spec 본문에 코드/파일 경로 inline (to-prd 정신 — Implementation Decisions는 인터페이스만)
 - self-review 재실행 (sp 1회 인라인 fix 패턴)
-- `/plan` 자동 invoke (사용자 명시 호출 — ADR 0004)
+- `/plan` 자동 invoke (사용자 명시 호출)
 
 ## 다음 단계
 

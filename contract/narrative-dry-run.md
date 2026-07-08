@@ -1,6 +1,6 @@
 # narrative-dry-run — 실사용 서사 self-check 렌즈 (정본, [1D])
 
-> methodos 파이프라인의 *cross-cutting* 발견(discovery) 렌즈. [ADR 0015](../../../docs/adr/0015-conv-narrative-dry-run.md).
+> methodos 파이프라인의 *cross-cutting* 발견(discovery) 렌즈.
 > grill-me / plan / methodos SKILL은 이 파일을 *3줄로 참조*만 — 절차 복붙 금지 ([1D] 정본 단일).
 
 ## 본질
@@ -39,25 +39,25 @@
 | **regression** | 기존에 되던 게 이번 변경으로 망가짐 | 깨짐과 동급 (게이트) |
 
 > 정의: **#4가 spec의 user_story·Success criterion을 *조립된 실물*에 대고 end-to-end로 걸었을 때 완료가 안 되거나 틀린 결과가 나오는 것.**
-> 좁게 못 박을 것 — "요청한 X가 실물에서 안 됨"만 깨짐. 타이트해서 빈도가 거의 0 → 자율주행 손실 거의 없음 ([ADR 0015] 옵션 C).
+> 좁게 못 박을 것 — "요청한 X가 실물에서 안 됨"만 깨짐. 타이트해서 빈도가 거의 0 → 자율주행 손실 거의 없음.
 
 ## 게이트 동작 (#4, 승인 게이트 추가 0)
 
 - 정상(DONE) → model-driven 흐름 정상 종료. 평소와 동일.
-- **깨짐/regression(BROKEN)** → 골 완료(ADR) 보류. **impl 재시도 auto-loop** (사용자 대답 강제 X — D34식 알림 한 줄, [ADR 0012]). N 천장 도달 시 escalate (impl-verify ralph와 동일).
-- polish/deferred → `.claude/todos.md` 자동 적재 후 통과. **`friction.md`에 쓰지 말 것** — `blame-code` 명시 트리거 전용 불변식 ([ADR 0013]/[ADR 0001]).
+- **깨짐/regression(BROKEN)** → 골 완료 결정 보류. **impl 재시도 auto-loop** (사용자 대답 강제 X — D34식 알림 한 줄). N 천장 도달 시 escalate (impl-verify ralph와 동일).
+- polish/deferred → `.claude/todos.md` 자동 적재 후 통과. **`friction.md`에 쓰지 말 것** — `blame-code` 명시 트리거 전용 불변식.
 
 ## novelist agent 페르소나 (순진성 강제)
 
 > "너는 이 기능의 **구현 논의를 본 적 없는 실사용자**다. 사용자가 아는 것만 안다. 주어진 것(spec 또는 조립된 코드)으로 X를 실제로 해보고, 어디서 막히는지·뭐가 안 알려져 있는지·어느 경로가 빠졌는지 서사로 말하라."
 
 - 대화 컨텍스트 **상속 금지** — 상속하면 재오염되어 *의도된 flow*를 narrate하게 됨 (기법 무력화).
-- read-only. 산출은 JSON(stdout) — controller가 verify-report 기록 (reviewer-agent 패턴, [ADR 0003]).
+- read-only. 산출은 JSON(stdout) — controller가 verify-report 기록.
 
 ## 발동 범위 (상황 신호 — 런타임 tier 아님)
 
-외부 novelist agent(#2/#4)는 **신규 기능이 다파일 ∨ 다flow(복합 실사용 경로)일 때만**. 자명한 1-2파일·단일 flow는 skip (reviewer 차등과 같은 축 — 임계 근거 [ADR 0007], 런타임 tier 값 제거 [ADR 0022](../../../docs/adr/0022-conv-methodos-distributed-gates.md)). 게이트가 *조립 복잡도를 직접 보고* 판단한다.
+외부 novelist agent(#2/#4)는 **신규 기능이 다파일 ∨ 다flow(복합 실사용 경로)일 때만**. 자명한 1-2파일·단일 flow는 skip. 게이트가 *조립 복잡도를 직접 보고* 판단한다.
 
 ## Reeval
 
-[ADR 0015] §Reeval 참조 (정본 단일).
+Reeval은 실제 dogfood 결과가 쌓일 때 이 파일에서 직접 갱신한다.

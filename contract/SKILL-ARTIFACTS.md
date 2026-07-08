@@ -1,6 +1,6 @@
 # mine artifact 컨벤션 + JSON schema
 
-> Methodos 분산 게이트 (grill-me/plan/impl/plan-verify/impl-verify — 중앙 라우터 없음, [ADR 0022](../../../docs/adr/0022-conv-methodos-distributed-gates.md))가 산출하는 *measurable artifact* 표준.
+> Methodos 분산 게이트 (grill-me/plan/impl/plan-verify/impl-verify — 중앙 라우터 없음)가 산출하는 *measurable artifact* 표준.
 > 모델이 스테이지 경계에서 *artifact 흔적·status*를 직접 확인 (강제력 = 격리 reviewer + 영속 artifact).
 
 ---
@@ -9,11 +9,11 @@
 
 | 폴더 | 산출자 | 산출 시점 |
 |---|---|---|
-| `docs/specs/<slug>.md` | `/grill-me` 스킬 (사용자 결정 공간, 명시 실행, [ADR 0006](../../../docs/adr/0006-conv-grill-me-package.md)) | intent 인터뷰 + spec 4-check self-review + user 명시 승인 |
-| `.claude/plans/<slug>.md` | `/plan` 스킬 (사용자 결정 공간, 명시 실행, [ADR 0004](../../../docs/adr/0004-conv-plan-outside-goal.md)) | PRD 상세화 + self-review 3-dim + user 명시 승인 |
+| `docs/specs/<slug>.md` | `/grill-me` 스킬 (사용자 결정 공간, 명시 실행) | intent 인터뷰 + spec 4-check self-review + user 명시 승인 |
+| `.claude/plans/<slug>.md` | `/plan` 스킬 (사용자 결정 공간, 명시 실행) | PRD 상세화 + self-review 3-dim + user 명시 승인 |
 | `.claude/verify-reports/plan-<slug>.json` | `/plan-verify` 스킬 | plan 격리 검증 끝 |
 | `.claude/verify-reports/slice-<N>.json` | `/impl-verify` 스킬 (각 슬라이스마다 N=1,2,...) | impl 슬라이스 검증 끝 |
-| `.claude/verify-reports/codex-impl-<slug>.json` | `/impl` 컨트롤러가 `/codex:adversarial-review` 1회 호출 후 stdout 캡처 저장 ([ADR 0016](../../../docs/adr/0016-conv-codex-impl-adversarial-gate.md)) | 모든 슬라이스 impl-verify 통과 후 1회 (L tier, loop X) |
+| `.claude/verify-reports/codex-impl-<slug>.json` | `/impl` 컨트롤러가 `/codex:adversarial-review` 1회 호출 후 stdout 캡처 저장 | 모든 슬라이스 impl-verify 통과 후 1회 (L tier, loop X) |
 | `.claude/diagnose-reports/<bug-slug>.md` | 빌트인 `diagnose:` 스킬 | 디버깅 6단계 끝 |
 | `.claude/friction.md` | `blame-code` 스킬 | 교정·코드귀책 발화 자동 또는 수동 `/blame-code` |
 | `docs/adr/NNNN-conv-<slug>.md` | `decision` 스킬 | 셀프 수렴 풀 표 결정 |
@@ -68,7 +68,7 @@
 
 ---
 
-## Spec frontmatter schema (2026-05-24 신설, [ADR 0006](../../../docs/adr/0006-conv-grill-me-package.md))
+## Spec frontmatter schema
 
 `docs/specs/<slug>.md` — Markdown frontmatter + body. `/grill-me` 산출. `/plan`이 입력으로 받음 (paste-to-sub-skill).
 
@@ -77,7 +77,7 @@
 slug: <kebab>
 created_at: YYYY-MM-DD
 status: draft | approved   # D14: 2단계만 (3단계 'reviewed' 폭발 회피)
-tier: XS | S | M | L       # 선택·서술용 요약 (런타임 값 아님 — ADR 0022). grill-me 돌면 채울 수 있으나 *어느 게이트도 의존 안 함*. 게이트는 상황 신호로 직접 판단. 임계 근거표 → using-methodos ([ADR 0007])
+tier: XS | S | M | L       # 선택·서술용 요약 (런타임 값 아님). grill-me 돌면 채울 수 있으나 *어느 게이트도 의존 안 함*. 게이트는 상황 신호로 직접 판단. 임계 근거표 → using-methodos
 review:                     # 메타 — frontmatter 상태 폭발 회피
   by: ai | user
   at: YYYY-MM-DDTHH:MM:SS+09:00
@@ -125,7 +125,7 @@ grep 키: `spec_ref` 또는 `kind: "spec"` (있으면)
 
 ---
 
-## Plan frontmatter schema (2026-05-24 갱신, [ADR 0004](../../../docs/adr/0004-conv-plan-outside-goal.md) + [ADR 0006](../../../docs/adr/0006-conv-grill-me-package.md) Phase 2)
+## Plan frontmatter schema
 
 `.claude/plans/<slug>.md` — Markdown frontmatter + body. plan-verify-reviewer + impl agent가 *본문 paste 받음* (self-contained 필수).
 
@@ -134,14 +134,14 @@ grep 키: `spec_ref` 또는 `kind: "spec"` (있으면)
 slug: <kebab>
 created_at: YYYY-MM-DD
 status: draft | approved
-tier: XS | S | M | L              # 선택·서술용 요약 (런타임 값 아님 — ADR 0022). 게이트는 상황 신호로 직접 right-sizing, 이 필드에 의존 안 함
+tier: XS | S | M | L              # 선택·서술용 요약 (런타임 값 아님). 게이트는 상황 신호로 직접 right-sizing, 이 필드에 의존 안 함
 spec_ref: docs/specs/<slug>.md   # D19 — Phase 2 신설. D16 skip 시 null 허용
 source_spec:                       # D21 — spec 입력 추적, drift 감지
   path: docs/specs/<slug>.md
   approved_at: YYYY-MM-DDTHH:MM:SS+09:00
   sha: <git blob SHA>
 approved_plan_revision: <git SHA>  # D21 — 사용자 마지막 승인 SHA (M2 diff 기준점)
-verify_cycle: 1                    # D36 ADR 0012 — escalate→user-decision→plan rev = 1 cycle
+verify_cycle: 1                    # D36 — escalate→user-decision→plan rev = 1 cycle
 verify_attempt: 0                  # D13 — cycle 내부 0~3 카운터
 escalation_reason: null            # D13 — N=3 또는 같은 critical 2회 반복 시 한 줄 (매 cycle reset)
 goal: <한 문장>
@@ -169,7 +169,7 @@ slices:
     user_facing_scenario: null       # decision_needed=true일 때 쉬운 용어 시나리오
     recommended: null                # AI 추천
     options: []                      # [{label, consequence}, ...]
-    # hitl/hitl_message 필드 제거됨 ([ADR 0011](../../../docs/adr/0011-conv-impl-hitl-retraction.md))
+    # hitl/hitl_message 필드 제거됨
 self_review:
   coverage_gaps: ["<누락 요구사항 한 줄>", ...]
   placeholders_found: ["<grep 결과>", ...]
@@ -181,7 +181,7 @@ self_review:
 
 - `slug`: kebab-case, 모든 .claude/verify-reports/*-<slug>-* 파일과 공유 키
 - `status`: `draft` (작성 중) → `approved` (사용자 명시 승인) 단방향
-- `tier`: **선택·서술용 요약** (런타임 값 아님 — [ADR 0022](../../../docs/adr/0022-conv-methodos-distributed-gates.md)). 게이트는 *상황 신호*(touched·결정·flow·오라클)로 직접 right-sizing하고 이 필드를 *읽지 않는다*. 임계 근거(왜 그 자리에 게이트가 걸리나)는 `using-methodos` tier 표([ADR 0007]). 라우터 제거로 "methodos 자동 판정" producer 소멸 → 트리거 조건에 인코딩
+- `tier`: **선택·서술용 요약** (런타임 값 아님). 게이트는 *상황 신호*(touched·결정·flow·오라클)로 직접 right-sizing하고 이 필드를 *읽지 않는다*. 임계 근거(왜 그 자리에 게이트가 걸리나)는 `using-methodos` tier 표에 있다. 라우터 제거로 "methodos 자동 판정" producer 소멸 → 트리거 조건에 인코딩
 - `spec_ref` (D19): `docs/specs/<slug>.md` 존재해야 함. D16 skip 케이스만 null 허용
 - `source_spec.sha` (D21): spec git blob SHA — drift 감지. spec 변경되면 plan 재합성 필요
 - `approved_plan_revision` (D21): 사용자 명시 승인 commit SHA. M2 diff 기준점
@@ -191,7 +191,7 @@ self_review:
 - `slices[].verification.type`: 6종 중 하나(unit_test/command/fixture/artifact/visual/custom). impl-verify-reviewer Stage 1이 type 보고 분기 실행 + 오라클 타입(G-B) 매핑 1차 신호
 - `slices[].decision_needed` (D17): true 시 user_facing_scenario + recommended + options 모두 필수. 판정 기준: 사용자 체감 분기 / 비가역 / 사용자 자산 영향 중 *하나 이상*
 - `self_review`: 3 필드 모두 명시. 빈 array면 OK (gap 없음), 채워졌으면 fix 후 *재self-review* 까지 status=draft. **빈 채로 status=approved 금지** ([2J] Evidence-grade)
-- body: Goal/Architecture/Tech Stack header + slice별 Files/Decision-encoding/Steps. Decision-encoding inline = signature/schema/test-skeleton만 (algorithm body X, [ADR 0004])
+- body: Goal/Architecture/Tech Stack header + slice별 Files/Decision-encoding/Steps. Decision-encoding inline = signature/schema/test-skeleton만 (algorithm body X)
 
 ### Verification type enum 상세
 
@@ -204,7 +204,7 @@ self_review:
 | `visual` | (command 없거나 screenshot/preview) `observe:` | 명시 기준 육안 충족 — 자율주행 시 스크린샷+비전(impl-verify G-C), 캡처 경로 evidence 인용 |
 | `custom` | 임의 cmd | `interpretation:` 필드 자유 기준 |
 
-> type ↔ impl-verify 오라클 타입(G-B) 정렬: unit_test↔tdd-parity · command↔live-dry-run · artifact↔spike-measurement · `visual`↔visual · custom↔adversarial ([ADR 0022](../../../docs/adr/0022-conv-methodos-distributed-gates.md)).
+> type ↔ impl-verify 오라클 타입(G-B) 정렬: unit_test↔tdd-parity · command↔live-dry-run · artifact↔spike-measurement · `visual`↔visual · custom↔adversarial.
 
 ---
 
@@ -250,9 +250,9 @@ self_review:
 
 3 reviewer 모두 **opus** (baseline) — OMC analyst/critic/code-reviewer 패턴 정합. 게이트는 고빈도(per-slice × attempt 반복)·scoped라 최상위 모델은 과스펙 — 2026-06-10 fable 일괄 승격이 플랜 한도 과소모로 즉시 롤백된 실측 근거. **fable escalation은 frontmatter가 아니라 호출 시 명시 override**(`Agent(model='fable')` — delegation-enforcer는 명시값 보존): 결정 밀도 높은 L-tier 1회성 자리(decision-reviewer, impl-novelist #4)만. 2026-06-23부터 fable은 구독 플랜 밖(usage credits 별도 과금) — escalation 비용이 실돈. spec stage는 mechanical 비중 크지만 통합 agent로 1 model 단순화 우선.
 
-**cross-model 게이트 추가** ([ADR 0016](../../../docs/adr/0016-conv-codex-impl-adversarial-gate.md)): 위 3종이 전부 Claude 한 가족이라 공유 맹점을 못 잡는 약점을 codex(GPT-5.4)로 보완. agent가 아니라 codex 플러그인 `/codex:adversarial-review` 명령 재사용 (외부 subprocess, Claude 토큰·캐시 안 먹음). 구현 단계 1회·loop X·advisory-fold — 아래 `codex-impl` schema 참고.
+**cross-model 게이트 추가**: 위 3종이 전부 Claude 한 가족이라 공유 맹점을 못 잡는 약점을 codex(GPT-5.4)로 보완. agent가 아니라 codex 플러그인 `/codex:adversarial-review` 명령 재사용 (외부 subprocess, Claude 토큰·캐시 안 먹음). 구현 단계 1회·loop X·advisory-fold — 아래 `codex-impl` schema 참고.
 
-### codex-impl schema (kind: "codex-impl", v1.0 — cross-model 적대 게이트, [ADR 0016](../../../docs/adr/0016-conv-codex-impl-adversarial-gate.md))
+### codex-impl schema (kind: "codex-impl", v1.0 — cross-model 적대 게이트)
 
 `.claude/verify-reports/codex-impl-<slug>.json` — `/impl` 컨트롤러가 `/codex:adversarial-review --base <approved_plan_revision> --wait`를 **foreground+timeout 단일 호출**로 1회 실행, stdout(JSON) 캡처해 저장. **agent md inline 복제 없음** (codex 플러그인이 산출자라 mine 측 정본은 이 schema 하나).
 
@@ -311,7 +311,7 @@ self_review:
 
 각 schema 본문은 해당 agent md의 `<Output_Format>` 섹션에 inline. drift 방지 룰: agent md 변경 시 이 SKILL-ARTIFACTS의 schema도 같이 갱신 (또는 그 반대).
 
-### plan-verify schema (kind: "plan-verify", v1.2 — D35/D36 ADR 0012 escalation 정비)
+### plan-verify schema (kind: "plan-verify", v1.2 — D35/D36 escalation 정비)
 
 ```json
 {
@@ -328,7 +328,7 @@ self_review:
       "dimension": "A | B | C | D",
       "where": "<slice id 또는 plan section>",
       "what": "<위반>",
-      "reference": "<ADR 경로 / 원칙 번호 / 글로벌 룰 / cross-ref>",
+      "reference": "<결정 경로 / 원칙 번호 / 글로벌 룰 / cross-ref>",
       "recommend": "<수정 방향>",
       "repeated_from_attempt": null
     }
@@ -354,18 +354,18 @@ self_review:
 
 **D35 user_facing_escalation 룰**: reviewer가 기술 issue → 사용자 체감 변환 (M1 결정 리스트 schema 재사용). escalation_required=true일 때만 채움. plan SKILL은 *전달만*, 변환 X.
 
-4 차원: **A** 과거 ADR 충돌 / **B** mine 원칙 [0]~[3J] / **C** 사용자 글로벌 룰 / **D** plan 내부 정합성.
+4 차원: **A** 과거 결정 충돌 / **B** mine 원칙 [0]~[3J] / **C** 사용자 글로벌 룰 / **D** plan 내부 정합성.
 
-**저장 경로** (D36 ADR 0012 — cycle 도입): `.claude/verify-reports/plan-<slug>-cycle-<C>-attempt-<N>.json` (C≥1, N=1~3).
+**저장 경로** (D36 — cycle 도입): `.claude/verify-reports/plan-<slug>-cycle-<C>-attempt-<N>.json` (C≥1, N=1~3).
 
-**D13 + D36 자동 수정 룰** (N=3 한도, cycle 무한 가능, [ADR 0007](../../../docs/adr/0007-conv-tier-and-cache.md)/[ADR 0012](../../../docs/adr/0012-conv-escalation-flow.md)):
+**D13 + D36 자동 수정 룰** (N=3 한도, cycle 무한 가능):
 - attempt N BLOCKED → plan SKILL이 conv로 수정 → attempt N+1
 - attempt 3도 BLOCKED → `escalation_required: true`, `user_facing_escalation` 생성 (D35), 사용자 escalate
 - attempt N의 issue가 attempt N-1과 *같은 critical issue* → `repeated_from_attempt: <N-1>` 명시 + 즉시 escalate (N=3 대기 X — persistent fail)
 - 사용자 결정 → plan SKILL conv 수정 → `verify_cycle += 1`, `verify_attempt = 0`, `escalation_reason = null` reset → 자동 재호출 (사용자 명시 명령 X, D36)
 - 자동 재호출 트리거: `approved_plan_revision` SHA 변경 감지
 
-### impl-verify schema (kind: "impl-verify") — 통합 (Stage 1+2) — D24 ralph 차용 (v1.1, [ADR 0007 후속])
+### impl-verify schema (kind: "impl-verify") — 통합 (Stage 1+2) — D24 ralph 차용 (v1.1)
 
 ```json
 {
@@ -403,7 +403,7 @@ self_review:
 
 **저장 경로**: `.claude/verify-reports/slice-<N>-attempt-<M>.json` (M=1~10).
 
-**D24 ralph 자동 fix cycle 룰** (N=10, [ADR 0007](../../../docs/adr/0007-conv-tier-and-cache.md) 후속 — *model-driven 자율주행 공간* 차용):
+**D24 ralph 자동 fix cycle 룰** (N=10 — *model-driven 자율주행 공간* 차용):
 - attempt M BLOCKED → impl agent가 fix → attempt M+1 (사용자 개입 X)
 - attempt 10도 BLOCKED → `escalation_required: true`, `escalation_reason` 명시, 사용자 escalate
 - 같은 critical issue 2회 반복 (`repeated_from_attempt: <M-1>`) → 즉시 escalate (intermittent vs persistent 구분, obra 차용)
@@ -498,7 +498,7 @@ status: reproduced | minimised | fixed | regressed
 
 ## 스테이지 경계 artifact 체크 (조건문 컴파일 아님)
 
-모델이 각 스테이지 경계에서 아래 흔적의 *존재·status*를 직접 확인하고 다음 스테이지로 진행한다 — 거대 조건문을 *생성하지 않는다* ([ADR 0021](../../docs/adr/0021-conv-goal-demote-router-oracle.md)).
+모델이 각 스테이지 경계에서 아래 흔적의 *존재·status*를 직접 확인하고 다음 스테이지로 진행한다 — 거대 조건문을 *생성하지 않는다*.
 
 - plan-verify attempt JSON `status` ∈ `DONE`/`DONE_WITH_CONCERNS`
 - 슬라이스마다 `WHY:` commit 존재

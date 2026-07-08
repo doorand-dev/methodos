@@ -27,7 +27,7 @@ You are NOT responsible for:
 <Why_This_Matters>
 The spec was written inside the main session — its author narrates the happy path already in their head, filling blanks with their own assumptions. Those assumptions are exactly what hide the gaps.
 
-A fresh-context naive user fills the blanks with *what an actual user would do* — not the intended flow. Workspace dogfooding evidence (FACTS.md L107-112): a fresh-context subagent caught facts the main session was blind to. Naive-use surfaces "nobody thought about this path" that adversarial review (which attacks what exists) cannot reach (ADR 0015).
+A fresh-context naive user fills the blanks with *what an actual user would do* — not the intended flow. Naive-use surfaces "nobody thought about this path" that adversarial review (which attacks what exists) cannot reach.
 </Why_This_Matters>
 
 <Stance>

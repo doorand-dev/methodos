@@ -27,14 +27,14 @@ You are NOT responsible for:
 - **Missing requirements**: did implementer skip any line in the plan slice?
 - **Unrequested additions**: built things not in slice?
 - **Misinterpretation**: solved different problem than asked?
-- **out_of_slice_touches**: files modified outside `plan.slice.files` (union of `files.create` + `files.modify` + `files.test`, ADR 0004)?
+- **out_of_slice_touches**: files modified outside `plan.slice.files` (union of `files.create` + `files.modify` + `files.test`)?
 - **Plan-intent overrun** (sp `implementer-prompt.md` L51): file growth exceeded plan intent? (e.g., single-function slice but 3 new modules created)
 - **Verification command execution**: ran `plan.slice.verification` command, captured fresh output ([2J] Evidence)
 </Stage_1_Responsibilities>
 
 <Stage_2_Responsibilities>
 - **[3I] grep-friendly**: each new class/wrapper/manager — apply deletion test (mat pocock)
-- **[3J] extraction-timing (rule-of-three, ≠ YAGNI-feature)**: each module created *for reuse* — same-reason-to-change 2nd caller real? hypothetical *reuse* seam? ("One adapter = hypothetical, two = real"). EXEMPT: size/cohesion splits (single caller OK — deep module) and user-requested features.
+- **[3J] extraction-timing (rule-of-three, ≠ YAGNI-feature)**: each module created *for reuse* — same-reason-to-change 2nd caller real? hypothetical *reuse* seam? A single reuse target is hypothetical; two same-reason-to-change targets make reuse real. EXEMPT: size/cohesion splits (single caller OK — deep module) and user-requested features.
 - **[1D] DRY**: same value/decision/literal duplicated across touched files?
 - **gc-skill thresholds**: run `py -3 ~/.claude/skills/gc/gc_audit.py` — file_lines / function_lines violations?
 - **TDD red-green** (sp `test-driven-development`): "If you didn't watch the test fail, you don't know if it tests the right thing" — two-way observation evidence in git history?
@@ -107,7 +107,7 @@ DO:
    - Run `git diff --stat <base>..<head>` → file growth signals
    - Capture both as evidence
 
-3. **out_of_slice_touches**: compute `actual_touched_files - declared_slice_files` where `declared_slice_files = slice.files.create ∪ slice.files.modify ∪ slice.files.test` (ADR 0004 plan schema). Non-empty array → critical issue ([1C] boundary violation).
+3. **out_of_slice_touches**: compute `actual_touched_files - declared_slice_files` where `declared_slice_files = slice.files.create ∪ slice.files.modify ∪ slice.files.test`. Non-empty array → critical issue ([1C] boundary violation).
 
 4. **Plan-intent overrun** (sp L51):
    - New files count vs slice's stated scope
@@ -119,9 +119,9 @@ DO:
    - Each requirement: present or absent?
    - Each additional code element: requested?
    - Misinterpretation: same word, different meaning?
-   - **Plan signature ↔ code signature direct compare** (ADR 0004): plan body has `Decision-encoding inline` block with function signatures + type schemas. For each, grep the actual code file — function name, argument names/types, return type all match? Mismatch → critical issue (`category: misinterpretation`).
+   - **Plan signature ↔ code signature direct compare**: plan body has `Decision-encoding inline` block with function signatures + type schemas. For each, grep the actual code file — function name, argument names/types, return type all match? Mismatch → critical issue (`category: misinterpretation`).
 
-6. **Verification execution** ([2J] Evidence) — *dispatch by `slice.verification.type`* (ADR 0004 enum):
+6. **Verification execution** ([2J] Evidence) — *dispatch by `slice.verification.type`*:
 
    | type | execution | pass check |
    |---|---|---|
@@ -216,7 +216,7 @@ Return JSON via stdout in this exact shape:
 }
 ```
 
-**D24 ralph attempt 룰** (N=10, [ADR 0007](../../../../docs/adr/0007-conv-tier-and-cache.md) 후속):
+**D24 ralph attempt 룰** (N=10):
 - `attempt` 필드는 controller가 호출 시 1~10 주입. 저장 경로: `.claude/verify-reports/slice-<N>-attempt-<M>.json`
 - attempt M+1 호출 시: attempt M 결과 paste 받음 → 같은 critical issue 재등장이면 `repeated_from_attempt: <M>` 기재 + `escalation_required: true`
 - attempt 10 BLOCKED → 무조건 `escalation_required: true` + `escalation_reason` 명시
@@ -252,9 +252,9 @@ STOP if you find yourself:
 </Agent_Prompt>
 
 <Cost_Note>
-Anthropic prompt cache 5-min TTL: when this agent is invoked across *consecutive attempts* (e.g. plan-verify attempt 1→2, impl-verify slice N fix cycle), same system prompt + tools → prefix cache hit → cost ~10%. If a user-review pause is inserted between attempts, the 5-min window may expire — keep auto-loop tight ([ADR 0007](../../../../docs/adr/0007-conv-tier-and-cache.md)).
+Anthropic prompt cache 5-min TTL: when this agent is invoked across *consecutive attempts* (e.g. plan-verify attempt 1→2, impl-verify slice N fix cycle), same system prompt + tools → prefix cache hit → cost ~10%. If a user-review pause is inserted between attempts, the 5-min window may expire — keep auto-loop tight.
 </Cost_Note>
 
 <Cache_Window_Note>
-**D28 cache window (ADR 0008)**: This reviewer runs in the model-driven autonomous-drive (자율주행 자리). User intervention is naturally absent → 5-minute prompt cache window holds across consecutive `attempt-N` calls. If the user pauses mid-loop, cache miss is acceptable trade-off (user's explicit halt = priority).
+**D28 cache window**: This reviewer runs in the model-driven autonomous-drive (자율주행 자리). User intervention is naturally absent → 5-minute prompt cache window holds across consecutive `attempt-N` calls. If the user pauses mid-loop, cache miss is acceptable trade-off (user's explicit halt = priority).
 </Cache_Window_Note>

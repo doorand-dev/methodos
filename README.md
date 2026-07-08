@@ -14,13 +14,12 @@ the pieces to your own Claude, Codex, or other agent runtime.
 |---|---|
 | Runtime contract | Stable reference |
 | Claude skills and agents | Usable reference |
-| Codex support | Experimental wiring notes and hook candidates |
+| Codex support | Experimental runtime notes and hook candidates |
 | Installer | Not provided |
 | Public ADR archive | Not included |
 
-The private ADR/research archive is not part of this public package. ADR links
-inside skill bodies are rationale breadcrumbs from the source workspace; the
-runtime contract and usable harness assets live here.
+The private ADR/research archive is not part of this public package. The runtime
+contract and usable harness assets live here.
 
 ## Why
 
@@ -48,7 +47,7 @@ Idea
 
 The shared contract for these artifacts lives in
 [`contract/SKILL-ARTIFACTS.md`](contract/SKILL-ARTIFACTS.md). Runtime-specific
-wording, hooks, and agent wiring may differ as long as they obey that contract.
+wording, hooks, and agent formats may differ as long as they obey that contract.
 
 ## Gates
 
@@ -76,7 +75,7 @@ agents/claude/         Claude reviewer and novelist agent definitions
 hooks/common/          Hook candidates usable across runtimes
 hooks/claude/          Claude-only hook candidates
 hooks/codex/           Codex-only hook candidates
-adapters/codex/        Codex wiring notes
+runtime-notes/codex.md Codex runtime notes
 ```
 
 ## Adoption
@@ -88,10 +87,10 @@ agent. A practical adoption pass usually means:
 2. Adapt the relevant `skills/*/SKILL.md` files into the runtime's skill format.
 3. Adapt reviewer/novelist agents only if the runtime supports isolated agents.
 4. Treat `hooks/*` as candidates, not automatically installed policy.
-5. Keep artifact paths and schemas stable when changing prose or wiring.
+5. Keep artifact paths and schemas stable when changing prose or runtime setup.
 
-Codex support is experimental. Hook candidates and routing notes are included,
-but no stable Codex adapter is provided.
+Codex support is experimental. Hook candidates and runtime notes are included,
+but no stable Codex setup is provided.
 
 ## Contract Boundary
 

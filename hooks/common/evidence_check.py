@@ -7,9 +7,9 @@ Edit/Write 대상이 methodos verify-report(`.claude/verify-reports/*`)이고
 
 methodos [2J] Evidence-first의 *write-time shift-left*. 진짜 FORCE는 impl-verify/
 plan-verify 게이트(evidence 필드 검사·BLOCK)에 있고, 본 hook은 *게이트 우회·drift*
-케이스를 잡는 저비용 보조 그물이다 (ADR 0023 — youtube-edit-auto 하네스에서 채택·적응).
+케이스를 잡는 저비용 보조 그물이다.
 
-적응 (ADR 0023):
+적응:
   A. harness_utils 의존 제거 — ensure_utf8_stderr 인라인. 표시 경로는 *편집 파일의*
      git repo root(`git -C <dir> rev-parse --show-toplevel`)로 동적 해소, 비-git이면 raw path.
   B. 보고서 탐지 = 신세대 경로 `.claude/verify-reports/` (구 .review-artifacts/.plans 폐기).

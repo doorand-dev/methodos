@@ -9,7 +9,7 @@ description: |
 
 # /impl-verify — 슬라이스 구현 격리 검증 2-stage (얇은 stub)
 
-> *얇은 stub*. Reeval: sycophancy 2회 등장 시 (ADR 0001).
+> *얇은 stub*. Reeval: sycophancy 2회 등장 시.
 
 > **약어 지도** — 이 문서는 cross-project 수신자가 raw URL로 가져간다. 맥락을 공유하지 않는 cold reader가 외부 문서 없이 읽게:
 > - `오라클(oracle)` = 이 슬라이스가 "됐다"를 *무엇으로 판정*하나 — 테스트 통과냐 측정값이냐 육안이냐. 검증법을 정하는 기준
@@ -17,9 +17,9 @@ description: |
 > - `surface` = 게이트가 판단을 강제하지 않고 *트레이드오프만 드러내 보임* / `fold` = 옛 라우터가 쥐던 수식자를 이 게이트 안으로 접어 넣음
 > - `seam` = 독립 실행 가능한 이음새 — 저위험 슬라이스를 묶어 1회 검증하는 경계
 > - `[2J]` = "통과" 단언 전 실제 명령 출력을 직접 인용(미실행 명령 evidence 금지) / `[1C]` = 슬라이스 밖 파일 건드림 거부 / `[3I]` = 새 클래스·래퍼는 "지우면?" 자문 / `[1D]` = 같은 값·결정이 여러 곳이면 DRY 위반 / `FORCE`·`OPEN` = 슬롯 존재 강제·값은 모델 판단
-> - (원칙 전체·거버닝 심화는 [decision](../../../skills/decision/SKILL.md)·[using-methodos](../SKILL.md) — 평시엔 위로 충분.)
+> - 원칙 전체를 외부 문서로 떠넘기지 말고, 위 약어와 이 스킬 안의 FORCE/OPEN 조건을 우선 적용한다.
 
-## 트리거 (self-trigger — 라우터 없음, [ADR 0022](../../../../docs/adr/0022-conv-methodos-distributed-gates.md))
+## 트리거 (self-trigger — 라우터 없음)
 
 - 자동 발동: 슬라이스 commit 직후 "통과" 단언 전, `.claude/verify-reports/slice-<N>.json` 부재 시
 - 자연어: "impl 검증", "이 구현 어떻게 보여?", "impl-verify"
@@ -43,11 +43,11 @@ description: |
 - `out_of_slice_touches`: 빈 배열이어야 [1C] 통과 — 채워져 있으면 BLOCKED
 - `self_review`: 4차원
 
-## 오라클 판정 (impl-verify 자체 — 라우터 수식자 fold, [ADR 0021](../../../../docs/adr/0021-conv-goal-demote-router-oracle.md)/[ADR 0022](../../../../docs/adr/0022-conv-methodos-distributed-gates.md))
+## 오라클 판정 (impl-verify 자체 — 라우터 수식자 fold)
 
 라우터가 없으므로 이 게이트가 *스스로* 슬라이스 오라클을 판정해 검증법을 고른다 (구 라우터 수식자 fold). **OPEN** — 아래 trade-off를 surface하고 모델이 판단 (rigid rule 아님).
 
-### G-B — per-slice 오라클 *타입* 택소노미 (binary 아님, [ADR 0022])
+### G-B — per-slice 오라클 *타입* 택소노미 (binary 아님)
 
 슬라이스마다 오라클 *종류*를 판정 → 검증법 도출. 공유 오라클이면 batch.
 
@@ -62,7 +62,7 @@ description: |
 
 > 입력 신호: plan의 `verification.type`을 1차로 읽어 오라클 타입 매핑(unit_test↔tdd-parity · command↔live-dry-run · artifact↔spike-measurement · `visual`↔visual · custom↔adversarial). plan에 없거나 애매하면 슬라이스 보고 자체 판정.
 >
-> **visual 오라클 × 자율주행 (N3, [ADR 0022](../../../../docs/adr/0022-conv-methodos-distributed-gates.md))**: 무인 자율주행(AC4)엔 "육안" 주체가 없다 → **스크린샷 캡처 + 모델 비전 분석**(빌트인 `verify`/preview)이 1차 eye. visual도 Evidence([2J]) 대상 — *캡처 경로·관찰 내용을 evidence에 인용*("스크린샷 봤다 치고" 통과 금지). **판정 애매·고위험**(색 대비·미세 레이아웃)이면 자율주행 보류하고 사용자에 surface(narrative #4 BROKEN 사다리 준용 — 1줄 알림, 강제 round-trip은 아님).
+> **visual 오라클 × 자율주행 (N3)**: 무인 자율주행(AC4)엔 "육안" 주체가 없다 → **스크린샷 캡처 + 모델 비전 분석**(빌트인 `verify`/preview)이 1차 eye. visual도 Evidence([2J]) 대상 — *캡처 경로·관찰 내용을 evidence에 인용*("스크린샷 봤다 치고" 통과 금지). **판정 애매·고위험**(색 대비·미세 레이아웃)이면 자율주행 보류하고 사용자에 surface(narrative #4 BROKEN 사다리 준용 — 1줄 알림, 강제 round-trip은 아님).
 
 ### 무게 강등 신호 (위 타입에서 도출)
 
@@ -124,7 +124,7 @@ Stage 1 ✅이어야 진입.
 
 JSON 저장: `.claude/verify-reports/slice-<N>.json`.
 
-> **drift 동기화 ([1D], [ADR 0022](../../../../docs/adr/0022-conv-methodos-distributed-gates.md))**: 여기 BLOCK급 기준(out_of_slice 경계 · caller impact-radius · TDD red-green · evidence 무결성)을 추가·변경하면 [impl dispatch 위임 템플릿](../impl/SKILL.md)의 "Your job"도 echo 갱신 — producer(dispatch)-verifier 비대칭 방지 (실측 2회: TDD·caller). 격리 dispatch subagent는 프롬프트에 없는 기준을 못 지킴.
+> **drift 동기화 ([1D])**: 여기 BLOCK급 기준(out_of_slice 경계 · caller impact-radius · TDD red-green · evidence 무결성)을 추가·변경하면 [impl dispatch 위임 템플릿](../impl/SKILL.md)의 "Your job"도 echo 갱신 — producer(dispatch)-verifier 비대칭 방지 (실측 2회: TDD·caller). 격리 dispatch subagent는 프롬프트에 없는 기준을 못 지킴.
 
 ## 안 하는 것 (Red Flags)
 
@@ -142,14 +142,14 @@ verify status에 따라 자연 흐름 (OMC `ultraqa` 반복 사이클 정신 차
 
 | status | 다음 |
 |---|---|
-| DONE | 다음 slice 또는 골 종료 ADR |
+| DONE | 다음 slice 또는 골 종료 결정 기록 |
 | DONE_WITH_CONCERNS | important issue 본문 paste → `/impl`로 fix 슬라이스 시작 (작은 슬라이스로) → 끝나면 `/impl-verify` 재호출 |
 | BLOCKED | critical issue 본문 paste → `/impl` 또는 `/plan` 재검토 → 사이클 반복 *until status=DONE* |
 | NEEDS_CONTEXT | 컨트롤러에게 escalate — 사용자 입력 필요 |
 
 **중요**: fix 사이클은 *기존 slice-N.json을 덮어쓰지 않음*. 새 슬라이스로 처리 (각 사이클이 *재현 가능 흔적* — [2J] 그대로).
 
-**scoped re-verify (재검증 attempt 2~3, [ADR 0017](../../../../docs/adr/0017-conv-scoped-reverify.md))**:
+**scoped re-verify (재검증 attempt 2~3)**:
 - attempt 1만 코드베이스 fresh 독립 재독(Stage 1+2 풀). **fix 재검증 attempt는 전체 재독 금지** — 이전 `slice-<N>-attempt-<M>.json`의 `issues`(걸린 것) + `git diff <prev-fix-sha>..HEAD`만 읽고 범위 한정:
   - 걸린 issue가 fix됐나 (해소 판정은 diff 직접 확인 — JSON 주장 인용 금지)
   - touched_files에 fix-introduced regression 생겼나

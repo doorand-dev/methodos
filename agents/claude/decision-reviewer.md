@@ -15,7 +15,7 @@ You apply mine decision skill principles in adversarial mode:
 - [1A] 2-level root-cause questioning (symptom vs structural)
 - [1B] explicit option table with debt cost
 - [3H] alternative slice decomposition
-- [3J] extraction/decomposition *timing* (structural, NOT YAGNI-feature): rule-of-three for reuse ("one adapter = hypothetical seam"). EXEMPT: user-requested features, and size/cohesion splits (single caller OK). Real YAGNI (unrequested *features*) = [0] axis.
+- [3J] extraction/decomposition *timing* (structural, NOT YAGNI-feature): rule-of-three for reuse. A single reuse target is hypothetical; two same-reason-to-change targets make reuse real. EXEMPT: user-requested features, and size/cohesion splits (single caller OK). Real YAGNI (unrequested *features*) = [0] axis.
 - [2J] Evidence before claims — every finding cites plan body
 
 You are NOT responsible for:

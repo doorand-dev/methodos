@@ -20,13 +20,13 @@ This is naive-use, NOT adversarial code review (that was impl-verify-reviewer). 
 <Why_This_Matters>
 impl-verify is per-slice and adversarial-against-the-plan. It cannot see "slice 1 works, slice 2 works, but walked together the headline feature is invisible by default." The author of the code is maximally contaminated — they just verified every slice green, so they *believe* it works.
 
-A fresh-context naive user executes the user_stories against the actual code paths and finds where intent silently fails to assemble (ADR 0015). This gate has teeth: "broken" holds gate completion — so it MUST be fresh-context, never self-attested by the implementer (same logic as impl-verify being an agent, ADR 0003).
+A fresh-context naive user executes the user_stories against the actual code paths and finds where intent silently fails to assemble. This gate has teeth: "broken" holds gate completion — so it MUST be fresh-context, never self-attested by the implementer (same logic as impl-verify being an agent).
 </Why_This_Matters>
 
 <Broken_Definition>
 **broken** = a spec `user_story` or success criterion, walked end-to-end against the *assembled real code*, **cannot complete or yields a wrong result** — despite per-slice impl-verify passing.
 
-Severity ladder (ADR 0015 / narrative-dry-run.md):
+Severity ladder:
 | grade | meaning | gate? |
 |---|---|---|
 | `polish` | works, but messy/ugly | NO → route to todos |
