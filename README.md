@@ -15,7 +15,7 @@ the pieces to your own Claude, Codex, or other agent runtime.
 | Runtime contract | Stable reference |
 | Claude skills and agents | Usable reference |
 | Codex skills | Usable reference |
-| Codex hooks | Reference scripts; inactive until registered and trusted |
+| Codex hooks | Reference scripts with `hooks/codex/hooks.example.json`; inactive until registered and trusted |
 | Installer | Not provided |
 | Public ADR archive | Not included |
 
@@ -114,9 +114,9 @@ comparison, irreversible changes, temporary patches, and FORCE/OPEN judgment.
 ### Runtime Guards
 
 These are reference hook scripts, not active policy. Codex has a lifecycle hook
-system, but this repository does not ship a ready-to-load Codex `hooks.json`,
-plugin manifest, or installer. A runtime must explicitly register and trust a
-hook before it runs.
+system, and this repository includes `hooks/codex/hooks.example.json` as the
+registration shape. A runtime must still copy/adapt that file, register the
+hooks, and trust them before they run.
 
 The guards are intentionally narrower than the skills: each one catches a
 mechanical runtime mismatch and leaves semantic judgment to the relevant
@@ -137,7 +137,7 @@ skills/                Core gates, governance, continuity, learning-loop, and ex
 agents/claude/         Claude reviewer and novelist agent definitions
 hooks/common/          Reference hook scripts usable across runtimes
 hooks/claude/          Claude-only hook scripts
-hooks/codex/           Codex-only hook scripts
+hooks/codex/           Codex-only hook scripts and hooks.example.json
 runtime-notes/codex.md Codex runtime notes
 ```
 
@@ -152,7 +152,7 @@ agent. A practical adoption pass usually means:
    extension skills as needed.
 3. Adapt reviewer/novelist agents only if the runtime supports isolated agents.
 4. Treat `hooks/*` as reference scripts, not automatically installed policy.
-   For Codex, copying a `.py` file is not enough: register it in
+   For Codex, start from `hooks/codex/hooks.example.json`: copy/adapt it into
    `~/.codex/hooks.json`, `<repo>/.codex/hooks.json`, inline `[hooks]` in
    `config.toml`, or a Codex plugin manifest, then review/trust the hook.
 5. Keep artifact paths and schemas stable when changing prose or runtime setup.
@@ -162,8 +162,8 @@ notice broken references or suspicious hot-context placement, then suggest a
 `context-novelist` pass; it does not run a model or replace that judgment.
 
 Codex hook support is not the uncertain part; activation is. The scripts here
-remain disabled/reference until a runtime registers and trusts them. No stable
-Codex setup is provided.
+remain disabled/reference until a runtime registers and trusts them. No
+installer is provided.
 
 ## Contract Boundary
 

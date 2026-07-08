@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Codex PreToolUse hook candidate: require model intent on spawn_agent calls."""
+"""Codex PreToolUse hook: require model intent on spawn_agent calls."""
 
 from __future__ import annotations
 

@@ -1,0 +1,44 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "spawn_agent|multi_agent_v1\\.spawn_agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/absolute/path/to/methodos/hooks/codex/codex-spawn-model-gate.py\"",
+            "commandWindows": "py -3 \"C:\\absolute\\path\\to\\methodos\\hooks\\codex\\codex-spawn-model-gate.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking Codex spawned-agent model intent"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/absolute/path/to/methodos/hooks/common/context_surface_guard.py\"",
+            "commandWindows": "py -3 \"C:\\absolute\\path\\to\\methodos\\hooks\\common\\context_surface_guard.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking hot context surface placement"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/absolute/path/to/methodos/hooks/common/evidence_check.py\"",
+            "commandWindows": "py -3 \"C:\\absolute\\path\\to\\methodos\\hooks\\common\\evidence_check.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking Methodos evidence wording"
+          }
+        ]
+      }
+    ]
+  }
+}
