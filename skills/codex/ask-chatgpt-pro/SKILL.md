@@ -16,6 +16,9 @@ Send a bounded prompt to a logged-in ChatGPT Pro web session through `agbrowse w
 - In Codex Desktop, long reviews use `send -> one-shot Codex heartbeat fallback -> optional condition acceleration -> collect`.
 - Use `-NoWatch` on send by default. A hidden `agbrowse web-ai watch` is only a diagnostic/process helper; it does not wake the current Codex thread by itself.
 - `watch-accelerate` must not wake on `agbrowse web-ai watch` completion alone. It may accelerate the heartbeat only after `provider status = complete`, `completedAt` exists, `MinAnswerChars` is met, and the answer hash is stable for `StabilitySeconds` (default 30 seconds).
+- For watcher heartbeat acceleration, write the automation `rrule` as explicit UTC `DTSTART:YYYYMMDDTHHMMSSZ\nRRULE:FREQ=MINUTELY;COUNT=1`.
+- Do not change watcher heartbeat acceleration to `DTSTART;TZID=Asia/Seoul:...`, local wall-time `DTSTART`, or bare relative RRULE.
+- Treat Codex Desktop automation UI time text as display-only. Verify heartbeat scheduling by letting a test heartbeat fire.
 - Do not add artificial marker text to the ChatGPT prompt for identity or finality checks. Use `sessionId` for identity; finality is mechanical: complete provider state, completed timestamp, enough text, and unchanged answer hash.
 - Do not use `codex exec resume` as the wake bridge for this skill.
 - Report the returned `sessionId`. Collect later by that `sessionId`.
@@ -47,7 +50,8 @@ The user must log in to ChatGPT by hand in that Chrome profile. Do not automate 
 Resolve the helper relative to this skill:
 
 ```powershell
-$script = Join-Path "<installed ask-chatgpt-pro skill folder>" "scripts\pro-review.ps1"
+$script = "C:\Users\hjcha\.codex\skills\ask-chatgpt-pro\scripts\pro-review.ps1"
+$rruleHelper = "C:\Users\hjcha\.codex\skills\ask-chatgpt-pro\scripts\codex-heartbeat-rrule.ps1"
 ```
 
 ## Send
@@ -78,6 +82,15 @@ powershell -ExecutionPolicy Bypass -File $script -Action send -NoWatch `
 
 After send, create or update a one-shot Codex heartbeat for about 20 minutes later when the `automation_update` tool is available. Use `kind = "heartbeat"`, `destination = "thread"`, and a prompt that first deletes its own automation id, then runs the collect command by `sessionId`. Only one heartbeat can be attached to a thread, so update an existing relevant heartbeat instead of creating a duplicate.
 
+Do not hand-write heartbeat RRULE strings from a natural-language delay. Generate the fallback heartbeat RRULE mechanically:
+
+```powershell
+$fallback = powershell -NoProfile -ExecutionPolicy Bypass -File $rruleHelper -DelayMinutes 20 | ConvertFrom-Json
+$fallback.rrule
+```
+
+Pass `$fallback.rrule` unchanged to `automation_update`. For any other delay, change only `-DelayMinutes` or `-DelaySeconds`; do not edit `DTSTART`, timezone text, or `RRULE` by hand.
+
 Recommended heartbeat prompt shape:
 
 ```text
@@ -100,7 +113,7 @@ powershell -ExecutionPolicy Bypass -File $script -Action watch-accelerate `
   -StabilitySeconds 30
 ```
 
-`watch-accelerate` waits for `agbrowse web-ai watch` to finish, then keeps re-running `sessions resume` and two `sessions show` reads separated by `StabilitySeconds` until the gate passes or the 20-minute fallback window expires. If ChatGPT reports complete with a short placeholder, the watcher must keep polling rather than exiting. When the gate passes, it writes `%TEMP%\agbrowse-chatgpt-<sessionId>-accelerated-final.json` and may accelerate the Codex heartbeat when the local runtime supports that. Keep the 20-minute heartbeat as a fallback in case the external watcher fails or the answer is not stable yet.
+`watch-accelerate` waits for `agbrowse web-ai watch` to finish, then keeps re-running `sessions resume` and two `sessions show` reads separated by `StabilitySeconds` until the gate passes or the 20-minute fallback window expires. If ChatGPT reports complete with a short placeholder, the watcher must keep polling rather than exiting. When the gate passes, it writes `%TEMP%\agbrowse-chatgpt-<sessionId>-accelerated-final.json`, then uses `codex-heartbeat-rrule.ps1 -Apply` to edit `%USERPROFILE%\.codex\automations\<automationId>\automation.toml` to a near one-shot UTC `DTSTART:...Z` (default wake delay 30 seconds). Keep the 20-minute heartbeat as a fallback in case the external watcher fails or the answer is not stable yet.
 
 When a heartbeat may be accelerated by `watch-accelerate`, make the wakeup prompt read the accelerated result file first and only fall back to `collect` if the file is missing or invalid. If fallback collect is needed, include `-MinAgeMinutes 0`; the acceleration gate has already enforced provider completion, minimum length, and stable text, and the age gate should not force an unnecessary follow-up wake.
 
