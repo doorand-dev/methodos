@@ -1,11 +1,19 @@
 ---
 name: conditional-heartbeat
-description: Create one-shot Codex Desktop heartbeat wakeups with a broad fallback and optional condition-based acceleration. Use when Codex should wake a thread later, set a single follow-up for a specific delay, monitor an external condition and wake soon after it passes, or avoid hand-written RRULE/timezone scheduling for heartbeat automations.
+description: Create one-shot Codex Desktop heartbeat wakeups with a broad fallback and optional condition-based acceleration. Use when Codex should wake a thread later, set a single follow-up for a specific delay, attach a mechanical readiness command that accelerates an existing heartbeat, or avoid hand-written RRULE/timezone scheduling for heartbeat automations. This skill defines heartbeat scheduling mechanics only; project-specific orchestration policy and thread state judgment stay in the caller's prompt or project docs.
 ---
 
 # Conditional Heartbeat
 
 Use this skill for Codex Desktop heartbeat scheduling that must fire once.
+
+## Boundary
+
+- This skill only defines how to create, update, accelerate, verify, and delete one-shot Codex Desktop heartbeat automations.
+- Do not use this skill as the source of project orchestration policy, thread state judgment, Methodos DONE criteria, blocked handling, commit decisions, merge decisions, or next-action policy.
+- Put project-specific status categories, wake checklists, and decision rules in the heartbeat prompt or project docs.
+- Use `ConditionCommand` only for cheap, read-only, mechanically observable readiness checks such as file existence, process completion, artifact creation, or a read-only git/worktree signal.
+- Do not encode human or project judgment into `ConditionCommand`. If readiness requires reading thread transcripts or making a project judgment, set a fallback heartbeat and perform that judgment in the wakeup turn.
 
 ## Rules
 
@@ -80,6 +88,12 @@ Write `ConditionCommand` so it exits `0` only when ready and exits nonzero other
 
 ```powershell
 -ConditionCommand "if (Test-Path -LiteralPath 'C:\tmp\done.json') { exit 0 } else { exit 1 }"
+```
+
+Boolean readiness commands are allowed:
+
+```powershell
+-ConditionCommand "Test-Path -LiteralPath 'C:\tmp\done.json'"
 ```
 
 ## Apply Existing Automation

@@ -37,6 +37,44 @@ function Limit-Text([object[]]$Lines) {
     return $text.Substring($text.Length - 4000)
 }
 
+function Invoke-ConditionCommand([string]$Command) {
+    $runner = @"
+`$ErrorActionPreference = "Stop"
+try {
+    `$global:LASTEXITCODE = `$null
+    `$result = & ([scriptblock]::Create(@'
+$Command
+'@))
+    `$nativeExitCode = `$global:LASTEXITCODE
+    if (`$null -ne `$nativeExitCode) {
+        exit ([int]`$nativeExitCode)
+    }
+
+    `$items = @(`$result | Where-Object { `$null -ne `$_ })
+    if (`$items.Count -eq 1 -and `$items[0] -is [bool]) {
+        if (`$items[0]) {
+            exit 0
+        }
+        exit 1
+    }
+
+    if (`$items.Count -gt 0) {
+        `$items | ForEach-Object { Write-Output `$_ }
+    }
+    exit 1
+} catch {
+    Write-Error `$_
+    exit 1
+}
+"@
+    $encoded = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($runner))
+    $output = & powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand $encoded 2>&1
+    [pscustomobject]@{
+        exitCode = $LASTEXITCODE
+        output = $output
+    }
+}
+
 $startedAt = Get-Date
 $deadline = $null
 if ($TimeoutSeconds -gt 0) {
@@ -48,12 +86,9 @@ $lastOutput = ""
 
 while ($true) {
     $attempts += 1
-    $raw = & powershell -NoProfile -ExecutionPolicy Bypass -Command $ConditionCommand 2>&1
-    $lastExitCode = $LASTEXITCODE
-    if ($null -eq $lastExitCode) {
-        $lastExitCode = 0
-    }
-    $lastOutput = Limit-Text $raw
+    $condition = Invoke-ConditionCommand $ConditionCommand
+    $lastExitCode = $condition.exitCode
+    $lastOutput = Limit-Text $condition.output
 
     if ($lastExitCode -eq 0) {
         $applyRaw = & powershell -NoProfile -ExecutionPolicy Bypass -File $RruleHelper -AutomationId $AutomationId -DelaySeconds $WakeDelaySeconds -Apply 2>&1
