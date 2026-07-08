@@ -28,7 +28,7 @@
 | `<plan_root>/<slug>.md` | `/plan` 스킬 (사용자 결정 공간, 명시 실행) | PRD 상세화 + self-review 3-dim + user 명시 승인 |
 | `<verify_root>/plan-<slug>.json` | `/plan-verify` 스킬 | plan 격리 검증 끝 |
 | `<verify_root>/slice-<N>.json` | `/impl-verify` 스킬 (각 슬라이스마다 N=1,2,...) | impl 슬라이스 검증 끝 |
-| `<verify_root>/codex-impl-<slug>.json` | `/impl` 컨트롤러가 `/codex:adversarial-review` 1회 호출 후 stdout 캡처 저장 | 모든 슬라이스 impl-verify 통과 후 1회 (L tier, loop X) |
+| `<verify_root>/<review-runtime>-impl-<slug>.json` | 선택적 cross-runtime advisory review | 모든 슬라이스 impl-verify와 최종 novelist 통과 후 1회, loop 없음 |
 | `<diagnose_root>/<bug-slug>.md` | 빌트인 `diagnose:` 스킬 | 디버깅 6단계 끝 |
 | `<friction_path>` | `blame-code` 스킬 | 교정·코드귀책 발화 자동 또는 수동 `/blame-code` |
 | `docs/adr/NNNN-conv-<slug>.md` | `decision` 스킬 | 셀프 수렴 풀 표 결정 |
@@ -265,22 +265,23 @@ self_review:
 
 3 reviewer 모두 **opus** (baseline) — OMC analyst/critic/code-reviewer 패턴 정합. 게이트는 고빈도(per-slice × attempt 반복)·scoped라 최상위 모델은 과스펙 — 2026-06-10 fable 일괄 승격이 플랜 한도 과소모로 즉시 롤백된 실측 근거. **fable escalation은 frontmatter가 아니라 호출 시 명시 override**(`Agent(model='fable')` — delegation-enforcer는 명시값 보존): 결정 밀도 높은 L-tier 1회성 자리(decision-reviewer, impl-novelist #4)만. 2026-06-23부터 fable은 구독 플랜 밖(usage credits 별도 과금) — escalation 비용이 실돈. spec stage는 mechanical 비중 크지만 통합 agent로 1 model 단순화 우선.
 
-**cross-model 게이트 추가**: 위 3종이 전부 Claude 한 가족이라 공유 맹점을 못 잡는 약점을 codex(GPT-5.4)로 보완. agent가 아니라 codex 플러그인 `/codex:adversarial-review` 명령 재사용 (외부 subprocess, Claude 토큰·캐시 안 먹음). 구현 단계 1회·loop X·advisory-fold — 아래 `codex-impl` schema 참고.
+**cross-runtime advisory review**: 한 런타임의 reviewer들이 같은 모델 가족에 묶일 때만 다른 런타임으로 최종 diff를 1회 적대 검토할 수 있다. 이 review는 Methodos core gate가 아니라 보조 advisory다. 같은 런타임을 다시 호출해 자기검증처럼 쓰지 않는다.
 
-### codex-impl schema (kind: "codex-impl", v1.0 — cross-model 적대 게이트)
+### Runtime impl advisory schema (v1.0)
 
-`<verify_root>/codex-impl-<slug>.json` — `/impl` 컨트롤러가 `/codex:adversarial-review --base <approved_plan_revision> --wait`를 **foreground+timeout 단일 호출**로 1회 실행, stdout(JSON) 캡처해 저장. **agent md inline 복제 없음** (codex 플러그인이 산출자라 mine 측 정본은 이 schema 하나).
+`<verify_root>/<review-runtime>-impl-<slug>.json` — `/impl` 컨트롤러가 다른 런타임의 최종 diff review를 **foreground+timeout 단일 호출**로 1회 실행하고 결과를 저장한다. Claude에서 Codex companion을 쓰는 경우 기존 파일명은 `<verify_root>/codex-impl-<slug>.json`이고 `kind`는 `"codex-impl"`일 수 있다. Codex runtime은 Codex를 다시 부르지 말고, 별도 reviewer runtime이 있을 때만 이 advisory를 만든다.
 
 - **`base_ref` = plan frontmatter `approved_plan_revision` SHA** (필수). 게이트 시점엔 모든 슬라이스가 커밋돼 working-tree가 비므로 *branch-diff 모드* 강제 — working-tree 리뷰는 "nothing to review"로 빠짐.
-- **자리 = 진짜 맨 끝**: (M/L) narrative #4 status DONE 후. codex만 loop 없으니 코드 바뀌는 마지막 게이트 뒤라야 *최종 출하 diff*를 본다.
-- **foreground 이유**: `--background` 결과 회수(`/codex:result` polling)는 model-driven 순차 구동엔 background 결과 회수 행위자가 없어 artifact가 안 써짐 → 1회·맨끝 foreground+bounded timeout 단일 호출이 옳음.
+- **자리 = 진짜 맨 끝**: (M/L) narrative #4 status DONE 후. advisory review는 loop가 없으므로 코드가 바뀌는 마지막 게이트 뒤라야 *최종 출하 diff*를 본다.
+- **foreground 이유**: background 결과 회수는 model-driven 순차 구동엔 결과 회수 행위자가 없어 artifact가 안 써질 수 있다. 1회·맨끝 foreground+bounded timeout 단일 호출이 기본이다.
 
 ```json
 {
   "schema_version": "1.0",
-  "kind": "codex-impl",
+  "kind": "runtime-impl-advisory | codex-impl",
   "target": "<slug>",
   "created_at_local": "YYYY-MM-DDTHH:MM:SS+09:00",
+  "review_runtime": "<codex | claude | other>",
   "base_ref": "<base SHA 또는 branch>",
   "verdict": "approve | needs-attention | skipped_no_response | error",
   "status": "DONE | DONE_WITH_CONCERNS | SKIPPED",
@@ -292,37 +293,37 @@ self_review:
     "todos_appended": ["<medium/low — <todo_root>/todos.md 기재분>"]
   },
   "raw_review": "<codex stdout 원문(markdown) 그대로 — 사람이 골 종료 후 읽음>",
-  "evidence": [{"command": "node <plugin>/scripts/codex-companion.mjs adversarial-review --wait --base <approved_plan_revision>", "output_excerpt": "<codex stdout 핵심 발췌>", "interpretation": "<통과/무응답 한 줄>"}]
+  "evidence": [{"command": "<actual review command>", "output_excerpt": "<review stdout 핵심 발췌>", "interpretation": "<통과/무응답 한 줄>"}]
 }
 ```
 
 **verdict → status 매핑** (모델이 스테이지 경계에서 평가):
 
-| codex verdict | status | 의미 |
+| advisory verdict | status | 의미 |
 |---|---|---|
 | `approve` | DONE | 적대 findings 없음 |
 | `needs-attention` | DONE_WITH_CONCERNS | findings 있음 → advisory-fold (차단 X) |
 | `skipped_no_response` | SKIPPED | **codex 무응답/empty stdout** — 게이트 통과, 한 줄 알림 |
 | `error` | SKIPPED | codex 호출 실패(미설치·timeout 등) — 게이트 통과, 한 줄 알림 |
 
-**stdout 파싱 룰 (실측 2026-05-29 smoke test)**: companion `adversarial-review --wait` stdout은 *렌더된 markdown*이지 raw JSON 아님. 컨트롤러는:
+**stdout 파싱 룰**: reviewer stdout이 렌더된 markdown이면 컨트롤러는:
 - `verdict`: stdout에서 `Verdict: (approve|needs-attention)` 한 줄 grep → status 매핑.
 - `raw_review`: stdout 원문 markdown 그대로 저장 (사람이 골 종료 후 읽음).
 - `findings`/`severity`: markdown의 `- [high|medium|low] ...` 줄에서 best-effort 추출 (codex 출력이 severity 라벨 포함).
 
-**무응답·실패 처리 룰 (2026-05-29 실측 3케이스 검증)**:
+**무응답·실패 처리 룰**:
 - **무응답/hang** (강제 timeout exit 124) → stdout에 `Verdict:` 줄 없음 → `verdict: "skipped_no_response"` + `status: "SKIPPED"`. ✅ 검증됨 — 루프 안 막힘.
 - **호출 실패** (잘못된 base 등, exit≠0, verdict 줄 없음) → `verdict: "error"` + `status: "SKIPPED"`. ✅ 검증됨.
-- **빈 diff** (base..HEAD 변경 0) → ⚠️ codex가 **거짓 `approve` 반환**(검증됨). 그대로 믿으면 거짓 DONE → **codex 호출 *전* `git diff --shortstat <base>..HEAD` precheck**. 비면 호출 생략 + `status: "SKIPPED"`(reason "empty_diff", base 오설정 의심). 빈 diff ≠ "결함 없음".
+- **빈 diff** (base..HEAD 변경 0) → review 호출 *전* `git diff --shortstat <base>..HEAD` precheck. 비면 호출 생략 + `status: "SKIPPED"`(reason "empty_diff", base 오설정 의심). 빈 diff ≠ "결함 없음".
 - 재시도 X (loop 없음). **게이트는 SKIPPED를 통과로 인정** — codex 1회 *시도하고 결과 기록*했으면 충족. codex 응답 *기다리며 model-driven 진행이 멈추는 일 없음*.
-- 사용자에겐 한 줄만: "Codex 적대 리뷰 무응답/skip — 게이트 통과 (Claude 검증은 이미 통과)".
+- 사용자에겐 한 줄만: "Cross-runtime advisory review 무응답/skip — core Methodos 검증은 이미 통과".
 
 **advisory-fold 룰** (loop X — auto-fix-retry 없음. model-driven 자율주행 공간이라 루프 중 사용자 interaction 아님 — *기록*만):
 - `needs-attention` findings 중 **`severity ∈ {critical, high}`** → `fold.surfaced_to_user`에 한 줄씩 (사용자는 *골 종료 후* 읽음 — 루프 중 묻지 않음). (confidence는 보조 — severity 동률 시 높은 confidence 우선.)
 - 나머지(medium/low) → `fold.todos_appended` + `<todo_root>/todos.md` append.
 - **하드 차단·BLOCKED status 없음** — 새 사용자 round-trip 안 만듦 (메모리 max-autonomy no-new-gates 정합).
 
-**활성화 (단일 predicate — 모든 자리 동일하게)**: **`L tier` 또는 `M tier + D33 충족`**이면 codex 게이트 활성 → 모델이 codex 1회 실행·artifact 기록. 그 외(M 비-D33/S/XS)는 skip → artifact 미생성. tier표·measurement 조건·최종 체크리스트 *세 곳 모두 이 predicate*로 (smoke test [high] finding 교정 — 자리마다 다르게 쓰면 M+D33 골이 codex 없이 통과).
+**활성화 (단일 predicate — 모든 자리 동일하게)**: **`L tier` 또는 `M tier + D33 충족`**이고 별도 reviewer runtime이 설정돼 있으면 advisory review 1회 실행·artifact 기록. 그 외(M 비-D33/S/XS) 또는 reviewer runtime 부재 시 skip → artifact 미생성.
 
 각 schema 본문은 해당 agent md의 `<Output_Format>` 섹션에 inline. drift 방지 룰: agent md 변경 시 이 SKILL-ARTIFACTS의 schema도 같이 갱신 (또는 그 반대).
 
@@ -519,7 +520,7 @@ status: reproduced | minimised | fixed | regressed
 - 슬라이스마다 `WHY:` commit 존재
 - slice attempt JSON `status` ∈ `DONE`/`DONE_WITH_CONCERNS`
 - (M/L) narrative-final `status` DONE
-- (L | M+D33) codex-impl JSON 존재
+- (L | M+D33) 별도 reviewer runtime이 설정된 경우 runtime advisory JSON 존재
 - ADR 존재 (decision 산출 시)
 
 **원칙** ([3I] 코드 자동 가드 promote):

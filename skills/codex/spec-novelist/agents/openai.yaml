@@ -1,0 +1,6 @@
+interface:
+  display_name: "Spec Novelist"
+  short_description: "Run a fresh-context spec narrative review"
+  default_prompt: "Use $spec-novelist to run a fresh-context narrative dry-run on this spec."
+policy:
+  allow_implicit_invocation: false

@@ -131,7 +131,7 @@ artifact under `<verify_root>`; do not let the advisory replace Methodos
 - 슬라이스 끝 → `/impl-verify` 격리 검증 (2-stage)
 - 검증 DONE → 다음 슬라이스
 - 검증 DONE_WITH_CONCERNS / BLOCKED → fix 슬라이스로 사이클 (`/impl-verify`의 "다음 단계" 표 참고)
-- 모든 슬라이스 DONE + configured impl-verify gates DONE → (다파일 ∨ 다flow) `impl-novelist` narrative #4 → (`impl-novelist` DONE 후, 대형·아키텍처 변경 시) Codex 적대 게이트 1회 → **(선택, G-D) 전체 diff `/simplify` 1회 마무리 패스 — 값 있을 때만 (OPEN)** → 결정 기록 또는 `WHY:` 요약 + 골 종료
+- 모든 슬라이스 DONE + configured impl-verify gates DONE → (다파일 ∨ 다flow) `impl-novelist` narrative #4 → (별도 reviewer runtime이 설정된 대형·아키텍처 변경 시) runtime advisory review 1회 → **(선택, G-D) 전체 diff `/simplify` 1회 마무리 패스 — 값 있을 때만 (OPEN)** → 결정 기록 또는 `WHY:` 요약 + 골 종료
 
 ## Reeval
 
@@ -144,4 +144,4 @@ artifact under `<verify_root>`; do not let the advisory replace Methodos
 
 
 - 슬라이스 commit 직전 → [3H] 한 슬라이스 단독 동작·검증 가능 / [1C] 누더기 거부
-- (다파일 ∨ 다flow) `impl-novelist` narrative #4 DONE 후 (대형·아키텍처 변경) → Codex cross-model 적대 게이트 1회, 최종 diff 대상·advisory-fold ([2J] cross-model Evidence)
+- (다파일 ∨ 다flow) `impl-novelist` narrative #4 DONE 후, 별도 reviewer runtime이 설정된 대형·아키텍처 변경 → runtime advisory review 1회, 최종 diff 대상·advisory-fold ([2J] cross-runtime Evidence)

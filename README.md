@@ -22,6 +22,24 @@ the pieces to your own Claude, Codex, or other agent runtime.
 The private ADR/research archive is not part of this public package. The runtime
 contract and usable harness assets live here.
 
+## Install Profiles
+
+Use these profiles as the stable pick-list when adopting Methodos into another
+agent runtime. They are profiles, not installer commands.
+
+| Profile | Start With | Add When |
+|---|---|---|
+| `bootstrap` | `setup-methodos` | First adoption pass for a repository |
+| `core` | `using-methodos`, `grill-me`, `plan`, `plan-verify`, `impl`, `impl-verify`, `decision` | Any non-trivial Methodos workflow |
+| `core+novelists` | `core` plus `spec-novelist`, `impl-novelist`, Claude reviewer/novelist agents if supported | Multi-file or multi-flow feature work |
+| `continuity` | `handoff`, `snapshot`, `todo`, `context-novelist` | Long-running work across sessions, compaction, or context surfaces |
+| `learning-loop` | `blame-code`, `finding`, `gc`, `improve-codebase-architecture` | Turning repeated confusion or stale artifacts into structural improvements |
+| `optional` | `ask-chatgpt-pro`, `report-kit` | External second opinion or HTML lifecycle reporting |
+| `hooks` | `hooks/common/*`, `hooks/claude/*`, `hooks/codex/hooks.example.json` | Runtime guardrails after manual review and trust |
+
+For Codex, choose from `skills/codex/`. For Claude, choose from
+`skills/claude/` and add `agents/claude/` when isolated agents are available.
+
 ## Why
 
 AI coding gets blurry when the model jumps straight from a vague request to
@@ -84,6 +102,7 @@ byte-identical across runtimes.
 
 | Skill | Role | Artifact |
 |---|---|---|
+| `setup-methodos` | Repository bootstrap: choose profiles, roots, context surfaces, hooks, and agent wiring | setup packet or context patch |
 | `using-methodos` | Passive orientation meta-skill, not a router | none |
 | `grill-me` | Intent alignment interview before non-trivial work | `docs/specs/<slug>.md` |
 | `plan` | Approved spec to vertical implementation slices | `<plan_root>/<slug>.md` |
@@ -160,15 +179,17 @@ This repository intentionally leaves installation to the adopting runtime or AI
 agent. A practical adoption pass usually means:
 
 1. Read `contract/SKILL-ARTIFACTS.md`.
-2. Choose the relevant runtime realization: `skills/claude/*/SKILL.md` for
+2. Run or follow `setup-methodos` to choose profiles, artifact roots, context
+   surfaces, hook registration, and agent/subagent wiring for the target repo.
+3. Choose the relevant runtime realization: `skills/claude/*/SKILL.md` for
    Claude or `skills/codex/*/SKILL.md` for Codex. Start with core gates and
    `decision`; add continuity, learning-loop, and extension skills as needed.
-3. Adapt reviewer/novelist agents only if the runtime supports isolated agents.
-4. Treat `hooks/*` as reference scripts, not automatically installed policy.
+4. Adapt reviewer/novelist agents only if the runtime supports isolated agents.
+5. Treat `hooks/*` as reference scripts, not automatically installed policy.
    For Codex, start from `hooks/codex/hooks.example.json`: copy/adapt it into
    `~/.codex/hooks.json`, `<repo>/.codex/hooks.json`, inline `[hooks]` in
    `config.toml`, or a Codex plugin manifest, then review/trust the hook.
-5. Keep artifact paths and schemas stable when changing prose or runtime setup.
+6. Keep artifact paths and schemas stable when changing prose or runtime setup.
 
 `hooks/common/context_surface_guard.py` is intentionally mechanical. It can
 notice broken references or suspicious hot-context placement, then suggest a
