@@ -29,7 +29,9 @@ code. Methodos puts durable checkpoints between those steps:
 - intent becomes a written spec
 - the spec becomes vertical implementation slices
 - each plan and slice gets isolated verification
+- fresh-context novelist lenses walk lived-use stories before and after implementation
 - completion requires evidence artifacts, not just confident prose
+- runtime guards catch mismatches between agent prose, tool calls, evidence, and context placement
 - runtime-specific wording and hooks may vary, while artifact contracts stay
   stable
 
@@ -49,6 +51,20 @@ The shared contract for these artifacts lives in
 [`contract/SKILL-ARTIFACTS.md`](contract/SKILL-ARTIFACTS.md). Runtime-specific
 wording, hooks, and agent formats may differ as long as they obey that contract.
 
+## Three Pressures
+
+Methodos does not rely on agent prose alone. It applies three kinds of pressure:
+
+| Pressure | Question | Examples |
+|---|---|---|
+| Reviewer gates | Is the plan or slice correct, evidenced, and within contract? | `plan-verify`, `impl-verify`, reviewer agents |
+| Novelist lenses | Can the intended actor actually live through the story? | `spec-novelist`, `impl-novelist`, `context-novelist` |
+| Runtime guards | Did the runtime actually follow the stated intent? | model gates, evidence wording checks, context-surface guard |
+
+`context-novelist` is part of the novelist family, but it reviews the next
+reader's context rather than a product user's feature story. Hooks can suggest
+that a context-novelist pass is needed; they do not replace that judgment.
+
 ## Skill Families
 
 ### Core Gates
@@ -61,8 +77,8 @@ wording, hooks, and agent formats may differ as long as they obey that contract.
 | `plan-verify` | Isolated adversarial plan review | `.claude/verify-reports/plan-*.json` |
 | `impl` | Slice implementation with `WHY:` commits | git commits |
 | `impl-verify` | Isolated slice verification | `.claude/verify-reports/slice-*.json` |
-| `spec-novelist` | Fresh-context spec narrative dry-run | spec fold |
-| `impl-novelist` | Final assembled implementation narrative dry-run | `.claude/verify-reports/narrative-*.json` |
+| `spec-novelist` | Fresh-context spec lived-use lens | spec fold |
+| `impl-novelist` | Final assembled implementation lived-use lens | `.claude/verify-reports/narrative-*.json` |
 
 ### Governance
 
@@ -93,6 +109,19 @@ comparison, irreversible changes, temporary patches, and FORCE/OPEN judgment.
 |---|---|
 | `ask-chatgpt-pro` | Delegate second-opinion review to a logged-in ChatGPT Pro browser session |
 | `report-kit` | Produce self-contained lifecycle/status/decision HTML reports |
+
+### Runtime Guards
+
+These are hook candidates, not installed policy. They are intentionally narrower
+than the skills: each guard catches a mechanical runtime mismatch and leaves
+semantic judgment to the relevant Methodos gate or novelist lens.
+
+| Hook | Role |
+|---|---|
+| `hooks/claude/delegation-enforcer.py` | Keep Claude agent model intent aligned with the actual Agent tool call |
+| `hooks/common/evidence_check.py` | Warn when verify reports use hedged language instead of evidence |
+| `hooks/codex/codex-spawn-model-gate.py` | Require explicit model intent on Codex spawned-agent calls |
+| `hooks/common/context_surface_guard.py` | Flag suspicious hot-context edits and suggest `context-novelist` review |
 
 ## Repository Layout
 
