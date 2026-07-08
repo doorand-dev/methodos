@@ -119,6 +119,10 @@ agent. A practical adoption pass usually means:
 4. Treat `hooks/*` as candidates, not automatically installed policy.
 5. Keep artifact paths and schemas stable when changing prose or runtime setup.
 
+`hooks/common/context_surface_guard.py` is intentionally mechanical. It can
+notice broken references or suspicious hot-context placement, then suggest a
+`context-novelist` pass; it does not run a model or replace that judgment.
+
 Codex support is experimental. Hook candidates and runtime notes are included,
 but no stable Codex setup is provided.
 
