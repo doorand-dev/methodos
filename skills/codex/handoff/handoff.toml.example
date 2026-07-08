@@ -1,0 +1,19 @@
+# `<workspace>/.claude/handoff.toml` 예시 (선택)
+# 이 파일 *없어도* 전역 /handoff 스킬은 GitHub 통합 없이 동작.
+# Issue·milestone로 task 추적할 프로젝트에서만 만든다.
+
+# ─────────────────────────────────────────────────────
+# GitHub Issue 통합 (opt-in). `gh` CLI 필요.
+# 이 블록 *전체 미설정* 시 GitHub 채널 완전 비활성 — 기존 동작 100% 유지.
+# ─────────────────────────────────────────────────────
+# [github]
+# issues_enabled = true
+# default_milestone = "Phase 1"
+# default_labels = ["track:data", "priority:high"]
+# require_issue_for_handoff = false  # true면 handoff 만들 때 Issue 없으면 BLOCKED
+
+# commit subject 라벨 합성 — "issue" / "both" / "none" (디폴트)
+# - "issue": feat(x): ... (Fixes #N)
+# - "both" : feat(x): ... [ADR-NNNN] (Fixes #N) — ADR 강제 + Issue 동시 cross-link
+# - "none" : Issue 채널 미사용 시
+# commit_ref_format = "none"

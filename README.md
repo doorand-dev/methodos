@@ -13,8 +13,8 @@ the pieces to your own Claude, Codex, or other agent runtime.
 | Area | Status |
 |---|---|
 | Runtime contract | Stable reference |
-| Claude skills and agents | Usable reference |
-| Codex skills | Usable reference |
+| Claude skills and agents | Usable reference in `skills/claude/` and `agents/claude/` |
+| Codex skills | Usable reference in `skills/codex/` |
 | Codex hooks | Reference scripts with `hooks/codex/hooks.example.json`; inactive until registered and trusted |
 | Installer | Not provided |
 | Public ADR archive | Not included |
@@ -41,10 +41,10 @@ code. Methodos puts durable checkpoints between those steps:
 ```text
 Idea
   -> grill-me writes docs/specs/<slug>.md
-  -> plan writes .claude/plans/<slug>.md
-  -> plan-verify writes .claude/verify-reports/plan-*.json
+  -> plan writes <plan_root>/<slug>.md
+  -> plan-verify writes <verify_root>/plan-*.json
   -> impl commits one slice at a time with WHY:
-  -> impl-verify writes .claude/verify-reports/slice-*.json
+  -> impl-verify writes <verify_root>/slice-*.json
   -> impl-novelist walks the assembled result before final confidence
 ```
 
@@ -66,6 +66,18 @@ Methodos does not rely on agent prose alone. It applies three kinds of pressure:
 reader's context rather than a product user's feature story. Hooks can suggest
 that a context-novelist pass is needed; they do not replace that judgment.
 
+## Runtime Skill Realizations
+
+The artifact contract is shared, but the skill prose is not forced to be
+byte-identical across runtimes.
+
+- Claude realizations live in `skills/claude/<skill>/SKILL.md`.
+- Codex realizations live in `skills/codex/<skill>/SKILL.md`.
+- Claude reviewer and novelist agent prompts live in `agents/claude/`.
+- Codex novelist router skills, such as `spec-novelist` and `impl-novelist`,
+  live in `skills/codex/`; Codex subagent wiring is left to the adopting
+  runtime.
+
 ## Skill Families
 
 ### Core Gates
@@ -74,12 +86,12 @@ that a context-novelist pass is needed; they do not replace that judgment.
 |---|---|---|
 | `using-methodos` | Passive orientation meta-skill, not a router | none |
 | `grill-me` | Intent alignment interview before non-trivial work | `docs/specs/<slug>.md` |
-| `plan` | Approved spec to vertical implementation slices | `.claude/plans/<slug>.md` |
-| `plan-verify` | Isolated adversarial plan review | `.claude/verify-reports/plan-*.json` |
+| `plan` | Approved spec to vertical implementation slices | `<plan_root>/<slug>.md` |
+| `plan-verify` | Isolated adversarial plan review | `<verify_root>/plan-*.json` |
 | `impl` | Slice implementation with `WHY:` commits | git commits |
-| `impl-verify` | Isolated slice verification | `.claude/verify-reports/slice-*.json` |
-| `spec-novelist` | Fresh-context spec lived-use lens | spec fold |
-| `impl-novelist` | Final assembled implementation lived-use lens | `.claude/verify-reports/narrative-*.json` |
+| `impl-verify` | Isolated slice verification | `<verify_root>/slice-*.json` |
+| `spec-novelist` | Fresh-context spec lived-use lens | Codex router skill or Claude agent fold |
+| `impl-novelist` | Final assembled implementation lived-use lens | narrative verify report |
 
 ### Governance
 
@@ -133,7 +145,8 @@ Methodos gate or novelist lens.
 
 ```text
 contract/              Shared artifact schemas and Methodos reference contract
-skills/                Core gates, governance, continuity, learning-loop, and extension skills
+skills/claude/         Claude skill realizations
+skills/codex/          Codex skill realizations
 agents/claude/         Claude reviewer and novelist agent definitions
 hooks/common/          Reference hook scripts usable across runtimes
 hooks/claude/          Claude-only hook scripts
@@ -147,9 +160,9 @@ This repository intentionally leaves installation to the adopting runtime or AI
 agent. A practical adoption pass usually means:
 
 1. Read `contract/SKILL-ARTIFACTS.md`.
-2. Adapt the relevant `skills/*/SKILL.md` files into the runtime's skill format.
-   Start with core gates and `decision`; add continuity, learning-loop, and
-   extension skills as needed.
+2. Choose the relevant runtime realization: `skills/claude/*/SKILL.md` for
+   Claude or `skills/codex/*/SKILL.md` for Codex. Start with core gates and
+   `decision`; add continuity, learning-loop, and extension skills as needed.
 3. Adapt reviewer/novelist agents only if the runtime supports isolated agents.
 4. Treat `hooks/*` as reference scripts, not automatically installed policy.
    For Codex, start from `hooks/codex/hooks.example.json`: copy/adapt it into
@@ -176,7 +189,7 @@ Shared across runtimes:
 
 Free to diverge per runtime:
 
-- `SKILL.md` prose and examples
+- runtime-specific `SKILL.md` prose and examples
 - hook registration mechanics
 - agent/subagent formats
 - runtime-specific FORCE devices

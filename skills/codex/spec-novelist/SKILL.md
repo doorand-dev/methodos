@@ -7,9 +7,10 @@ description: Route explicit requests for spec novelist, spec narrative dry-run, 
 
 Use this skill to make the name `spec-novelist` discoverable in ordinary Codex sessions.
 
-Do not replace the Methodos agent prompt with this file. The canonical spec novelist realization is:
+Do not replace the Methodos agent prompt with this file. This repository ships
+the Claude agent prompt as source material for a Codex subagent adaptation:
 
-`agents/claude/spec-novelist.md`
+`../../../agents/claude/spec-novelist.md`
 
 ## Procedure
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Context Novelist"
+  short_description: "Audit minimal context packets"
+  default_prompt: "Use $context-novelist to audit this task packet for minimal sufficient context and progressive disclosure."

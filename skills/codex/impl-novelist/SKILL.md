@@ -7,9 +7,10 @@ description: Route explicit requests for impl novelist, implementation novelist,
 
 Use this skill to make the name `impl-novelist` discoverable in ordinary Codex sessions.
 
-Do not replace the Methodos agent prompt with this file. The canonical impl novelist realization is:
+Do not replace the Methodos agent prompt with this file. This repository ships
+the Claude agent prompt as source material for a Codex subagent adaptation:
 
-`agents/claude/impl-novelist.md`
+`../../../agents/claude/impl-novelist.md`
 
 ## Procedure
 

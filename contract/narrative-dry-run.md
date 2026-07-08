@@ -23,7 +23,7 @@
 |---|---|---|---|---|
 | #2 | spec 직후 (grill-me §6) | full | **외부 `spec-novelist` agent** (fresh, sonnet) | spec `user_stories` / `edge_cases` / `modules`. 확인은 §7 *기존* review gate에 흡수 |
 | #3 | plan-verify 후 delta (plan M2) | delta | **inline** (기계적 diff, 오염 여지 적음) | 체감 변화면 기존 M2 게이트 / 새 보완점은 spec `edge_cases`·plan slice |
-| #4 | 최종 구현 후 (model-driven 최종 게이트) | full | **외부 `impl-novelist` agent** (fresh, opus — L-tier면 fable 명시 escalation 가능) | 깨짐/regression → 게이트(아래) / polish → `.claude/todos.md` |
+| #4 | 최종 구현 후 (model-driven 최종 게이트) | full | **외부 `impl-novelist` agent** (fresh, opus — L-tier면 fable 명시 escalation 가능) | 깨짐/regression → 게이트(아래) / polish → `<todo_root>/todos.md` |
 
 > #1 "방향 합의 직후"는 artifact가 아직 없어 *독립 스텝 아님* — grill-me §3 stress-test에 흡수.
 
@@ -45,7 +45,7 @@
 
 - 정상(DONE) → model-driven 흐름 정상 종료. 평소와 동일.
 - **깨짐/regression(BROKEN)** → 골 완료 결정 보류. **impl 재시도 auto-loop** (사용자 대답 강제 X — D34식 알림 한 줄). N 천장 도달 시 escalate (impl-verify ralph와 동일).
-- polish/deferred → `.claude/todos.md` 자동 적재 후 통과. **`friction.md`에 쓰지 말 것** — `blame-code` 명시 트리거 전용 불변식.
+- polish/deferred → `<todo_root>/todos.md` 자동 적재 후 통과. **`friction.md`에 쓰지 말 것** — `blame-code` 명시 트리거 전용 불변식.
 
 ## novelist agent 페르소나 (순진성 강제)
 

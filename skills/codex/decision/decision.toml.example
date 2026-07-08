@@ -1,0 +1,15 @@
+# `<workspace>/.claude/decision.toml` 예시 (선택)
+# 이 파일 *없어도* 전역 /decision 스킬은 디폴트(docs/adr/)로 동작.
+# 다른 위치를 쓰거나 extra_triggers 가 필요한 프로젝트에서만 만든다.
+
+# ADR 폴더 위치. 디폴트 "docs/adr". 빈 문자열이면 ADR 안 만들고 WHY 주석/commit body 만 사용.
+adr_dir = "docs/adr"
+
+# ADR 템플릿 (자동 인덱스+1 번호 매기기에 사용). 없으면 lazy 생성.
+adr_template = "docs/adr/TEMPLATE.md"
+
+# ADR 인덱스 (새 ADR 한 줄 추가 대상). 없으면 lazy 생성.
+adr_index = "docs/adr/README.md"
+
+# (선택) 프로젝트별 추가 트리거 키워드
+# extra_triggers = ["롤백", "스키마 변경", "백테스트 재실행"]

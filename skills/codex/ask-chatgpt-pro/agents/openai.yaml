@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ask ChatGPT Pro"
+  short_description: "Delegate reviews to ChatGPT Pro via agbrowse"
+  default_prompt: "Use $ask-chatgpt-pro to get a ChatGPT Pro review of the current diff."
