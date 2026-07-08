@@ -41,7 +41,7 @@ description: |
 | Governance | `decision` | gate는 아니지만 핵심 판단 렌즈. 옵션 비교, 비가역, 임시방편, FORCE/OPEN 판단을 닫는다 |
 | Continuity | `handoff`, `snapshot`, `todo`, `context-novelist` | 긴 작업을 세션·압축·문서 경계 너머로 잃지 않게 한다 |
 | Learning loop | `blame-code`, `finding`, `gc`, `improve-codebase-architecture` | 혼란·발견·stale 표면을 축적하고 구조 개선으로 되돌린다 |
-| Extensions | `ask-chatgpt-pro`, `report-kit` | 외부 second opinion과 보고서 산출처럼 상황 의존 기능을 붙인다 |
+| Extensions | `conditional-heartbeat`, `ask-chatgpt-pro`, `report-kit` | heartbeat wakeup, 외부 second opinion, 보고서 산출처럼 상황 의존 기능을 붙인다 |
 
 `decision`은 보조가 아니다. 중앙 라우터는 아니지만 Methodos의 core governance다. 반대로 `handoff`/`snapshot`/`todo`는 파이프라인 산출물을 읽고 쓰지 않는 운영층이라 core gate가 아니다.
 

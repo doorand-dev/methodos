@@ -34,7 +34,7 @@ agent runtime. They are profiles, not installer commands.
 | `core+novelists` | `core` plus `spec-novelist`, `impl-novelist`, Claude reviewer/novelist agents if supported | Multi-file or multi-flow feature work |
 | `continuity` | `handoff`, `snapshot`, `todo`, `context-novelist` | Long-running work across sessions, compaction, or context surfaces |
 | `learning-loop` | `blame-code`, `finding`, `gc`, `improve-codebase-architecture` | Turning repeated confusion or stale artifacts into structural improvements |
-| `optional` | `ask-chatgpt-pro`, `report-kit` | External second opinion or HTML lifecycle reporting |
+| `optional` | `conditional-heartbeat`, `ask-chatgpt-pro`, `report-kit` | Heartbeat wakeups, external second opinion, or HTML lifecycle reporting |
 | `hooks` | `hooks/common/*`, `hooks/claude/*`, `hooks/codex/hooks.example.json` | Runtime guardrails after manual review and trust |
 
 For Codex, choose from `skills/codex/`. For Claude, choose from
@@ -139,6 +139,7 @@ comparison, irreversible changes, temporary patches, and FORCE/OPEN judgment.
 
 | Skill | Role |
 |---|---|
+| `conditional-heartbeat` | Create one-shot Codex heartbeat wakeups with fallback and condition-based acceleration |
 | `ask-chatgpt-pro` | Delegate second-opinion review to a logged-in ChatGPT Pro browser session |
 | `report-kit` | Produce self-contained lifecycle/status/decision HTML reports |
 

@@ -32,7 +32,7 @@ Use this stable pick-list:
 | `core+novelists` | `core` plus `spec-novelist`, `impl-novelist`; add reviewer/novelist agents when the runtime supports isolated agents |
 | `continuity` | `handoff`, `snapshot`, `todo`, `context-novelist` |
 | `learning-loop` | `blame-code`, `finding`, `gc`, `improve-codebase-architecture` |
-| `optional` | `ask-chatgpt-pro`, `report-kit` |
+| `optional` | `conditional-heartbeat`, `ask-chatgpt-pro`, `report-kit` |
 | `hooks` | reviewed hook scripts plus runtime-specific registration |
 
 Default recommendation: `core`. Add `core+novelists` for multi-file or multi-flow feature work. Add `continuity` for long tasks. Add `hooks` only after the target runtime's hook registration and trust step are clear.

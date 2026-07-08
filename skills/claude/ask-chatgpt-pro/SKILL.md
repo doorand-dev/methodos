@@ -50,9 +50,12 @@ The user must log in to ChatGPT by hand in that Chrome profile. Do not automate 
 Resolve the helper relative to this skill:
 
 ```powershell
-$script = "C:\Users\hjcha\.codex\skills\ask-chatgpt-pro\scripts\pro-review.ps1"
-$rruleHelper = "C:\Users\hjcha\.codex\skills\ask-chatgpt-pro\scripts\codex-heartbeat-rrule.ps1"
+$skillDir = "<installed ask-chatgpt-pro skill folder>"
+$script = Join-Path $skillDir "scripts\pro-review.ps1"
+$rruleHelper = Join-Path $skillDir "scripts\codex-heartbeat-rrule.ps1"
 ```
+
+The `$rruleHelper` path is a compatibility wrapper. Keep RRULE generation logic in the sibling `conditional-heartbeat` skill at `scripts\codex-heartbeat-rrule.ps1`.
 
 ## Send
 
