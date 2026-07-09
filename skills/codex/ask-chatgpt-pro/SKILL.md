@@ -10,7 +10,9 @@ Send a bounded prompt to a logged-in ChatGPT Pro web session through `agbrowse w
 ## Rules
 
 - Use `--model pro --effort extended` unless the user asks for a faster or lower-effort pass.
+- Model/effort enforcement is version-gated: on agbrowse >= 0.1.15, `--model pro --effort extended` is enforced and the send output's `reasoning effort selected: ...` line confirms it; on 0.1.14 it was silently not enforced (flags accepted but ignored, window kept whatever tier it already had). Always confirm via that output line — never infer the tier from the answer text.
 - Each ask/review request starts a fresh ChatGPT session by default.
+- A fresh session is not a clean room: ChatGPT's account-level memory / "reference chat history" can leak facts across separate conversations, so thread isolation does not guarantee model isolation. If a review must not see prior context, have the user disable "Reference saved memories / chat history" in ChatGPT settings, or use a Temporary Chat, before sending.
 - Continue an existing review session only when the user explicitly asks to continue that specific session, or provides a `sessionId` / conversation URL to continue.
 - Treat review, deep research, file-attachment review, many-file context review, and second opinions as long reviews unless the user asks for a short answer.
 - In Codex Desktop, long reviews use `send -> one-shot Codex heartbeat fallback -> optional condition acceleration -> collect`.
