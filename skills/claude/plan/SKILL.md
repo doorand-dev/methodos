@@ -1,10 +1,10 @@
 ---
 name: plan
 description: |
-  승인된 spec(또는 거친 골)을 받아 *구현 가능한 슬라이스 단위 계획*으로 합성한다 — 슬라이스마다 건드릴 파일·함수 시그니처·검증법·사용자 결정 자리(M1)·승인본 대비 변화(M2)를 박는다. signature/schema는 plan 본문에 inline.
-  **자동 발동 (self-trigger, 라우터 없음)**: spec(`docs/specs/slug.md`) approved 직후, 또는 다슬라이스 비-trivial 작업이 *구현 전*일 때. "plan"·"계획 짜"·"PRD 작성"·"기능 분해".
-  **Standalone — 사용자 결정 공간**. spec.md 입력으로 받아 *추가 인터뷰 없이 합성*. 산출 `.claude/plans/slug.md` approved 후 model-driven 자율주행으로.
-  **right-sizing (OPEN)**: 슬라이스 두께·P0 스파이크 유무는 상황으로 *모델 판단* (rigid rule 아님, FORCE/OPEN). 명시: `/plan slug 또는 거친 골`.
+  Take an approved spec (or a rough goal) and synthesize an *implementable, slice-by-slice plan* — for each slice, pin the files touched, function signatures, verification method, user-decision slots (M1), and changes vs the approved version (M2). Signatures/schemas go inline in the plan body.
+  **Self-trigger (no router)**: right after a spec (`docs/specs/slug.md`) is approved, or when multi-slice non-trivial work is *about to be implemented*. "plan", "계획 짜", "PRD 작성", "기능 분해".
+  **Standalone — user decision space**. Takes spec.md as input and synthesizes *without further interview*. Output `.claude/plans/slug.md`; after approval, proceed to model-driven autonomous drive.
+  **right-sizing (OPEN)**: slice thickness and whether a P0 spike is needed are *model judgment* by situation (not a rigid rule, FORCE/OPEN). Explicit: `/plan slug 또는 거친 골`.
 ---
 
 # /plan — PRD 상세화 (standalone, 사용자 결정 공간)

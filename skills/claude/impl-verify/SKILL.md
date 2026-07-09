@@ -1,10 +1,10 @@
 ---
 name: impl-verify
 description: |
-  슬라이스 구현 격리 검증 2-stage (spec compliance → code quality) + 오라클 판정 *내장*. superpowers `subagent-driven-development` 패턴 차용.
-  **자동 발동 (self-trigger, 라우터 없음)**: 슬라이스 commit 후 "통과" 단언 전 (`slice-N.json` 부재). "impl 검증"·"이 구현 어떻게 보여?"·"impl-verify".
-  **Evidence (FORCE)**: 미실행 명령 evidence 금지 · implementer "DONE" 인용 금지 · caller 열거 없이 통과 금지.
-  **오라클 (G-B, OPEN)**: 슬라이스마다 오라클 *타입*(tdd-parity/spike/live-dry-run/visual/adversarial)을 판정해 검증법을 *스스로* 고름 — 라우터 수식자 fold. 산출 `.claude/verify-reports/slice-N.json`. 명시: `/impl-verify slice-N`.
+  Isolated 2-stage verification of a slice implementation (spec compliance → code quality) with *built-in* oracle judgment. Borrows the superpowers `subagent-driven-development` pattern.
+  **Self-trigger (no router)**: after a slice commit, before asserting "pass" (no `slice-N.json`). "impl 검증", "이 구현 어떻게 보여?", "impl-verify".
+  **Evidence (FORCE)**: no evidence from unrun commands · no citing the implementer's "DONE" · no pass without enumerating callers.
+  **Oracle (G-B, OPEN)**: per slice, judge the oracle *type* (tdd-parity/spike/live-dry-run/visual/adversarial) and choose the verification method *itself* — a folded router modifier. Output `.claude/verify-reports/slice-N.json`. Explicit: `/impl-verify slice-N`.
 ---
 
 # /impl-verify — 슬라이스 구현 격리 검증 2-stage (얇은 stub)

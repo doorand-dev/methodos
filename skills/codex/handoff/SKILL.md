@@ -1,22 +1,18 @@
 ---
 name: handoff
-description: >
-  현재 세션의 작업 일부를 **새 세션으로 넘기기** 위해, 그 특정 task에 필요한
-  *최소* 컨텍스트만 JSON으로 정리하고 새 세션에서 첫 발화로 쓸 시작 프롬프트를
-  추천한다.
+description: |
+  Split part of the current session's work into a **new session** by capturing only the *minimal* context that specific task needs as JSON, and recommend a starting prompt to use as the new session's first message.
 
-  세션 전체 상태를 다 옮기지 않는다 — 새 세션이 *그 task*를 시작하는 데 필요한
-  것만 선별하고, 이미 코드·문서에 있는 사실은 grep 경로/명령어만 남긴다.
+  Do not move the whole session state — select only what the new session needs to *start that task*, and for facts already in code/docs leave just a grep path or command.
 
-  다음 자연어 트리거에서 **즉시 저장하지 말고 사용자에게 먼저 확인**:
+  On these natural-language triggers, **do not save immediately — confirm with the user first**:
   - "이거 새 세션에서 하는 게 낫지 않을까", "다음 세션에서 마저 하자"
   - "여기서 끊자", "별도 세션으로 빼자", "이거 길어질 것 같으니까 나눠서"
   - "handoff 만들어", "다음 세션에 넘길 거 정리해줘", "새 세션 시작 프롬프트"
 
-  사용자에게 "handoff 스킬 구동할까요? 새 세션에서 어떤 작업 하실 건지 알려주시면 그에 맞는 컨텍스트만 골라서 JSON으로 남기고 시작 프롬프트도 추천드릴게요."라고 묻고 동의받은 뒤 진행.
+  Ask "handoff 스킬 구동할까요? 새 세션에서 어떤 작업 하실 건지 알려주시면 그에 맞는 컨텍스트만 골라서 JSON으로 남기고 시작 프롬프트도 추천드릴게요.", then proceed once the user agrees.
 
-  같은 세션 내 `/compact` 직전 보존용은 `snapshot` 스킬 — 헷갈리지 말 것.
-  영속 할 일 추가는 `todo`.
+  For same-session preservation right before `/compact`, use the `snapshot` skill — do not confuse them. To add a persistent to-do, use `todo`.
 ---
 
 # Handoff

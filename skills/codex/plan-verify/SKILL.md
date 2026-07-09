@@ -1,10 +1,10 @@
 ---
 name: plan-verify
 description: |
-  plan 격리 적대적 검증 (4차원: 과거 결정 충돌 · decision [0]~[3J] 원칙 · 사용자 글로벌 룰 · plan 내부 정합성).
-  **자동 발동 (self-trigger, 라우터 없음)**: 사용자가 스킬 이름을 몰라도, plan status=approved 직후, impl 전 (`approved_plan_revision` SHA 변경 감지), 또는 "승인된 plan 이어가/구현해"처럼 구현으로 넘어가려는 발화에서 검증 artifact가 없을 때. "plan 검증"·"이 계획 어떻게 보여?"·"plan-verify".
-  **Evidence (FORCE)**: 모든 issue는 명령 출력·file:line *직접 인용* — 추상 통과("괜찮아 보임") 금지, 미실행 명령 evidence 금지. 산출 `<verify_root>/plan-slug-verify-attempt-N.json`. 명시: `/plan-verify slug`.
-  **쉬운 언어 (FORCE)**: 사용자 escalation은 기술 세부가 아니라 "무엇이 막혔고, 선택하면 어떤 결과가 나는지"를 쉬운 한국어로 쓴다.
+  Isolated adversarial verification of a plan (4 dimensions: conflicts with past decisions · decision [0]~[3J] principles · user global rules · plan internal consistency).
+  **Self-trigger (no router)**: even if the user doesn't know the skill name, fire right after plan status=approved and before impl (detect `approved_plan_revision` SHA change), or on a remark moving toward implementation like "승인된 plan 이어가/구현해" when no verify artifact exists. "plan 검증", "이 계획 어떻게 보여?", "plan-verify".
+  **Evidence (FORCE)**: every issue must *directly quote* command output or file:line — no abstract pass ("looks fine"), no evidence from unrun commands. Output `<verify_root>/plan-slug-verify-attempt-N.json`. Explicit: `/plan-verify slug`.
+  **Plain language (FORCE)**: write user escalations not as technical detail but as "what is blocked and what happens if you choose each option", in plain Korean.
 ---
 
 # /plan-verify — plan 격리 적대적 검증 (얇은 stub)

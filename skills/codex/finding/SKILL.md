@@ -1,6 +1,7 @@
 ---
 name: finding
-description: 코드가 담을 수 없는 "현실이 어떻게 동작하나 / 뭐가 막혀있나"류 영속 지식(외부 시스템 동작·하드원 우회·시도했으나 실패)을 `docs/findings/NNNN-slug.md`에 file-per-finding으로 누적. 결정(ADR)·friction(휘발 백로그)·todo-ctx(휘발 맥락)와 구분되는 *영속 참조 사실* 아티팩트. explicit 1급 트리거(`/finding`·"finding 박아"·"이거 발견 기록") + 발견 발화 soft 넛지(자동, opt-in 기록). 외부시스템 reverse-engineering 지식을 다음 세션 재삽질로부터 보존.
+description: |
+  Accumulate persistent knowledge that code cannot hold — "how reality actually behaves / what is blocked" (external system behavior, hard-won workarounds, tried-but-failed) — into `docs/findings/NNNN-slug.md`, file-per-finding. A *persistent reference-fact* artifact, distinct from decisions (ADR), friction (volatile backlog), and todo-ctx (volatile context). First-class explicit triggers (`/finding`, "finding 박아", "이거 발견 기록") plus a soft nudge on discovery remarks (automatic, opt-in recording). Preserves reverse-engineering knowledge of external systems from being re-dug next session.
 ---
 
 # /finding (전역 스킬)

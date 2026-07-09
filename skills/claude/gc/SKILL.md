@@ -1,6 +1,7 @@
 ---
 name: gc
-description: 프로젝트 GC 스캔 + 정리. pycache/임시파일 삭제, 끝난 .plans·stale handoff 탐지, ruff 위반 보고, 죽은 코드·중복 감지, friction.md 백로그 surface, 컨텍스트 표면(CLAUDE.md/SKILL.md/settings) stale·중복·오배치 감사. 첫 실행 시 큰 폴더 자동 감지·스캔 제외 유도. **명시 트리거 전용** — 사용자가 "gc" 또는 "/gc" 라고 직접 말할 때만 발동. "정리" 같은 일반어로는 트리거 안 함(오발동 방지).
+description: |
+  Project GC scan + cleanup. Delete pycache/temp files, detect finished .plans and stale handoffs, report ruff violations, find dead code and duplication, surface the friction.md backlog, and audit context surfaces (CLAUDE.md/SKILL.md/settings) for stale, duplicate, or misplaced content. On first run, auto-detects large folders and prompts to exclude them from the scan. **Explicit trigger only** — fires only when the user directly says "gc" or "/gc". A general word like "정리" does not trigger it (prevents misfires).
 ---
 
 # /gc (전역 스킬)

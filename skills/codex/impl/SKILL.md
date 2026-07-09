@@ -1,12 +1,12 @@
 ---
 name: impl
 description: |
-  승인된 plan의 슬라이스를 *한 슬라이스씩* 구현 (model-driven 자율주행). 산출은 git commit (WHY: prefix).
-  **자동 발동 (self-trigger, 라우터 없음)**: plan approved + plan-verify DONE + 해당 slice 미구현(commit·verify-report 부재)일 때. "구현"·"implement"·"이 슬라이스 만들어"·"이어가"·"끝까지 진행"에서 직접 진입한다.
-  **하네스 경로 (FORCE)**: nearest `AGENTS.md`/plan 관례로 `plan_root`·`verify_root`를 정한다. 프로젝트가 `.claude/plans`를 쓰면 `.Codex/*` 기본값을 쓰지 않는다.
-  **impl 구간 자율주행 (FORCE)**: 사용자 결정 공간이 해소된 뒤에는 모든 slice commit, configured impl-verify gates, 다파일∨다flow `impl-novelist`까지 이어간다.
-  **멈춤 조건 (FORCE)**: out-of-slice, plan 의도 초과, NEEDS_CONTEXT, 사용자 경험 what 변경·비가역·사용자 자산 영향이 새로 생기면 멈춰서 쉬운 말로 보고/질문한다.
-  **실행모드 (G-A, OPEN)**: inline vs fresh-subagent dispatch는 context-locality + coupling 기준으로 모델이 판단한다. 명시 호출은 선택사항: `/impl slice id`.
+  Implement an approved plan's slices *one slice at a time* (model-driven autonomous drive). Output is a git commit (WHY: prefix).
+  **Self-trigger (no router)**: when plan approved + plan-verify DONE + that slice is unimplemented (no commit/verify-report). Enter directly from "구현", "implement", "이 슬라이스 만들어", "이어가", "끝까지 진행".
+  **Harness paths (FORCE)**: set `plan_root`/`verify_root` from the nearest `AGENTS.md`/plan convention. If the project uses `.claude/plans`, do not fall back to `.Codex/*` defaults.
+  **Autonomous drive within impl (FORCE)**: once the user-decision space is resolved, continue through all slice commits, configured impl-verify gates, and `impl-novelist` for multi-file ∨ multi-flow.
+  **Stop conditions (FORCE)**: stop and report/ask in plain language when out-of-slice, exceeding plan intent, NEEDS_CONTEXT, or a newly arising user-experience change, irreversibility, or user-asset impact appears.
+  **Execution mode (G-A, OPEN)**: inline vs fresh-subagent dispatch is the model's judgment by context-locality + coupling. Explicit call is optional: `/impl slice id`.
 ---
 
 # /impl — 슬라이스 구현 스킬 (얇은 stub)

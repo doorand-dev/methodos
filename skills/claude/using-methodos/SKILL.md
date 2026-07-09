@@ -1,9 +1,9 @@
 ---
 name: using-methodos
 description: |
-  Methodos — 이 워크스페이스의 분산 AI 코딩 하네스(우산 이름, 중앙 라우터 없음). 작업이 시작되면 게이트들이 *각자 self-trigger*한다: grill-me(신규 기능 spec) · plan(구현 전 계획) · plan-verify/impl-verify(격리 검증) · impl(슬라이스 자율주행). 이 메타-스킬은 게이트를 *대신 라우팅하지 않는다* — 프레임워크 전체를 설명·오리엔테이션할 때만 발동.
-  발동: "methodos가 뭐야" · "이 하네스/게이트 어떻게 동작" · "어떤 게이트 있어" · `/using-methodos` 명시 호출.
-  발동 안 함: "X 추가해줘" · "Y 구현해줘" · "Z 만들자" (← grill-me/plan 게이트가 *직접* self-trigger. 이 스킬은 라우터 아님 — 부르지 말 것).
+  Methodos — this workspace's distributed AI-coding harness (an umbrella name, no central router). When work begins, the gates *each self-trigger*: grill-me (new-feature spec) · plan (pre-impl planning) · plan-verify/impl-verify (isolated verification) · impl (slice autonomous drive). This meta-skill does *not* route the gates on their behalf — it fires only to explain/orient the whole framework.
+  Fires: "methodos가 뭐야", "이 하네스/게이트 어떻게 동작", "어떤 게이트 있어", `/using-methodos` explicit call.
+  Does not fire: "X 추가해줘", "Y 구현해줘", "Z 만들자" (← the grill-me/plan gates self-trigger *directly*. This skill is not a router — do not call it).
 ---
 
 # using-methodos — 분산 게이트 하네스 오리엔테이션

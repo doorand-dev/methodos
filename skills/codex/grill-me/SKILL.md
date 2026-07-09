@@ -1,13 +1,13 @@
 ---
 name: grill-me
 description: |
-  사용자 의도 정렬 인터뷰 → spec.md — relentless one-Q grill + AI 추천 답안 + codebase grep 우선.
-  **스펙 트리거 (FORCE)**: "스펙"·"스펙화"·"spec 작성"·"요구사항 문서화"·"구현 전 문서화"·"검토받아"·"novelist 리뷰"가 보이면 grill-me를 먼저 떠올린다.
-  **자동 발동 (self-trigger, 라우터 없음)**: 신규 기능·비-trivial 작업 의도가 보이고 *아직 코드 작성 전*이며 목표/성공 기준/범위가 충분히 닫히지 않았을 때.
-  **spec-novelist 입력 규칙**: 파일 경로만 넘기지 말고 spec 본문 전체 또는 필요한 excerpt를 프롬프트에 paste한다.
-  **novelist 규칙**: 복합 spec은 `spec-novelist`를 fresh-context로 dispatch한다. `context-novelist`는 AI가 읽는 문서·절차·프롬프트·handoff·review/dispatch packet이 scope일 때만 추가한다.
-  **HARD-GATE (FORCE)**: 신규 기능이 다파일 ∨ 새 schema ∨ 사용자 체감 flow 변화 중 하나라도 동반하면, 코드 전에 *반드시* 이 게이트(intent 정렬 → spec)를 거친다 — 모델의 "바로 코딩" 편향 차단. 산출 `docs/specs/slug.md` status=approved 후 plan으로.
-  **발동 안 함**: 작은 수정(touched 1-2 · flow無 · 새 schema無 → 직행) / 이미 spec 확정된 작업 이어받기(해당 스테이지 직행). 명시: `/grill-me slug 또는 거친 골`.
+  User-intent alignment interview → spec.md — relentless one-question grilling + AI-recommended answers + codebase-grep first.
+  **Spec trigger (FORCE)**: when "스펙", "스펙화", "spec 작성", "요구사항 문서화", "구현 전 문서화", "검토받아", "novelist 리뷰" appear, reach for grill-me first.
+  **Self-trigger (no router)**: when intent for a new feature or non-trivial work appears, *before any code is written*, and the goal/success-criteria/scope are not yet sufficiently closed.
+  **spec-novelist input rule**: do not pass only a file path — paste the full spec body or the needed excerpt into the prompt.
+  **novelist rule**: for a complex spec, dispatch `spec-novelist` in fresh context. Add `context-novelist` only when the scope is a doc/procedure/prompt/handoff/review-or-dispatch packet that an AI reads.
+  **HARD-GATE (FORCE)**: if a new feature involves any of multi-file ∨ new schema ∨ user-visible flow change, this gate (intent alignment → spec) is *mandatory* before code — blocks the model's "just start coding" bias. Output `docs/specs/slug.md`; after status=approved, proceed to plan.
+  **Does not fire**: small edits (touched 1-2 · no flow · no new schema → go direct) / picking up work whose spec is already settled (go direct to that stage). Explicit: `/grill-me slug 또는 거친 골`.
 ---
 
 # /grill-me — intent 인터뷰 → spec.md (분산화 )

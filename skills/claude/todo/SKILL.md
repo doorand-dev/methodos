@@ -1,14 +1,11 @@
 ---
 name: todo
-description: >
-  프로젝트별 영속 할 일 목록 — `.claude/todos.md` (세션 간 유지).
+description: |
+  Per-project persistent to-do list — `.claude/todos.md` (persists across sessions).
 
-  트리거 (자동): "todo"·"할 일"·"할일"·"해야 할 거"·"뭐 해야 돼"·"뭐 남았어",
-  조작 "작업 추가/목록/빼/완료"·"TODO 정리", 보류 발화(관련 설계 결정) "나중에 하자"·
-  "이건 다음에"·"지금은 X만"·"후순위"·"일단 이거부터"·"TODO로"·"미뤄두자"·"지금 말고"·"별도로 빼서".
+  Triggers (automatic): "todo", "할 일", "할일", "해야 할 거", "뭐 해야 돼", "뭐 남았어"; operations "작업 추가/목록/빼/완료", "TODO 정리"; deferral remarks "나중에 하자", "이건 다음에", "지금은 X만", "후순위", "일단 이거부터", "TODO로", "미뤄두자", "지금 말고", "별도로 빼서".
 
-  보류 발화는 즉시 append 금지 — 1턴 기다려 *어떤 항목인지* 확정 후 추가 (false positive 방지).
-  TodoWrite(휘발·세션 내 스텝)와 공존 — 세션 넘기는 할 일만 이 스킬.
+  Do not append on a deferral remark immediately — wait one turn to confirm *which item* before adding (avoids false positives). Coexists with TodoWrite (volatile, within-session steps) — this skill is only for to-dos that cross sessions.
 ---
 
 # Todo 스킬

@@ -1,10 +1,10 @@
 ---
 name: grill-me
 description: |
-  사용자 의도 정렬 인터뷰 → spec.md — relentless one-Q grill + AI 추천 답안 + codebase grep 우선.
-  **자동 발동 (self-trigger, 라우터 없음)**: 신규 기능·비-trivial 작업 의도가 보이고 *아직 코드 작성 전*일 때 — "X 추가하고 싶어"·"Y 구현해줘"·"Z 만들자"·"이 기능 시작"·"새 작업"·"의도 정리"·"그릴미".
-  **HARD-GATE (FORCE)**: 신규 기능이 다파일 ∨ 새 schema ∨ 사용자 체감 flow 변화 중 하나라도 동반하면, 코드 전에 *반드시* 이 게이트(intent 정렬 → spec)를 거친다 — 모델의 "바로 코딩" 편향 차단. 산출 `docs/specs/slug.md` status=approved 후 plan으로.
-  **발동 안 함**: 작은 수정(touched 1-2 · flow無 · 새 schema無 → 직행) / 이미 spec 확정된 작업 이어받기(해당 스테이지 직행). 명시: `/grill-me slug 또는 거친 골`.
+  User-intent alignment interview → spec.md — relentless one-question grilling + AI-recommended answers + codebase-grep first.
+  **Self-trigger (no router)**: when intent for a new feature or non-trivial work appears and *before any code is written* — "X 추가하고 싶어", "Y 구현해줘", "Z 만들자", "이 기능 시작", "새 작업", "의도 정리", "그릴미".
+  **HARD-GATE (FORCE)**: if a new feature involves any of multi-file ∨ new schema ∨ user-visible flow change, this gate (intent alignment → spec) is *mandatory* before code — blocks the model's "just start coding" bias. Output `docs/specs/slug.md`; after status=approved, proceed to plan.
+  **Does not fire**: small edits (touched 1-2 · no flow · no new schema → go direct) / picking up work whose spec is already settled (go direct to that stage). Explicit: `/grill-me slug 또는 거친 골`.
 ---
 
 # /grill-me — intent 인터뷰 → spec.md

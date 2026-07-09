@@ -1,23 +1,16 @@
 ---
 name: snapshot
-description: >
-  같은 세션에서 컴팩트(/compact) 직전에, **압축 후에도 우선순위가 살아야 할
-  in-flight 작업·결정·미상**을 영속 JSON으로 박아둔다. 단순 백업이 아니라
-  post-compact Codex의 working context에 이 항목들을 **다시 강제 주입**하는
-  도구다.
+description: |
+  Right before compaction (/compact) in the same session, persist as JSON the **in-flight tasks, decisions, and unknowns whose priority must survive compaction**. Not a plain backup — a tool that **re-injects** these items into post-compact Codex's working context.
 
-  /compact는 확률적 요약이라 중요한 항목을 흐릿하게 만들거나 빠뜨릴 수 있다.
-  snapshot은 사람·AI가 큐레이션한 명시 우선순위 리스트라서 압축 영향을
-  받지 않고 그대로 살아남는다. 압축 후 Codex가 이 파일을 다시 읽으면 그
-  항목들이 working context에 재진입(remind)한다.
+  /compact is a probabilistic summary that can blur or drop important items. A snapshot is an explicit, human/AI-curated priority list, so it survives compaction intact. When Codex re-reads this file after compaction, those items re-enter (remind) the working context.
 
-  다음 자연어 트리거에서 반드시 이 스킬을 호출:
+  Always invoke this skill on these natural-language triggers:
   - "컴팩트 전에 저장", "/compact 직전", "context 곧 잘릴 것 같아"
   - "압축 전에 정리", "현재 진행 상황 영속화", "현재 in-flight snapshot"
   - "우선순위 재주입", "snapshot"
 
-  **새 세션으로 작업을 넘기는 게 아니다** — 같은 세션 내 컴팩트 후 우선순위
-  재주입용. task 분리해서 다음 세션에서 이어가는 경우는 `handoff` 스킬.
+  **This is not for handing work to a new session** — it re-injects priorities after compaction within the same session. To split a task off for the next session, use the `handoff` skill.
 ---
 
 # Snapshot (전역 스킬)

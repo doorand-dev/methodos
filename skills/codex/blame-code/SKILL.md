@@ -1,6 +1,7 @@
 ---
 name: blame-code
-description: AI(또는 사람)가 코드/문서를 잘못 읽은 순간을 코드 구조에 귀책시켜 .Codex/friction.md에 한 줄씩 영속 누적. **명시 트리거 전용** — 사용자가 "blame code", "blame-code", "/blame-code", "코드 탓해봐" 라고 직접 말할 때만 발동. 자동 감지 안 함(교정 발화에 무분별 트리거되어 노이즈 누적되는 것 방지). AI 혼란을 코드 결함 신호로 변환하는 3-layer trio의 수집기 — gc(감사)·improve-codebase-architecture(처리)와 연계.
+description: |
+  Attribute the moment an AI (or human) misread code/docs to the code's structure, accumulating one line at a time into .Codex/friction.md. **Explicit trigger only** — fires only when the user directly says "blame code", "blame-code", "/blame-code", "코드 탓해봐". No auto-detection (prevents noise from firing indiscriminately on correction remarks). The collector of the 3-layer trio that converts AI confusion into a code-defect signal — pairs with gc (audit) and improve-codebase-architecture (processing).
 ---
 
 # /blame-code (전역 스킬)

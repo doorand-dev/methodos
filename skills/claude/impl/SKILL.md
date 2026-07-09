@@ -1,10 +1,10 @@
 ---
 name: impl
 description: |
-  승인된 plan의 슬라이스를 *한 슬라이스씩* 구현 (model-driven 자율주행). 산출은 git commit (WHY: prefix).
-  **자동 발동 (self-trigger, 라우터 없음)**: plan approved + plan-verify DONE + 해당 slice 미구현(commit·verify-report 부재)일 때. "구현"·"implement"·"이 슬라이스 만들어".
-  **실행모드 (G-A, OPEN)**: 슬라이스를 inline으로 짤지 fresh-subagent로 dispatch할지를 context-locality(컨트롤러가 이미 코드 쥐었나) + coupling(파일 공유·의존) 기준으로 *surface*만 — 판단은 모델.
-  **[1C] 누더기 거부 (FORCE)**: 슬라이스 외 파일·plan 의도 초과 신호 시 멈춤·보고. 명시: `/impl slice-id`.
+  Implement an approved plan's slices *one slice at a time* (model-driven autonomous drive). Output is a git commit (WHY: prefix).
+  **Self-trigger (no router)**: when plan approved + plan-verify DONE + that slice is unimplemented (no commit/verify-report). "구현", "implement", "이 슬라이스 만들어".
+  **Execution mode (G-A, OPEN)**: only *surface* whether to write the slice inline vs dispatch to a fresh subagent, judged by context-locality (does the controller already hold the code) + coupling (shared/dependent files) — the *call* is the model's.
+  **[1C] reject patchwork (FORCE)**: stop and report on signals of out-of-slice files or exceeding plan intent. Explicit: `/impl slice-id`.
 ---
 
 # /impl — 슬라이스 구현 스킬 (얇은 stub)

@@ -1,11 +1,11 @@
 ---
 name: plan
 description: |
-  spec 받아 슬라이스 분해 + signature/schema inline + verification type enum + self-review 3-dim + M1 결정 리스트 + M2 scenario delta.
-  **자동 발동 (self-trigger, 라우터 없음)**: spec(`docs/specs/slug.md`) approved 직후, "이 spec 구현해/이어가", 또는 다슬라이스 비-trivial 작업이 구현 전일 때. "plan"·"계획 짜"·"PRD 작성"·"기능 분해" 발화에서 직접 진입한다.
-  **사용자 결정 공간 (FORCE)**: M1 결정 리스트, plan approval, plan-verify escalation, M2 scenario delta approval은 건너뛰지 않는다. 해소 뒤 plan-verify → impl → impl-verify → impl-novelist는 model-driven 자율주행.
-  **spec-novelist preflight (FORCE)**: spec frontmatter가 `novelist.required: true`인데 `status != done`이면 plan 합성을 중단하고 spec-novelist fold를 먼저 요구한다.
-  **right-sizing (OPEN)**: 슬라이스 두께·P0 스파이크 유무는 상황으로 모델 판단. 명시 호출은 선택사항: `/plan slug 또는 거친 골`.
+  Take a spec and decompose into slices + inline signature/schema + verification-type enum + 3-dim self-review + M1 decision list + M2 scenario delta.
+  **Self-trigger (no router)**: right after a spec (`docs/specs/slug.md`) is approved, on "이 spec 구현해/이어가", or when multi-slice non-trivial work is about to be implemented. Enter directly from "plan", "계획 짜", "PRD 작성", "기능 분해".
+  **User decision space (FORCE)**: do not skip the M1 decision list, plan approval, plan-verify escalation, or M2 scenario-delta approval. Once resolved, plan-verify → impl → impl-verify → impl-novelist run as model-driven autonomous drive.
+  **spec-novelist preflight (FORCE)**: if the spec frontmatter has `novelist.required: true` but `status != done`, halt plan synthesis and require the spec-novelist fold first.
+  **right-sizing (OPEN)**: slice thickness and whether a P0 spike is needed are model judgment by situation. Explicit call is optional: `/plan slug 또는 거친 골`.
 ---
 
 # /plan — PRD 상세화 (standalone, 사용자 결정 공간)

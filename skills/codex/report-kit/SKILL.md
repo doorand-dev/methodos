@@ -1,10 +1,7 @@
 ---
 name: report-kit
 description: |
-  생애주기 HTML 양식 키트 — 프로젝트 진행·데이터흐름·측정·판정을 자기완결 단일 HTML 한 장으로 시각화할 때 쓰는 공유 팔레트·컴포넌트·아키타입.
-  7 아키타입(Spec검토·시나리오흐름·시스템전경·생애주기매트릭스·측정스냅샷·통제A/B diff·판정폼)을 3 family로.
-  명시 트리거 위주(자동 남발 금지): "/report-kit"·"report-kit"·"이 키트로"·"이 양식으로 만들어"·"생애주기 HTML".
-  위 양식 중 하나를 새로 만들 때 consult — 매번 CSS 재발명 금지. prototype v0.
+  Lifecycle HTML template kit — a shared palette, components, and archetypes for visualizing project progress, data flow, measurement, and verdicts as a single self-contained HTML page. 7 archetypes (spec review, scenario flow, system panorama, lifecycle matrix, measurement snapshot, control A/B diff, verdict form) in 3 families. Explicit trigger-oriented (no over-firing): "/report-kit", "report-kit", "이 키트로", "이 양식으로 만들어", "생애주기 HTML". Consult when newly building one of these forms — do not reinvent the CSS each time. prototype v0.
 ---
 
 # report-kit (prototype v0)

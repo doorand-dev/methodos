@@ -1,9 +1,9 @@
 ---
 name: plan-verify
 description: |
-  plan 격리 적대적 검증 (4차원: 과거 ADR 충돌 · decision [0]~[3J] 원칙 · 사용자 글로벌 룰 · plan 내부 정합성).
-  **자동 발동 (self-trigger, 라우터 없음)**: plan status=approved 직후, impl 전 (`approved_plan_revision` SHA 변경 감지). "plan 검증"·"이 계획 어떻게 보여?"·"plan-verify".
-  **Evidence (FORCE)**: 모든 issue는 명령 출력·file:line *직접 인용* — 추상 통과("괜찮아 보임") 금지, 미실행 명령 evidence 금지. 산출 `.claude/verify-reports/plan-slug-verify-attempt-N.json`. 명시: `/plan-verify slug`.
+  Isolated adversarial verification of a plan (4 dimensions: conflicts with past ADRs · decision [0]~[3J] principles · user global rules · plan internal consistency).
+  **Self-trigger (no router)**: right after plan status=approved, before impl (detect `approved_plan_revision` SHA change). "plan 검증", "이 계획 어떻게 보여?", "plan-verify".
+  **Evidence (FORCE)**: every issue must *directly quote* command output or file:line — no abstract pass ("looks fine"), no evidence from unrun commands. Output `.claude/verify-reports/plan-slug-verify-attempt-N.json`. Explicit: `/plan-verify slug`.
 ---
 
 # /plan-verify — plan 격리 적대적 검증 (얇은 stub)

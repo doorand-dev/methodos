@@ -1,11 +1,11 @@
 ---
 name: impl-verify
 description: |
-  슬라이스 구현 격리 검증 2-stage (spec compliance → code quality) + 오라클 판정 *내장*. superpowers `subagent-driven-development` 패턴 차용.
-  **자동 발동 (self-trigger, 라우터 없음)**: 사용자가 스킬 이름을 몰라도, 슬라이스 commit 후 "완료/통과/됐어" 단언 전 해당 slice를 덮는 verify artifact가 부재하면 발동한다. 이 artifact는 `slice-N.json`일 수도 있고 batch seam artifact일 수도 있다. "impl 검증"·"이 구현 어떻게 보여?"·"impl-verify".
-  **Evidence (FORCE)**: 미실행 명령 evidence 금지 · implementer "DONE" 인용 금지 · caller 열거 없이 통과 금지.
-  **오라클 (G-B, OPEN)**: 슬라이스마다 오라클 *타입*(tdd-parity/spike/live-dry-run/visual/adversarial)을 판정해 검증법을 *스스로* 고름 — full per-slice reviewer 고정이 아니며 oracle/self-review/AST0/batch seam으로 강등 가능. 산출 위치는 nearest `AGENTS.md`/plan 관례의 `verify_root`를 따른다. 사용자는 `/impl-verify`를 외울 필요 없고, 명시 호출은 선택사항: `/impl-verify slice N`.
-  **쉬운 언어 (FORCE)**: NEEDS_CONTEXT나 사용자 surface는 쉬운 한국어로 쓴다. "caller impact-radius 미확인" 대신 "어디까지 같이 바뀌는지 확인이 안 돼서, 그냥 진행하면 다른 기능이 깨질 수 있어요"처럼 말한다.
+  Isolated 2-stage verification of a slice implementation (spec compliance → code quality) with *built-in* oracle judgment. Borrows the superpowers `subagent-driven-development` pattern.
+  **Self-trigger (no router)**: even if the user doesn't know the skill name, fire after a slice commit and before an assertion of "완료/통과/됐어" when no verify artifact covering that slice exists. That artifact may be `slice-N.json` or a batch seam artifact. "impl 검증", "이 구현 어떻게 보여?", "impl-verify".
+  **Evidence (FORCE)**: no evidence from unrun commands · no citing the implementer's "DONE" · no pass without enumerating callers.
+  **Oracle (G-B, OPEN)**: per slice, judge the oracle *type* (tdd-parity/spike/live-dry-run/visual/adversarial) and choose the verification method — not fixed to a full per-slice reviewer; may downgrade to oracle/self-review/AST0/batch-seam. Output location follows `verify_root` from the nearest `AGENTS.md`/plan convention. The user need not memorize `/impl-verify`; explicit call is optional: `/impl-verify slice N`.
+  **Plain language (FORCE)**: write NEEDS_CONTEXT and user-facing surfaces in plain Korean. Instead of "caller impact-radius 미확인", say something like "어디까지 같이 바뀌는지 확인이 안 돼서, 그냥 진행하면 다른 기능이 깨질 수 있어요".
 ---
 
 # /impl-verify — 슬라이스 구현 검증 gate/controller (얇은 stub)
