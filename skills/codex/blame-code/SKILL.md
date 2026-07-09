@@ -41,14 +41,14 @@ description: |
 
 번호는 friction.md max+1 (3자리 zero-pad).
 
-### 3. 3-agent 판정 파이프라인 (자기 판정 합리화 차단, ADR 0013)
+### 3. 3-agent 판정 파이프라인 (자기 판정 합리화 차단)
 
 `code-clean`은 controller(=Codex 본인)가 결정하지 않음 — 격리 agent 3개에 위임.
 
 **dispatch 실재 (FORCE)**: reader×2 + judge는 *반드시* Task로 실제 호출 — 이 대화에
 그 3개 Task 호출이 없으면 friction 항목·footer 작성 금지. controller 자가 요약을 reader
 요약으로, 자가 판정을 judge verdict로 **위조 금지** (footer 인용 요구만으론 위조를 못 막음 —
-호출 실재가 본체. ADR 0013이 막으려던 self-judge 우회가 바로 이 자리).
+호출 실재가 본체. self-judge 우회를 막는 게 바로 이 자리).
 
 **Step 3a — reader×2 병렬 호출** (`blame-code-reader` agent, Haiku):
 - 두 agent에 *같은* 입력: `유발 (path:line)` + ±15줄 컨텍스트. **원본 misread는 전달하지 않음** (leading 방지).
@@ -112,7 +112,7 @@ description: |
 ## 안 하는 것
 
 - 자동 refactor 실행 — 본 스킬은 *수집만*. 처리는 improve-codebase-architecture가
-- **controller가 `code-clean` 스스로 판정** (자기 판정 = ADR 0013이 차단한 원래 결함). 항상 3-agent 위임
+- **controller가 `code-clean` 스스로 판정** (자기 판정 = 이 스킬이 차단하려는 원래 결함). 항상 3-agent 위임
 - judge에 *원본 misread 전달 누락* — 그러면 동치 판정 불가 → NEEDS_CONTEXT 회귀
 - reader에 *원본 misread 노출* — leading 발생, convergent-error 신호 오염
 - friction.md 양식 다른 위치 카피 ([1D] 단일 정본 위반)
@@ -145,6 +145,6 @@ code_clean_yes_ratio_min = 0.15
 매핑 정본 → [`mine/CONV-GRAPH.md`](../../CONV-GRAPH.md).
 
 - friction.md 기록 직전 → [1C] 누더기 위 누더기 거부 (코드 귀책 합리화 도구화 방지)
-- 3-agent 판정 위임 (ADR 0013) → [2J] Evidence (격리 reader + judge 인용)
+- 3-agent 판정 위임 → [2J] Evidence (격리 reader + judge 인용)
 
 신규 시점 추가 시 CONV-GRAPH.md 매핑 표 한 줄 갱신.

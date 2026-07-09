@@ -67,7 +67,7 @@ finding의 핵심 = **네거티브 스페이스**. 코드는 *택한 길*만 담
 - 검증 못 해 부패 의심이면 `상태: stale (last-verified: YYYY-MM-DD)`.
 - *삭제 안 함* — friction과 달리 영속(과거 사실의 기록 가치).
 
-### 4. todo-ctx 졸업 수령 (둘째 출구, ADR 0020 결정 6 확장)
+### 4. todo-ctx 졸업 수령 (둘째 출구)
 
 todo 닫을 때 `todo-ctx/NNN.json`의 load-bearing 내용이:
 - *결정*이면 → `decision` 스킬로 ADR 승격
@@ -83,8 +83,8 @@ grep -rn "\[<태그>\]" docs/findings/
 
 ## 안 하는 것
 
-- **단일 `FINDINGS.md`에 append** — merge 충돌·비대·supersede 불가([ADR 0024] A 기각). file-per-finding 유지.
-- `docs/research/`에 섞기 — 입도 다름(큰 의도조사 vs 작은 우연발견), 별 폴더([ADR 0024] B 기각).
+- **단일 `FINDINGS.md`에 append** — merge 충돌·비대·supersede 불가 (A안 기각). file-per-finding 유지.
+- `docs/research/`에 섞기 — 입도 다름(큰 의도조사 vs 작은 우연발견), 별 폴더 (B안 기각).
 - `막힘:` 없는 1줄 stub — 그건 코드 주석감. finding은 네거티브 스페이스가 본체.
 - 결정을 finding으로 / 사실을 ADR로 오分류 — 졸업 분기 기준(§4) 준수.
 - 부패 finding 삭제 — supersede/stale로 보존(영속).

@@ -35,7 +35,7 @@ description: |
 - **같은 세션 /compact 직전 보존** → `snapshot`. 판별: 새 세션은 cwd·env·dev 서버를 못 물려받으니 — *시작 프롬프트에 환경 전제조건을 적어줘야 하면* handoff, 환경이 그대로 살아있어 "읽고 이어가" 한 줄이면 snapshot.
 - 그냥 이번 세션에서 계속 진행 가능 → handoff 불필요
 - 영속 할 일 추가 → `todo`
-- **한 todo의 맥락을 todo 일생 동안** 남기기 → `todo-ctx` 사이드카 (ADR 0020). 같은 JSON schema 가족이나 별개: handoff=세션 분리·프롬프트 有·age-out / todo-ctx=todo 일생·프롬프트 無·close시 삭제.
+- **한 todo의 맥락을 todo 일생 동안** 남기기 → `todo-ctx` 사이드카. 같은 JSON schema 가족이나 별개: handoff=세션 분리·프롬프트 有·age-out / todo-ctx=todo 일생·프롬프트 無·close시 삭제.
 
 ---
 
@@ -67,17 +67,17 @@ handoff 스킬 구동할까요? 새 세션에서 어떤 작업 하실 건지 알
 - **산출물은 뭐?** (코드 변경, 문서, 분석 결과, 보고 등)
 - **종료 조건은 뭐?** (어떤 상태가 되면 done인지)
 
-### 1a. open todo surface (ADR 0014)
+### 1a. open todo surface
 
 `.Codex/todos.md` 존재 시 open 항목(`[ ]`) 목록을 사용자에게 보임. **줄에 공유 grep
-토큰(예 `(cp949-sweep)`)으로 묶인 게 보이면 단위로 묶어** 보임 (ADR 0019, 산문토큰 ADR 0026):
+토큰(예 `(cp949-sweep)`)으로 묶인 게 보이면 단위로 묶어** 보임:
 
 > *"열린 todo: (cp949-sweep) [#014, #015, #016], 무묶음 [#009] — 다음 세션으로 가져갈 거? (묶음 전체 'cp949-sweep' 또는 #N 콤마, 없으면 'skip')"*
 
 사용자 답 → `referenced_todos: ["#014", "#015"]` JSON 필드 (단위 일부만도 가능). 없으면 필드 생략.
 
 **입자 분리 유지**: handoff가 todo를 *만들지는 않음*. 참조만. 신규 todo 생성은 todo 스킬 책임.
-**status 저장 금지**: handoff는 단위 status를 어디에도 쓰지 않는다 — 새 세션이 끝낸 todo를 close하면 단위 진척은 자동 재파생 (ADR 0019).
+**status 저장 금지**: handoff는 단위 status를 어디에도 쓰지 않는다 — 새 세션이 끝낸 todo를 close하면 단위 진척은 자동 재파생.
 
 ### 1b. orphan check
 
@@ -90,7 +90,7 @@ handoff 스킬 구동할까요? 새 세션에서 어떤 작업 하실 건지 알
 - (b) 현재 산출물(handoff JSON)에 포함
 - (c) subagent 즉시 위임 — "단일 파일·독립 실행 가능·세션 문맥 불필요" 셋 다 만족 시 우선 제안
 - (d) discard (의도적 종결)
-- (e) **finding 졸업** — 코드가 못 담는 *영속* 외부시스템 지식(막힘/우회·시도했으나 실패)이면 `/finding`(`docs/findings/`). 아래 §3 `do_not_redo`의 *영속 부분*이 전형(handoff JSON은 휘발→부트스트랩 후 stale이라, 영속 사실은 거기 두면 같이 죽음). **surface→제안만, silent write X** (ADR 0024 결정6 = todo-ctx 졸업과 동일 경계).
+- (e) **finding 졸업** — 코드가 못 담는 *영속* 외부시스템 지식(막힘/우회·시도했으나 실패)이면 `/finding`(`docs/findings/`). 아래 §3 `do_not_redo`의 *영속 부분*이 전형(handoff JSON은 휘발→부트스트랩 후 stale이라, 영속 사실은 거기 두면 같이 죽음). **surface→제안만, silent write X** (todo-ctx 졸업과 동일 경계).
 
 [self] 항목(AI가 plan/spec 쓰면서 분리한 후속)만 있으면 "정말 필요한가요?" 묻고
 보통 종결 권유. 결정 자체는 끝났는데 형식 후속만 남은 항목은 그 사실 명시

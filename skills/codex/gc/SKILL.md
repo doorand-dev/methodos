@@ -19,7 +19,7 @@ py -3 ~/.Codex/skills/gc/gc_check.py --review-only --report-json
 review 후보를 사람이 읽기 쉽게 보고:
 - **끝난 .plans 후보** (mtime > 30일 + VERIFIED PASS 또는 DoD 모두 체크): 사용자 확인 후 일괄/개별 삭제
 - **stale handoff 후보** (`.claude_context/handoff/*.json` mtime > 14일 + `kind=="handoff"`): 1회용·휘발성. 사용자 확인 후 삭제
-- **stale todo-ctx 후보** (ADR 0020): `.Codex/todo-ctx/NNN.json` 중 연결 todo가 (`#NNN [x]`) 또는 (`#NNN 줄 부재`=orphan)인 것 → 삭제. *handoff와 분리* — todo-ctx는 age-out 아니라 todo 종결/소멸 기준. (handoff/*.json 의 age-out 룰과 헷갈리지 말 것.)
+- **stale todo-ctx 후보**: `.Codex/todo-ctx/NNN.json` 중 연결 todo가 (`#NNN [x]`) 또는 (`#NNN 줄 부재`=orphan)인 것 → 삭제. *handoff와 분리* — todo-ctx는 age-out 아니라 todo 종결/소멸 기준. (handoff/*.json 의 age-out 룰과 헷갈리지 말 것.)
 - **ruff 위반** (F401 unused import / F841 unused variable): 우선순위와 함께 제안
 
 ### 2. 첫 실행 유도 (gc.toml 없을 때만)
