@@ -15,17 +15,18 @@ description: |
 > - `[2J]` = "통과" 단언 전 실제 명령 출력을 직접 인용한다(미실행 명령 evidence 금지) / `FORCE` = 강제 — 빈 evidence면 자동 BLOCKED
 > - 항상 walk하는 원칙: `[1C]` = 임시방편 위에 또 임시방편 거부 / `[1D]` = 발산하는 값(숫자·경로·계약)만 단일정본 / `[2H]` = 작업 시간 5~10배 과대평가 차단 / `[3I]` = 콜러 인터페이스는 작게·동작은 풍부(가짜 추상화 거부)
 > - `scoped re-verify` = 2·3차 재검증은 plan 전체 재독 말고 *걸린 issue + 수정된 부분*만 / `sycophancy` = 검증자가 plan 작성자 비위 맞춰 통과시키는 것(이 게이트가 막는 것) / `greenfield` = 기존 코드 재사용 없는 새 코드(차원 D 면제)
+> - `preflight` = semantic reviewer 앞에 도는 `hooks/common/plan_preflight.py` 기계 검사(SHA·placeholder·ownership·line budget). FAIL은 planner가 고치며 reviewer attempt 안 소모, PASS는 evidence로 인용 / `DONE baseline amendment` = 이미 DONE인 plan의 behavior-preserving 내부 보정 — frontmatter `amendment.baseline_status: DONE`+`scope`로 baseline 전체 아닌 delta만 읽음(source SHA·체감동작·권한/데이터·비가역·public contract·cross-slice 변화면 full 승격)
 > - `D13`(attempt 3회 한계)·`D25/D26`(decision-reviewer 먼저 1회)·`D36`(승인 SHA 바뀌면 새 cycle). 조건부 원칙 `[3H]`·`[1B]`·`[3J]`도 이 문서 안에서 필요한 만큼 직접 적용한다.
 
 ## 트리거 (self-trigger — 라우터 없음)
 
-- 자동 발동: plan status=approved 직후 (단 대형·아키텍처 변경 ∨ 결정 자리 많은 M+조건부는 *decision-reviewer 1회 통과 후* — D26/D33). 트리거 조건: `approved_plan_revision` SHA 변경 감지 (D36 — escalate 후 사용자 결정으로 plan 갱신되면 새 cycle 자동 시작)
+- 자동 발동: 최초 status=approved 직후 전체 검증. **DONE baseline amendment**면 frontmatter `amendment.baseline_status: DONE`와 `scope`로 delta만 읽는다. source spec SHA, user-visible behavior, authority/data, irreversible operation, public contract, cross-slice ownership 중 하나가 바뀌거나 scope 밖 파일/가정이 나오면 full로 승격한다. (트리거 신호: `approved_plan_revision` SHA 변경 감지 — D36, escalate 후 사용자 결정으로 plan 갱신되면 새 cycle 자동 시작)
 - 자연어: "plan 검증", "이 계획 어떻게 보여?", "plan-verify"
 - 명시: `/plan-verify <slug>`
 
 ## 호출 순서 (D26 — 런타임 tier 아니라 *상황 신호*)
 
-decision-reviewer가 발동한 경우 (아키텍처/보안 ∨ 결정 자리 많음 — plan §9b):
+decision-reviewer가 발동한 경우 (보안·권한·공개 계약·사용자 자산·비가역·cross-slice ownership ∨ 결정 자리 많음 — plan §9b):
 ```
 plan approved → decision-reviewer (자동 1회, D25) → 본 plan-verify-reviewer attempt 1~3
 ```
@@ -35,12 +36,13 @@ plan approved → decision-reviewer (자동 1회, D25) → 본 plan-verify-revie
 plan approved → 본 plan-verify-reviewer attempt 1~3
 ```
 
-자명한 1-2파일 수정: 둘 다 skip 권장.
+`decision_needed=false` + M2 delta 없음 + public behavior/authority/data 변화 없는 behavior-preserving 구조 보정은 decision-reviewer skip. 자명한 1-2파일 수정: 둘 다 skip 권장.
 
 ## 사전 조건
 
 - `Test-Path .claude/plans/<slug>.md` ✅
 - plan frontmatter status=approved
+- `py -3 <methodos_root>/hooks/common/plan_preflight.py .claude/plans/<slug>.md --repo <project_root>` PASS. FAIL은 reviewer dispatch 전 planner가 고치며 attempt를 소모하지 않는다. PASS는 첫 artifact evidence에 인용.
 
 ## 산출 artifact (강제)
 
@@ -63,9 +65,14 @@ plan approved → 본 plan-verify-reviewer attempt 1~3
 - 영속 `attempt-N.json`이 "무엇을 걸었나"의 메모리 — *해소 판정*은 수정본 직접 확인(독립성 유지, JSON 주장 그대로 인용 금지).
 - 모델: scoped라 이미 쌈 → opus 유지. 더 짜려면 attempt 2~3만 sonnet 강등 *가능*(옵션).
 
+**DONE baseline amendment**:
+- 기본은 baseline 전체가 아니라 `amendment.scope` slice, 해당 path/contract, 그리고 baseline과의 diff만 fresh reviewer에게 paste한다.
+- preflight PASS 뒤 semantic reviewer는 1회만 호출한다. 그 reviewer가 찾은 기계 결함은 preflight로 고친 뒤 1회만 scoped re-review한다.
+- 동일 critical이 다시 나오거나 사용자 선택이 새로 필요할 때만 full review 또는 사용자 escalate한다. 단순 internal HOW 보정은 full baseline 재독 사유가 아니다.
+
 ## 절차 (얇음)
 
-1. **사전 조건 점검** + plan 본문 읽기.
+1. **preflight + 범위 결정** + plan 본문 읽기: preflight PASS를 evidence로 기록. 최초 approved plan이면 전체를 읽고, DONE amendment면 `amendment.scope`+delta만 읽는다. full 승격 predicate(source SHA·체감동작·권한/데이터·비가역·public contract·cross-slice·scope 밖 가정) 충족 시에만 baseline 전체를 읽는다. reviewer는 Agent 도구 정상 반환으로 회수 — watcher/heartbeat polling 금지.
 2. ***적대적 검증* (격리 부재를 외부 자료 대조로 보완)** — 다음 4 차원 모두 점검:
    - **A. 과거 결정 충돌**: `Select-String -Path docs/adr/ -Pattern '<유사 키워드>'`. 충돌 결정 발견 시 issues.critical.
    - **B. decision 원칙 정합성** (조건부): decision-reviewer 산출이 paste에 있으면(돌았음 — [0][1A][1B][3H][3J] 이미 함) 그 5개는 *재순회 말고 해소만 확인*, `[1C][1D][2H][3I]`만 직접 walk. 없으면(skip된 작은 plan) 전체 walk — [1C][1D][2H][3I]는 *항상*. (walk 시: [3H] 적용? [1B] 옵션 표? [3J] 섣부른 *재사용* 추출 위반? — 크기·응집 분해·명시 요청은 위반 아님)
