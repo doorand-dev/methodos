@@ -15,11 +15,10 @@ Send a bounded prompt to a logged-in ChatGPT Pro web session through `agbrowse w
 - A fresh session is not a clean room: ChatGPT's account-level memory / "reference chat history" can leak facts across separate conversations, so thread isolation does not guarantee model isolation. If a review must not see prior context, have the user disable "Reference saved memories / chat history" in ChatGPT settings, or use a Temporary Chat, before sending.
 - Continue an existing review session only when the user explicitly asks to continue that specific session, or provides a `sessionId` / conversation URL to continue.
 - Treat review, deep research, file-attachment review, many-file context review, and second opinions as long reviews unless the user asks for a short answer.
-- In Codex Desktop, long reviews use `send -> one-shot Codex heartbeat fallback -> optional condition acceleration -> collect`.
+- In Codex Desktop, long reviews use `send -> retain sessionId -> collect only after mechanical finality`. A scheduled collect wakeup requires a public Automation API capability that is currently unavailable for an exact future one-shot time.
 - Use `-NoWatch` on send by default. A hidden `agbrowse web-ai watch` is only a diagnostic/process helper; it does not wake the current Codex thread by itself.
-- `watch-accelerate` must not wake on `agbrowse web-ai watch` completion alone. It may accelerate the heartbeat only after `provider status = complete`, `completedAt` exists, `MinAnswerChars` is met, and the answer hash is stable for `StabilitySeconds` (default 30 seconds).
-- For watcher heartbeat acceleration, write the automation `rrule` as explicit UTC `DTSTART:YYYYMMDDTHHMMSSZ\nRRULE:FREQ=MINUTELY;COUNT=1`.
-- Do not change watcher heartbeat acceleration to `DTSTART;TZID=Asia/Seoul:...`, local wall-time `DTSTART`, or bare relative RRULE.
+- Provider finality is mechanical: `provider status = complete`, `completedAt`, `MinAnswerChars`, and a stable answer hash across `StabilitySeconds` (default 30 seconds) are all required before reporting an answer.
+- Do not use `watch-accelerate` or an external watcher to reschedule a heartbeat. The public `automation_update(mode=create)` API rejects `DTSTART`, and `suggested_create` only renders a card; an external PowerShell watcher therefore cannot safely advance an existing heartbeat.
 - Treat Codex Desktop automation UI time text as display-only. Verify heartbeat scheduling by letting a test heartbeat fire.
 - Do not add artificial marker text to the ChatGPT prompt for identity or finality checks. Use `sessionId` for identity; finality is mechanical: complete provider state, completed timestamp, enough text, and unchanged answer hash.
 - Do not use `codex exec resume` as the wake bridge for this skill.
@@ -28,8 +27,8 @@ Send a bounded prompt to a logged-in ChatGPT Pro web session through `agbrowse w
 - Use the bundled `collect` action for long reviews. It returns `answerText` only when the answer is complete, substantive, and stable.
 - If `answerText` is null, report that the session is not final yet.
 - If the user asks for send-only or no heartbeat, say the review is intentionally unmonitored.
-- After creating/updating the heartbeat and starting `watch-accelerate`, end the Codex turn. Do not keep the turn open to poll logs or manually collect; the test/flow depends on the heartbeat creating a new wakeup turn.
-- Parallel reviews are allowed when each Codex thread uses its own ChatGPT `sessionId` and heartbeat automation id. Watcher logs and accelerated result files are diagnostic artifacts derived from `sessionId`; do not treat prompt text or artificial markers as identity. Do not run two collectors for the same `sessionId`.
+- If the user explicitly keeps a foreground `agbrowse web-ai watch` terminal open, its return may trigger collection in that owning turn. This is wall-clock/process wait, not a provider completion event connected to a closed Codex turn. Otherwise end after reporting the durable sessionId and do not resend.
+- Parallel reviews are allowed when each Codex thread uses its own ChatGPT `sessionId`. Do not treat prompt text or artificial markers as identity. Do not run two collectors for the same `sessionId`.
 - Treat copy-markdown collection as a desktop-global critical section because it may use the OS clipboard. If several reviews finish at once, serialize `collect` calls or prefer provider/session text that does not touch the clipboard.
 
 ## Setup
@@ -85,16 +84,16 @@ powershell -ExecutionPolicy Bypass -File $script -Action send -NoWatch `
   -Prompt "첨부된 코드 묶음을 보고 regression risk를 리뷰해줘."
 ```
 
-After send, create or update a one-shot Codex heartbeat for about 20 minutes later when the `automation_update` tool is available. Use `kind = "heartbeat"`, `destination = "thread"`, and a prompt that first deletes its own automation id, then runs the collect command by `sessionId`. Only one heartbeat can be attached to a thread, so update an existing relevant heartbeat instead of creating a duplicate.
+After send, attempt a one-shot Codex heartbeat only through `automation_update`. The current public API rejects the required `DTSTART` in `mode=create`; `mode=suggested_create` renders a card and does not create a fallback. When that happens, report the blocker, retain the `sessionId`, and do not create a direct-file workaround or a duplicate ChatGPT request.
 
 Do not hand-write heartbeat RRULE strings from a natural-language delay. Generate the fallback heartbeat RRULE mechanically:
 
 ```powershell
-$fallback = powershell -NoProfile -ExecutionPolicy Bypass -File $rruleHelper -DelayMinutes 20 | ConvertFrom-Json
+$fallback = powershell -NoProfile -ExecutionPolicy Bypass -File $rruleHelper -DelayMinutes 5 | ConvertFrom-Json
 $fallback.rrule
 ```
 
-Pass `$fallback.rrule` unchanged to `automation_update`. For any other delay, change only `-DelayMinutes` or `-DelaySeconds`; do not edit `DTSTART`, timezone text, or `RRULE` by hand.
+Use the helper output as the requested schedule. If `automation_update(mode=create)` rejects its `DTSTART`, do not retry with a bare relative RRULE or `suggested_create` as though either installed a heartbeat. Record the `sessionId` and the rejection instead.
 
 Recommended heartbeat prompt shape:
 
@@ -102,25 +101,10 @@ Recommended heartbeat prompt shape:
 ChatGPT Pro review collect wakeup.
 Automation id: use the <automation_id> from the heartbeat envelope.
 Session id: <sessionId>.
-Accelerated result path: %TEMP%\agbrowse-chatgpt-<sessionId>-accelerated-final.json.
-First delete this automation. If the accelerated result file exists, read it and verify `status = accelerated_final`, matching `sessionId`, `stable = true`, `substantive = true`, `answerLength >= MinAnswerChars`, and non-null `answerText`; report that JSON directly without running another stability collect. If that file is missing or invalid, run:
+If a future public API creates this automation, first delete it, then run:
 powershell -ExecutionPolicy Bypass -File "<script>" -Action collect -SessionId <sessionId> -MinAgeMinutes 0
-If answerText is final, report it as ChatGPT Pro's second opinion. If not final, say not final and create/update one more short follow-up heartbeat.
+If answerText is final, report it as ChatGPT Pro's second opinion. If not final, keep the same sessionId and request or await an explicit later collect; never send the original request again unless the user explicitly asks for a new review.
 ```
-
-For condition acceleration, start an external watcher after the heartbeat exists:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File $script -Action watch-accelerate `
-  -SessionId $sid `
-  -AutomationId "<automationId>" `
-  -MinAnswerChars 1500 `
-  -StabilitySeconds 30
-```
-
-`watch-accelerate` waits for `agbrowse web-ai watch` to finish, then keeps re-running `sessions resume` and two `sessions show` reads separated by `StabilitySeconds` until the gate passes or the 20-minute fallback window expires. If ChatGPT reports complete with a short placeholder, the watcher must keep polling rather than exiting. When the gate passes, it writes `%TEMP%\agbrowse-chatgpt-<sessionId>-accelerated-final.json`, then uses `codex-heartbeat-rrule.ps1 -Apply` to edit `%USERPROFILE%\.codex\automations\<automationId>\automation.toml` to a near one-shot UTC `DTSTART:...Z` (default wake delay 30 seconds). Keep the 20-minute heartbeat as a fallback in case the external watcher fails or the answer is not stable yet.
-
-When a heartbeat may be accelerated by `watch-accelerate`, make the wakeup prompt read the accelerated result file first and only fall back to `collect` if the file is missing or invalid. If fallback collect is needed, include `-MinAgeMinutes 0`; the acceleration gate has already enforced provider completion, minimum length, and stable text, and the age gate should not force an unnecessary follow-up wake.
 
 `agbrowse` may write progress lines such as `[poll] ... streaming...` to stderr while the provider is still working. Treat those lines as non-fatal progress output; decide failure from the process exit code and final JSON/session state, not from stderr presence.
 
@@ -131,8 +115,6 @@ After send, report:
 - `sessionId`
 - conversation URL if available
 - heartbeat automation id and fallback time if created
-- acceleration watcher log path and status if started
-- accelerated result path if condition acceleration is started
 - attached files or context package
 - model/effort verification status
 

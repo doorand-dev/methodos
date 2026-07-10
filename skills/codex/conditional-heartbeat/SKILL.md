@@ -1,6 +1,6 @@
 ---
 name: conditional-heartbeat
-description: Create one-shot Codex Desktop heartbeat wakeups with a broad fallback and optional condition-based acceleration. Use when Codex should wake a thread later, set a single follow-up for a specific delay, attach a mechanical readiness command that accelerates an existing heartbeat, or avoid hand-written RRULE/timezone scheduling for heartbeat automations. This skill defines heartbeat scheduling mechanics only; project-specific orchestration policy and thread state judgment stay in the caller's prompt or project docs.
+description: Create one-shot Codex Desktop heartbeat wakeups with the public automation API. Use when Codex should wake a thread later or avoid hand-written schedule syntax. Provider-specific completion handling belongs to the owning skill; this skill does not run external condition watchers or mutate automation storage.
 ---
 
 # Conditional Heartbeat
@@ -9,23 +9,20 @@ Use this skill for Codex Desktop heartbeat scheduling that must fire once.
 
 ## Boundary
 
-- This skill only defines how to create, update, accelerate, verify, and delete one-shot Codex Desktop heartbeat automations.
+- This skill only defines how to create, update, verify, and delete one-shot Codex Desktop heartbeat automations.
 - Do not use this skill as the source of project orchestration policy, thread state judgment, Methodos DONE criteria, blocked handling, commit decisions, merge decisions, or next-action policy.
 - Put project-specific status categories, wake checklists, and decision rules in the heartbeat prompt or project docs.
-- Use `ConditionCommand` only for cheap, read-only, mechanically observable readiness checks such as file existence, process completion, artifact creation, or a read-only git/worktree signal.
-- Do not encode human or project judgment into `ConditionCommand`. If readiness requires reading thread transcripts or making a project judgment, set a fallback heartbeat and perform that judgment in the wakeup turn.
+- Do not run external watchers that attempt to reschedule a heartbeat. If a provider-specific finality check is needed, its owning skill must retain the session identity and perform collection in the wakeup turn.
 
 ## Rules
 
 - Use the `automation_update` tool for initial heartbeat create/update.
 - Use `kind = "heartbeat"` and `destination = "thread"` for thread wakeups.
 - Prefer updating an existing relevant heartbeat over creating a duplicate.
-- Generate every one-shot RRULE with `scripts/codex-heartbeat-rrule.ps1`.
+- Generate every one-shot RRULE with `scripts/codex-heartbeat-rrule.ps1` for inspection and future API compatibility.
 - Do not write RRULE strings from natural-language time.
-- Do not use bare relative RRULE strings such as `RRULE:FREQ=MINUTELY;INTERVAL=20;COUNT=1`.
-- Do not use local wall-time `DTSTART`.
-- Do not use `DTSTART;TZID=...`.
-- Pass the helper output `rrule` to `automation_update` unchanged.
+- Current blocker: `automation_update(mode=create)` rejects `DTSTART`, while `mode=suggested_create` only renders a card. Do not use direct storage mutation to bypass this.
+- Until the public API accepts an exact future one-shot time or a relative delay, report scheduled heartbeat creation as blocked rather than claiming an automatic fallback exists.
 - Put the automation id in the heartbeat prompt.
 - Make the first wakeup step delete the same automation id.
 - Judge success by the wakeup turn and deleted automation, not by UI display text alone.
@@ -46,7 +43,7 @@ $wake = powershell -NoProfile -ExecutionPolicy Bypass -File $rruleHelper -DelayS
 $wake.rrule
 ```
 
-Use `$wake.rrule` unchanged in `automation_update`.
+`$wake.rrule` documents the intended UTC instant. If `automation_update` rejects it, stop and report the public scheduling blocker; do not replace it with direct TOML edits or a bare relative RRULE.
 
 Use this heartbeat prompt shape:
 
@@ -60,57 +57,8 @@ Do this first:
 2. Continue the requested task.
 ```
 
-## Fallback Then Accelerate
-
-Create or update the fallback heartbeat first:
-
-```powershell
-$fallback = powershell -NoProfile -ExecutionPolicy Bypass -File $rruleHelper -DelayMinutes 20 | ConvertFrom-Json
-$fallback.rrule
-```
-
-Start a watcher only after the heartbeat exists:
-
-```powershell
-$skillDir = "<installed conditional-heartbeat skill folder>"
-$watcher = Join-Path $skillDir "scripts\condition-heartbeat-watch.ps1"
-powershell -NoProfile -ExecutionPolicy Bypass -File $watcher `
-  -AutomationId "<automationId>" `
-  -ConditionCommand "<command that exits 0 only when ready>" `
-  -WakeDelaySeconds 60 `
-  -PollSeconds 30 `
-  -TimeoutSeconds 1200
-```
-
-The watcher polls `ConditionCommand`. When the command exits `0`, it applies a new one-shot RRULE to the same automation id with `codex-heartbeat-rrule.ps1 -Apply`.
-
-Write `ConditionCommand` so it exits `0` only when ready and exits nonzero otherwise:
-
-```powershell
--ConditionCommand "if (Test-Path -LiteralPath 'C:\tmp\done.json') { exit 0 } else { exit 1 }"
-```
-
-Boolean readiness commands are allowed:
-
-```powershell
--ConditionCommand "Test-Path -LiteralPath 'C:\tmp\done.json'"
-```
-
-## Apply Existing Automation
-
-Move an existing heartbeat to a new one-shot time:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File $rruleHelper `
-  -AutomationId "<automationId>" `
-  -DelaySeconds 60 `
-  -Apply
-```
-
 ## Verification
 
 - View the automation with `automation_update`.
-- Inspect `%USERPROFILE%\.codex\automations\<automationId>\automation.toml` only when direct file verification is needed.
 - Confirm `target_thread_id` is the intended thread.
-- Confirm the heartbeat fires in the target thread.
-- Confirm the automation is deleted after wakeup.
+- If the API accepts a schedule, confirm the heartbeat fires in the target thread and deletes itself after wakeup.

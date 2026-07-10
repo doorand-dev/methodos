@@ -958,29 +958,7 @@ try {
 }
 
 if ($Action -eq "watch-accelerate") {
-    $watch = Start-AcceleratingWatch $SessionId $AutomationId $WatchLog $AccelerateLog $WakeDelaySeconds $MinAnswerChars $StabilitySeconds $ResumeTimeoutSeconds
-    Write-Json ([pscustomobject]@{
-        ok = $true
-        action = "watch-accelerate"
-        status = "accelerating_watch_started"
-        sessionId = $SessionId
-        automationId = $AutomationId
-        minAnswerChars = $MinAnswerChars
-        stabilitySeconds = $StabilitySeconds
-        maxWaitSeconds = 1200
-        resumeTimeoutSeconds = $ResumeTimeoutSeconds
-        stabilityGate = "provider_complete_and_completedAt_and_min_chars_and_hash_stable"
-        wakeDelaySeconds = $WakeDelaySeconds
-        watchLog = $watch.watchLog
-        accelerateLog = $watch.accelerateLog
-        acceleratedResult = $watch.acceleratedResult
-        workerScript = $watch.workerScript
-        configPath = $watch.configPath
-        watcherPid = $watch.watcher.Id
-        watcherRunning = (-not $watch.watcher.HasExited)
-        next = "Keep the official fallback heartbeat active. The watcher keeps polling until provider complete, completedAt, min chars, and stable text hash pass or the 20-minute fallback window expires. Heartbeat collect commands should include -MinAgeMinutes 0."
-    })
-    exit 0
+    throw "watch-accelerate is unsupported. Retain SessionId and collect only through a foreground direct return or a future public scheduler capability."
 }
 
 if ($Action -eq "send") {
@@ -1058,15 +1036,11 @@ if ($Action -eq "send") {
             urlProbe = $urlProbe
             url = $send.url
             targetId = Get-TargetId $send
-            watchLog = $WatchLog
-            watchCommand = "powershell -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Action watch-accelerate -SessionId $sid -AutomationId <automationId>"
-            watcherPid = $null
-            watcherRunning = $false
             modelSelection = $send.modelSelection
             effortSelection = $send.effortSelection
             warnings = $send.warnings
             collectCommand = ("powershell -ExecutionPolicy Bypass -File `"" + $PSCommandPath + "`" -Action collect -SessionId " + $sid + " -MinAgeMinutes 0")
-            next = "Create or update a one-shot Codex heartbeat fallback, then optionally start watch-accelerate with that automationId."
+            next = "Create one 5-minute Codex heartbeat collect cycle. Keep this sessionId; do not send again while it is unresolved."
         })
         exit 0
     }
