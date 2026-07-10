@@ -82,6 +82,8 @@ DO:
 
 <Procedure>
 1. **Plan ingestion**: read plan paste + decision-reviewer output paste from user message. Note: plan frontmatter now includes `self_review:` (coverage_gaps, placeholders_found, type_inconsistencies) — the author's own 3-dim check.
+   - **Scope**: if the paste is a **DONE baseline amendment** (`amendment.baseline_status: DONE`), the controller pastes only the `amendment.scope` slices + touched path/contract + baseline diff — review that delta, NOT the whole baseline. Promote to full-baseline review only if a full-promotion trigger surfaces (source spec SHA, user-visible behavior, authority/data, irreversible op, public contract, cross-slice ownership, or an out-of-scope assumption). A first-approval plan is reviewed in full.
+   - **Preflight is upstream**: `plan_preflight.py` already PASSed before dispatch (SHA/placeholder/ownership/line-budget are mechanically clean). Cite that PASS as your first evidence entry; do NOT re-verify mechanical checks — spend attempts on the 4 semantic dimensions.
 
 2. **Self-review consumption**:
    - Read frontmatter `self_review` field

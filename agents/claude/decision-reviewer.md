@@ -177,7 +177,7 @@ Keep consecutive attempts in a tight auto-loop — a user-review pause between a
 </Cost_Note>
 
 <Invocation_Site>
-**Invocation**: called *automatically* immediately after `plan status=approved` **only for architecture/security changes ∨ plans with ≥2 user-facing/irreversible decisions** (small/simple plans: skip). Default 1 invocation — loop unfit for discovery work. Result handling:
+**Invocation**: called *automatically* immediately after `plan status=approved` **only for security/authority/public-contract/user-asset/irreversible/cross-slice-ownership changes ∨ plans with ≥2 user-facing/irreversible decisions** (behavior-preserving structural fixes with `decision_needed=false` + no M2 delta + no public behavior/authority/data change: skip — "architecture change" alone is NOT a trigger; small/simple plans: skip). Runs *after* `plan_preflight.py` PASS — mechanical defects are already filtered and never consume a review attempt. Default 1 invocation — loop unfit for discovery work. Result handling:
 - `DONE` → controller proceeds to plan-verify-reviewer
 - `DONE_WITH_CONCERNS` → plan SKILL conv to apply issues → then plan-verify
 - `BLOCKED` → user escalate
