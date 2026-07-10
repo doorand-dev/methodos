@@ -17,6 +17,7 @@ Send a bounded prompt to a logged-in ChatGPT Pro web session through `agbrowse w
 - Treat review, deep research, file-attachment review, many-file context review, and second opinions as long reviews unless the user asks for a short answer.
 - In Codex Desktop, long reviews use `send -> one-shot Codex heartbeat fallback -> optional condition acceleration -> collect`.
 - Use `-NoWatch` on send by default. A hidden `agbrowse web-ai watch` is only a diagnostic/process helper; it does not wake the current Codex thread by itself.
+- **Automation ownership**: a ChatGPT Pro `sessionId` owns one fallback `automationId`. Start only `pro-review.ps1 -Action watch-accelerate` for that id; never also start `conditional-heartbeat/scripts/condition-heartbeat-watch.ps1` for it. The two watchers both reschedule the same TOML and would race.
 - `watch-accelerate` must not wake on `agbrowse web-ai watch` completion alone. It may accelerate the heartbeat only after `provider status = complete`, `completedAt` exists, `MinAnswerChars` is met, and the answer hash is stable for `StabilitySeconds` (default 30 seconds).
 - For watcher heartbeat acceleration, write the automation `rrule` as explicit UTC `DTSTART:YYYYMMDDTHHMMSSZ\nRRULE:FREQ=MINUTELY;COUNT=1`.
 - Do not change watcher heartbeat acceleration to `DTSTART;TZID=Asia/Seoul:...`, local wall-time `DTSTART`, or bare relative RRULE.

@@ -12,6 +12,7 @@ Use this skill for Codex Desktop heartbeat scheduling that must fire once.
 - This skill only defines how to create, update, accelerate, verify, and delete one-shot Codex Desktop heartbeat automations.
 - Do not use this skill as the source of project orchestration policy, thread state judgment, Methodos DONE criteria, blocked handling, commit decisions, merge decisions, or next-action policy.
 - Put project-specific status categories, wake checklists, and decision rules in the heartbeat prompt or project docs.
+- **Provider ownership exclusion**: do not start this generic watcher for an `automationId` owned by `ask-chatgpt-pro`; that skill runs its own provider-finality watcher. Different sessions have different ids and do not conflict.
 - Use `ConditionCommand` only for cheap, read-only, mechanically observable readiness checks such as file existence, process completion, artifact creation, or a read-only git/worktree signal.
 - Do not encode human or project judgment into `ConditionCommand`. If readiness requires reading thread transcripts or making a project judgment, set a fallback heartbeat and perform that judgment in the wakeup turn.
 

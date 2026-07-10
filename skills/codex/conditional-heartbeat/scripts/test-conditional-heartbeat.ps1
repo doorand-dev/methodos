@@ -54,6 +54,12 @@ foreach ($required in @('watch-accelerate', 'provider_complete_and_completedAt_a
     if ($askText -notmatch [regex]::Escape($required)) { throw "ask-chatgpt-pro lost required acceleration contract: $required" }
 }
 
+$askSkill = Get-Content -Raw -LiteralPath (Join-Path $askRoot "SKILL.md")
+$heartbeatSkill = Get-Content -Raw -LiteralPath (Join-Path $skillRoot "SKILL.md")
+if ($askSkill -notmatch 'Automation ownership' -or $heartbeatSkill -notmatch 'Provider ownership exclusion') {
+    throw "Generic and provider watcher ownership exclusion is undocumented"
+}
+
 [pscustomobject]@{
     status = "passed"
     directTomlApply = $true
