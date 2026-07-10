@@ -155,6 +155,9 @@ source_spec:                       # D21 — spec 입력 추적, drift 감지
   path: docs/specs/<slug>.md
   approved_at: YYYY-MM-DDTHH:MM:SS+09:00
   sha: <git blob SHA>
+amendment:
+  baseline_status: null | DONE
+  scope: []                        # DONE baseline 보정 시 바뀐 slice ID만
 approved_plan_revision: <git SHA>  # D21 — 사용자 마지막 승인 SHA (M2 diff 기준점)
 verify_cycle: 1                    # D36 — escalate→user-decision→plan rev = 1 cycle
 verify_attempt: 0                  # D13 — cycle 내부 0~3 카운터
@@ -179,6 +182,9 @@ slices:
       # artifact:           path: "<file>", must_exist: true, must_match: "<regex 또는 checksum>"
       # custom:             interpretation: "<통과 기준 한 줄>"
     estimated_minutes: <2-30>
+    line_budget: <1-200>           # 코드+테스트 계획량 상한
+    public_contracts: []           # public symbol/artifact 변경만
+    public_callers: []             # 위 contract의 grep inventory
     # M1 결정 리스트 (D17, Phase 2 신설)
     decision_needed: false           # 기본 false (단순 HOW는 AI 결정)
     user_facing_scenario: null       # decision_needed=true일 때 쉬운 용어 시나리오
@@ -199,11 +205,14 @@ self_review:
 - `tier`: **선택·서술용 요약** (런타임 값 아님). 게이트는 *상황 신호*(touched·결정·flow·오라클)로 직접 right-sizing하고 이 필드를 *읽지 않는다*. 임계 근거(왜 그 자리에 게이트가 걸리나)는 `using-methodos` tier 표에 있다. 라우터 제거로 "methodos 자동 판정" producer 소멸 → 트리거 조건에 인코딩
 - `spec_ref` (D19): `docs/specs/<slug>.md` 존재해야 함. D16 skip 케이스만 null 허용
 - `source_spec.sha` (D21): spec git blob SHA — drift 감지. spec 변경되면 plan 재합성 필요
+- `amendment`: DONE baseline의 behavior-preserving 내부 보정만 `baseline_status: DONE` + 변경 slice `scope`를 쓴다. source spec, 사용자 체감, 권한·데이터·비가역, public contract, cross-slice ownership 변화면 full review다.
 - `approved_plan_revision` (D21): 사용자 명시 승인 commit SHA. M2 diff 기준점
 - `verify_attempt` (D13): 0/1/2/3 — `plan-verify-attempt-N.json` artifact와 동기화. N=3 후 escalation_reason 필수
 - `escalation_reason` (D13): N=3 후에도 BLOCKED 또는 같은 critical issue 2회 반복 시 한 줄
 - `slices[].files`: Create/Modify/Test 분리 — sp `writing-plans` 차용. 모든 배열 명시 (빈 배열 OK, 빠지면 X)
 - `slices[].verification.type`: 6종 중 하나(unit_test/command/fixture/artifact/visual/custom). impl-verify-reviewer Stage 1이 type 보고 분기 실행 + 오라클 타입(G-B) 매핑 1차 신호
+- `slices[].line_budget`: 1~200. 테스트 포함 예상량이 넘으면 preflight FAIL; slice를 분리한다.
+- `slices[].public_contracts`/`public_callers`: public contract 변경 시 caller를 `git grep`으로 전수 inventory한다. contract만 쓰고 inventory를 빼면 preflight FAIL.
 - `slices[].decision_needed` (D17): true 시 user_facing_scenario + recommended + options 모두 필수. 판정 기준: 사용자 체감 분기 / 비가역 / 사용자 자산 영향 중 *하나 이상*
 - `self_review`: 3 필드 모두 명시. 빈 array면 OK (gap 없음), 채워졌으면 fix 후 *재self-review* 까지 status=draft. **빈 채로 status=approved 금지** ([2J] Evidence-grade)
 - body: Goal/Architecture/Tech Stack header + slice별 Files/Decision-encoding/Steps. Decision-encoding inline = signature/schema/test-skeleton만 (algorithm body X)

@@ -33,6 +33,9 @@ source_spec:                       # D21 — spec 입력 추적
   path: docs/specs/<slug>.md
   approved_at: YYYY-MM-DDTHH:MM:SS+09:00
   sha: <git blob SHA — drift 감지용>
+amendment:                         # DONE baseline 보정일 때만
+  baseline_status: null | DONE
+  scope: []                        # 바뀐 slice ID만; 빈 배열은 최초 plan
 approved_plan_revision: <git SHA>  # D21 — 사용자 마지막 승인 SHA (M2 diff 기준점)
 verify_cycle: 1                    # D36  — escalate→user-decision→plan rev = 1 cycle
 verify_attempt: 0                  # D13 — cycle 내부 0~3 카운터
@@ -53,6 +56,9 @@ slices:
       expected_exit_code: 0
       # type별 추가 필드 — § Verification type enum 참고
     estimated_minutes: <2-30>
+    line_budget: <1-200>           # slice의 계획 코드+테스트 총량 상한
+    public_contracts: []           # 바뀌는 public symbol/artifact만
+    public_callers: []             # public_contracts가 있으면 caller 전수; 없으면 빈 배열
     # M1 결정 리스트 (D17, Phase 2 신설 — 사용자 결정 필요 자리만)
     decision_needed: false           # 기본 false (단순 HOW는 AI 결정)
     user_facing_scenario: null       # decision_needed=true일 때 쉬운 용어 시나리오
@@ -70,8 +76,11 @@ self_review:
 - `spec_ref`: D19 — `docs/specs/<slug>.md` 존재해야 함 (D16 skip 케이스만 null 허용)
 - `source_spec.sha`: spec frontmatter SHA — drift 감지 (spec 바뀌면 plan 재합성 필요)
 - `approved_plan_revision`: 사용자가 명시 승인한 commit SHA. M2 diff 기준점
+- `amendment`: 이미 DONE인 baseline의 내부 보정이면 `baseline_status: DONE` + 바뀐 slice ID만 `scope`에 적는다. source spec, 사용자 체감 동작, 권한·데이터·비가역성, public contract, cross-slice ownership을 바꾸면 이 경로를 쓰지 않는다.
 - `verify_attempt`: 0=초안, 1=plan-verify 1차 후 자동 수정, 2=2차 수정 (D13 한계)
 - `decision_needed`: D17 판정 기준 — 사용자 체감 분기 / 비가역 / 사용자 자산 영향 중 하나 이상
+- `line_budget`: 1~200. 테스트까지 포함해 이 값을 넘길 것 같으면 slice를 나눈다. reviewer가 세는 대신 preflight가 먼저 막는다.
+- `public_contracts`/`public_callers`: public symbol·artifact의 동작/시그니처를 바꿀 때만 기재한다. caller를 추측하지 말고 `git grep` 결과를 전수 기록한다.
 
 ### Body 구조 (sp `writing-plans` 차용)
 
@@ -200,12 +209,21 @@ class ProfileUpdateRequest(BaseModel):
 
 9. **사용자 검토 1-3턴 + 명시 승인** — status: draft → approved. frontmatter `approved_plan_revision: <SHA>` 기록 (D21).
 
-9b. **decision-reviewer 자동 호출** (D25/D26 + D33  — 런타임 tier 값 아니라 *게이트가 직접 관찰하는 상황 신호*로 발동):
+9a. **deterministic preflight** (semantic reviewer 전 강제):
+
+    `py -3 <methodos_root>/hooks/common/plan_preflight.py <plan_root>/<slug>.md --repo <project_root>`를 실행한다. frontmatter/YAML 형태, placeholder, duplicate slice ID, slice/path ownership, PowerShell 명령 문법, source SHA 실제 blob, public caller inventory, line budget을 먼저 검사한다.
+
+    - FAIL이면 planner가 기계적으로 고치고 preflight를 다시 실행한다. 이 실패는 semantic reviewer attempt를 소모하지 않는다.
+    - PASS 출력은 첫 review artifact의 evidence에 직접 인용한다.
+    - reviewer 완료 회수는 `spawn_agent`/`followup_task` 뒤 반드시 `wait_agent`로 한다. artifact watcher·heartbeat를 completion bus로 쓰지 않는다.
+
+9b. **decision-reviewer 조건부 호출** (D25/D26 + D33 — 런타임 tier 값 아니라 *게이트가 직접 관찰하는 상황 신호*로 발동):
 
     plan status=approved 직후 자동 호출 조건:
-    - **아키텍처/보안 변경** (창발 L): 항상 자동 (D25)
-    - **결정 자리 많음**: `decision_needed=true` slice가 ≥2 또는 *비가역/사용자 자산 영향* 결정 있으면 자동 (D33,  — F1 보강)
-    - 그 외(소규모·결정 거의 없음): skip
+    - **보안·권한·공개 계약·사용자 자산·비가역·cross-slice ownership 변경**: 자동 1회
+    - **결정 자리 많음**: `decision_needed=true` slice가 ≥2 또는 *비가역/사용자 자산 영향* 결정 있으면 자동 1회 (D33, F1 보강)
+    - `decision_needed=false` + M2 delta 없음 + public behavior/authority/data 변화 없는 behavior-preserving 구조 보정은 **skip**. “architecture change”만으로 호출하지 않는다.
+    - skip이면 plan/verify artifact에 위 predicate와 skip 사유를 적는다.
 
     호출 결과 처리 (공통):
     - Codex에서는 프로젝트 worker thread가 아니라 `decision-reviewer` subagent role을 사용한다. 호출하지 않으면 plan/verify artifact에 reviewer downgrade 사유를 남긴다.
@@ -218,12 +236,12 @@ class ProfileUpdateRequest(BaseModel):
 10. **/plan-verify 자동 트리거 + 자동 수정 conv + cycle 흐름** (D10/D13/D35/D36):
 
     plan-verify-reviewer agent 격리 검증 → BLOCKED 시 plan SKILL이 conv로 자동 수정:
-    - Codex에서는 `plan-verify-reviewer` subagent role을 사용한다. 기존 작업 thread나 PONCOU worker thread를 reviewer로 재사용하지 않는다.
+    - Codex에서는 `plan-verify-reviewer` subagent role을 사용한다. 기존 작업 thread나 PONCOU worker thread를 reviewer로 재사용하지 않는다. `wait_agent`로 결과를 회수하며 artifact watcher/heartbeat를 completion bus로 쓰지 않는다.
 
-    - **N=3 한계** (D13) — cycle 내부 `verify_attempt` 카운터 frontmatter
+    - **N=3 한계** (D13) — 최초 approved plan의 cycle 내부 `verify_attempt` 카운터 frontmatter. 재검증은 issue+delta scoped review다.
     - **cycle 카운터** (D36,  F4) — escalate→user-decision→plan rev = 1 cycle. `approved_plan_revision` SHA 바뀌면 `verify_cycle += 1`, `verify_attempt = 0`, `escalation_reason = null` reset
     - 각 attempt 산출: `<verify_root>/plan-<slug>-cycle-<C>-attempt-<N>.json` (D36 경로 갱신)
-    - attempt 3 BLOCKED 또는 같은 critical 2회 반복 → escalate
+    - attempt 3 BLOCKED 또는 같은 critical 2회 반복 → escalate. DONE baseline amendment는 scoped semantic review 1회 + 기계 보정 후 1회까지만; 같은 critical 반복 또는 실제 사용자 결정만 full/escalate한다.
     - **escalation 표시** (D35,  F3): plan-verify-reviewer가 `user_facing_escalation` 필드 생성 (M1 결정 리스트 schema 재사용 — `blocked_scenarios` + `decision_options`). plan SKILL은 *전달만*, 변환 X. 사용자 응답 → slice frontmatter `recommended` 1:1 매핑
     - **자동 재진행** (D36): 사용자 결정 → plan SKILL conv 수정 → plan-verify 자동 재호출 (사용자 명시 명령 X). 새 cycle 시작
     - **Cache 윈도우 5분 유지** : attempt N BLOCKED → 즉시 자동 수정. cycle 사이 사용자 결정 자리만 cache miss 감수 (의도된 trade-off)

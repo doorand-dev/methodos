@@ -2,7 +2,7 @@
 name: plan-verify
 description: |
   Isolated adversarial verification of a plan (4 dimensions: conflicts with past decisions · decision [0]~[3J] principles · user global rules · plan internal consistency).
-  **Self-trigger (no router)**: even if the user doesn't know the skill name, fire right after plan status=approved and before impl (detect `approved_plan_revision` SHA change), or on a remark moving toward implementation like "승인된 plan 이어가/구현해" when no verify artifact exists. "plan 검증", "이 계획 어떻게 보여?", "plan-verify".
+  **Self-trigger (no router)**: first approved plan gets one full review. A DONE-baseline amendment gets scoped-delta review by default; promote to full only when its scoped assumptions collapse. "plan 검증", "이 계획 어떻게 보여?", "plan-verify".
   **Evidence (FORCE)**: every issue must *directly quote* command output or file:line — no abstract pass ("looks fine"), no evidence from unrun commands. Output `<verify_root>/plan-slug-verify-attempt-N.json`. Explicit: `/plan-verify slug`.
   **Plain language (FORCE)**: write user escalations not as technical detail but as "what is blocked and what happens if you choose each option", in plain Korean.
 ---
@@ -14,13 +14,13 @@ description: |
 
 ## 트리거 (self-trigger — 라우터 없음)
 
-- 자동 발동: plan status=approved 직후 (단 대형·아키텍처 변경 ∨ 결정 자리 많은 M+조건부는 *decision-reviewer 1회 통과 후* — D26/D33, /). 트리거 조건: `approved_plan_revision` SHA 변경 감지 (D36 — escalate 후 사용자 결정으로 plan 갱신되면 새 cycle 자동 시작)
+- 자동 발동: 최초 status=approved 직후. DONE baseline amendment면 frontmatter `amendment.baseline_status: DONE`와 `scope`로 delta만 읽는다. source spec SHA, user-visible behavior, authority/data, irreversible operation, public contract, cross-slice ownership 중 하나가 바뀌거나 scope 밖 파일/가정이 나오면 full로 승격한다.
 - 자연어: "plan 검증", "이 계획 어떻게 보여?", "plan-verify"
 - 명시: `/plan-verify <slug>`
 
 ## 호출 순서 (D26  — 런타임 tier 아니라 *상황 신호*)
 
-decision-reviewer가 발동한 경우 (아키텍처/보안 ∨ 결정 자리 많음 — plan §9b):
+decision-reviewer가 발동한 경우 (보안·권한·공개 계약·사용자 자산·비가역·cross-slice ownership ∨ 결정 자리 많음 — plan §9b):
 ```
 plan approved → decision-reviewer (자동 1회, D25) → 본 plan-verify-reviewer attempt 1~3
 ```
@@ -30,12 +30,13 @@ plan approved → decision-reviewer (자동 1회, D25) → 본 plan-verify-revie
 plan approved → 본 plan-verify-reviewer attempt 1~3
 ```
 
-자명한 1-2파일 수정: 둘 다 skip 권장.
+`decision_needed=false` + M2 delta 없음 + public behavior/authority/data 변화 없는 behavior-preserving 구조 보정은 decision-reviewer skip. 자명한 1-2파일 수정은 둘 다 skip 권장.
 
 ## 사전 조건
 
 - `Test-Path <plan_root>/<slug>.md` ✅
 - plan frontmatter status=approved
+- `py -3 <methodos_root>/hooks/common/plan_preflight.py <plan_root>/<slug>.md --repo <project_root>` PASS. FAIL은 reviewer dispatch 전 planner가 고치며 attempt를 소모하지 않는다.
 
 ## 산출 artifact (강제,  Phase 2 D13)
 
@@ -62,15 +63,20 @@ plan approved → 본 plan-verify-reviewer attempt 1~3
 - 영속 `attempt-N.json`이 "무엇을 걸었나"의 메모리 — *해소 판정*은 수정본 직접 확인(독립성 유지, JSON 주장 그대로 인용 금지).
 - 모델: scoped라 이미 쌈 → opus 유지. 더 짜려면 attempt 2~3만 sonnet 강등 *가능*(옵션).
 
+**DONE baseline amendment**:
+- 기본은 baseline 전체가 아니라 `amendment.scope` slice, 해당 path/contract, 그리고 baseline과의 diff만 fresh reviewer에게 paste한다.
+- preflight PASS 뒤 semantic reviewer는 1회만 호출한다. 그 reviewer가 찾은 기계 결함은 preflight로 고친 뒤 1회만 scoped re-review한다.
+- 동일 critical이 다시 나오거나 사용자 선택이 새로 필요할 때만 full review 또는 사용자 escalate한다. 단순 internal HOW 보정은 full baseline 재독 사유가 아니다.
+
 ## 절차 (얇음)
 
-1. **사전 조건 점검** + plan 본문 읽기.
-   - `decision-reviewer`나 `plan-verify-reviewer`가 필요한 경우, 프로젝트 worker thread가 아니라 Codex subagent role을 사용한다.
+1. **preflight + 범위 결정**: preflight PASS를 evidence로 기록한다. 최초 approved plan이면 전체를 읽고, DONE amendment면 scope+delta만 읽는다. full 승격 predicate를 충족한 경우만 baseline 전체를 읽는다.
+   - `decision-reviewer`나 `plan-verify-reviewer`가 필요한 경우, 프로젝트 worker thread가 아니라 Codex subagent role을 사용하고 `wait_agent`로 완료를 회수한다. watcher/heartbeat로 완료를 판정하지 않는다.
    - subagent tool이 없거나 호출하지 않기로 판단하면 `reviewer_mode=controller_self_review` 또는 `unavailable`과 `downgrade_reason`을 artifact에 기록한다.
    - reviewer 여부를 기록하지 않은 상태로 DONE/DONE_WITH_CONCERNS를 쓰지 않는다.
 2. ***적대적 검증* (격리 부재를 외부 자료 대조로 보완)** — 다음 4 차원 모두 점검:
    - **A. 과거 결정 충돌**: `Select-String -Path docs/adr/ -Pattern '<유사 키워드>'`. 충돌 결정 발견 시 issues.critical.
-   - **B. decision [0]~[3J] 정합성**: 각 슬라이스에 [3H] 적용? [1B] 옵션 표 있나? [3J] 섣부른 *재사용* 추출 위반 없나? (크기·응집 분해·명시 요청은 위반 아님 — [0] YAGNI-기능 축과 구분)
+   - **B. decision [0]~[3J] 정합성**: decision-reviewer output이 있으면 [0]/[1A]/[1B]/[3H]/[3J]을 재심하지 말고 그 finding의 해소만 직접 확인한다. 없으면 전체를 walk한다. [1C]/[1D]/[2H]/[3I]는 항상 직접 담당한다. (크기·응집 분해·명시 요청은 [0]/[3J] 위반 아님)
    - **C. 사용자 글로벌 룰** (`~/.codex/AGENTS.md`): 한국어·기술 용어 괄호·체감 시나리오 기술 위반?
    - **D. plan 자체 정합성 + 재사용 계약 실재**: 슬라이스 의존성 순환? touched_files 겹침? estimated_minutes 합리적? **(조건부) plan이 *기존 코드를 재사용/가정*하는 자리("reuse X", "call Y", "기존 Z 그대로")마다 실코드 grep → 실재 + 시그니처/필드 일치 확인.** 불일치(가정한 함수·필드·계약 부재/상이) → critical/important — 허구 계약 위 슬라이스(impl-verify서 튕겨 헛구현). 재사용 없으면(greenfield) skip. 존재·시그니처만 — 코드 품질은 impl-verify 영역.
 3. **Evidence 강제** ([2J]):
