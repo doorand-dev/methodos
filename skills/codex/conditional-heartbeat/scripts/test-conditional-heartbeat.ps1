@@ -3,58 +3,60 @@ $ErrorActionPreference = "Stop"
 $skillRoot = Split-Path -Parent $PSScriptRoot
 $helper = Join-Path $PSScriptRoot "codex-heartbeat-rrule.ps1"
 $watcher = Join-Path $PSScriptRoot "condition-heartbeat-watch.ps1"
-$skillPath = Join-Path $skillRoot "SKILL.md"
-$agentPath = Join-Path $skillRoot "agents\openai.yaml"
 $askRoot = Join-Path (Split-Path -Parent $skillRoot) "ask-chatgpt-pro"
-$askSkillPath = Join-Path $askRoot "SKILL.md"
 $askScript = Join-Path $askRoot "scripts\pro-review.ps1"
+$automationRoot = Join-Path $env:USERPROFILE ".codex\automations"
+$id = "conditional-heartbeat-test-" + [guid]::NewGuid().ToString("N")
+$automationDir = Join-Path $automationRoot $id
+$toml = Join-Path $automationDir "automation.toml"
 
 foreach ($delay in @(30, 45, 60)) {
     $raw = & powershell -NoProfile -ExecutionPolicy Bypass -File $helper -DelayMinutes $delay
     if ($LASTEXITCODE -ne 0) { throw "RRULE generation failed delay=$delay output=$raw" }
     $result = ($raw | Out-String) | ConvertFrom-Json
     if ($result.delaySeconds -ne ($delay * 60)) { throw "Unexpected delaySeconds delay=$delay" }
-    if ($result.applied -or $null -ne $result.toml) { throw "RRULE helper must be generation-only" }
+    if ($result.rrule -notmatch '^DTSTART:\d{8}T\d{6}Z\nRRULE:FREQ=MINUTELY;COUNT=1$') { throw "Unexpected RRULE shape" }
 }
 
-$savedErrorAction = $ErrorActionPreference
-$ErrorActionPreference = "Continue"
-$applyOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $helper -DelayMinutes 45 -AutomationId "disposable-test" -Apply 2>&1
-$applyExitCode = $LASTEXITCODE
-$ErrorActionPreference = $savedErrorAction
-if ($applyExitCode -eq 0 -or ($applyOutput | Out-String) -notmatch '-Apply is unsupported') {
-    throw "-Apply must direct callers to automation_update"
+New-Item -ItemType Directory -Path $automationDir | Out-Null
+@"
+version = 1
+id = "$id"
+kind = "heartbeat"
+name = "$id"
+prompt = "disposable conditional heartbeat test"
+status = "PAUSED"
+rrule = "RRULE:FREQ=HOURLY;BYMINUTE=0;BYSECOND=0"
+target_thread_id = "disposable"
+created_at = 1
+updated_at = 1
+"@ | Set-Content -LiteralPath $toml -Encoding UTF8
+
+try {
+    $apply = & powershell -NoProfile -ExecutionPolicy Bypass -File $helper -AutomationId $id -DelaySeconds 75 -Apply | ConvertFrom-Json
+    if (-not $apply.applied -or $apply.toml -ne $toml) { throw "Direct TOML apply did not report the disposable automation" }
+    $after = Get-Content -Raw -LiteralPath $toml
+    if ($after -notmatch 'status = "ACTIVE"' -or $after -notmatch 'rrule = "DTSTART:\d{8}T\d{6}Z\\nRRULE:FREQ=MINUTELY;COUNT=1"') {
+        throw "Direct TOML apply did not activate the one-shot schedule"
+    }
+
+    $watch = & powershell -NoProfile -ExecutionPolicy Bypass -File $watcher -AutomationId $id -ConditionCommand 'exit 0' -WakeDelaySeconds 75 -PollSeconds 1 -TimeoutSeconds 30 -RruleHelper $helper | ConvertFrom-Json
+    if (-not $watch.triggered -or $watch.conditionExitCode -ne 0) { throw "Condition watcher did not accelerate on a true condition" }
+
+    $watchText = Get-Content -Raw -LiteralPath $toml
+    if ($watchText -notmatch 'status = "ACTIVE"') { throw "Condition watcher did not preserve active heartbeat status" }
+} finally {
+    Remove-Item -LiteralPath $automationDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-if (Test-Path -LiteralPath $watcher) { throw "Generic condition watcher must not mutate automations: $watcher" }
-
-$helperText = Get-Content -Raw -LiteralPath $helper
-if ($helperText -match 'WriteAllText|\.codex\\automations') { throw "RRULE helper still mutates automation storage" }
-
-$askScriptText = Get-Content -Raw -LiteralPath $askScript
-if ($askScriptText -match 'automation\.toml|\.codex\\automations') { throw "ask-chatgpt-pro still mutates automation storage" }
-
-$skillText = Get-Content -Raw -LiteralPath $skillPath
-if ($skillText -match 'Fallback Then Accelerate|condition-heartbeat-watch|-Apply') { throw "Generic skill still advertises external acceleration" }
-
-$agentText = Get-Content -Raw -LiteralPath $agentPath
-if ($agentText -match 'acceleration') { throw "Agent metadata still advertises acceleration" }
-
-$askSkillText = Get-Content -Raw -LiteralPath $askSkillPath
-if ($askSkillText -match 'Action watch-accelerate|direct `%USERPROFILE%\\.codex\\automations|condition acceleration') {
-    throw "ask-chatgpt-pro still advertises unsupported automation acceleration"
-}
-
-$ErrorActionPreference = "Continue"
-$watchOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $askScript -Action watch-accelerate -SessionId "disposable-test" -AutomationId "disposable-test" 2>&1
-$watchExitCode = $LASTEXITCODE
-$ErrorActionPreference = $savedErrorAction
-if ($watchExitCode -eq 0 -or ($watchOutput | Out-String) -notmatch 'watch-accelerate is unsupported') {
-    throw "ask-chatgpt-pro watch-accelerate was not rejected"
+$askText = Get-Content -Raw -LiteralPath $askScript
+foreach ($required in @('watch-accelerate', 'provider_complete_and_completedAt_and_min_chars_and_hash_stable', 'sessionId')) {
+    if ($askText -notmatch [regex]::Escape($required)) { throw "ask-chatgpt-pro lost required acceleration contract: $required" }
 }
 
 [pscustomobject]@{
     status = "passed"
-    sourceUsesAutomationUpdateOnly = $true
-    unsupportedAccelerationRejected = $true
+    directTomlApply = $true
+    conditionAcceleration = $true
+    providerFinalityContractPresent = $true
 } | ConvertTo-Json -Depth 3
