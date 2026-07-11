@@ -1,150 +1,98 @@
 ---
 name: impl
 description: |
-  Implement an approved plan's slices *one slice at a time* (model-driven autonomous drive). Output is a git commit (WHY: prefix).
-  **Self-trigger (no router)**: when plan approved + plan-verify DONE + that slice is unimplemented (no commit/verify-report). Enter directly from "구현", "implement", "이 슬라이스 만들어", "이어가", "끝까지 진행".
-  **Harness paths (FORCE)**: set `plan_root`/`verify_root` from the nearest `AGENTS.md`/plan convention. If the project uses `.claude/plans`, do not fall back to `.Codex/*` defaults.
-  **Autonomous drive within impl (FORCE)**: once the user-decision space is resolved, continue through all slice commits, configured impl-verify gates, and `impl-novelist` for multi-file ∨ multi-flow.
-  **Stop conditions (FORCE)**: stop and report/ask in plain language when out-of-slice, exceeding plan intent, NEEDS_CONTEXT, or a newly arising user-experience change, irreversibility, or user-asset impact appears.
-  **Execution mode (G-A, OPEN)**: inline vs fresh-subagent dispatch is the model's judgment by context-locality + coupling. Explicit call is optional: `/impl slice id`.
+  Implement an approved plan one slice at a time and produce a WHY-prefixed git
+  commit. Trigger after plan approval and plan-verify completion when a slice is
+  unimplemented. Keep work inside the slice, preserve caller impact checks, and
+  hand every candidate to the fresh read-only impl-verify reviewer.
 ---
 
-# /impl — 슬라이스 구현 스킬 (얇은 stub)
+# /impl — 슬라이스 구현 스킬
 
-> *얇은 stub*: 핵심 절차 + 산출 형식만 포함. 실사용 데이터로 본문 확장 예정.
+## 트리거와 사전 조건
 
-## 트리거 (self-trigger — 라우터 없음)
+- plan status=approved, plan-verify가 DONE이며 현재 slice의 commit/verify
+  artifact가 없을 때 자동 발동한다.
+- "구현", "implement", "이 슬라이스 만들어", `/impl <slice>` 요청도 트리거다.
+- nearest `AGENTS.md`와 plan frontmatter에서 `plan_root`/`verify_root`를
+  정하고, approved plan·최신 plan-verify artifact·slice `touched_files`를
+  확인한다. 부족하면 `/plan` 또는 `/plan-verify`로 돌아간다.
 
-- 자동 발동: plan status=approved + plan-verify status=DONE + 해당 slice의 commit/verify-report 부재 시
-- 자연어: "구현", "implement", "이 슬라이스 만들어"
-- 명시: `/impl <slice id 또는 slug>`
+## 구현 절차
 
-## 사전 조건 (강제)
+1. slice 본문을 prompt에 inline으로 붙이고 `touched_files` 밖 수정은 즉시
+   멈춘다. plan 의도를 명백히 넘는 파일·모듈 확장은 DONE_WITH_CONCERNS로
+   보고하고 임의 분할하지 않는다.
+2. public signature/behavior가 바뀌면 `git grep`/AST로 caller를 열거한다.
+   함께 고치거나 영향 없음을 직접 확인해야 하며, 닫지 못한 caller는 BLOCKED/
+   NEEDS_CONTEXT다.
+3. plan의 verification metadata를 읽어 slice의 검증 class를 한 번 정한다:
+   `deterministic_artifact_or_command` 또는 `behavior_integration_or_judgment`.
+   이 값은 impl-verify에 넘기며 별도 oracle 유형을 만들지 않는다.
+4. deterministic artifact/command 계약이면 commit 전에 executable preflight를
+   선언·실행한다. command, pass 기준, exit, output, producer→consumer→derived-
+   output coverage와 가능한 scope selector를 `implementer_preflight` handoff에
+   남긴다. 이것은 early defect detection이며 reviewer의 증거가 아니다.
+5. `verification.type=unit_test` 또는 `tdd-parity`이면 테스트 RED를 실제로 관찰한
+   출력과 최소 구현 후 GREEN 출력 둘을 남긴다. commit log로 대체하지 않는다.
+   실행하지 않은 command/output은 report에 쓰지 않는다.
+6. WHY prefix commit을 만들고 즉시 fresh read-only `/impl-verify`를 호출한다.
 
-- **하네스 경로 결정**: nearest `AGENTS.md`와 plan frontmatter를 먼저 읽어 `plan_root`와 `verify_root`를 정한다. 예: 프로젝트가 `.claude/plans/`를 정본으로 선언하면 `plan_root=.claude/plans`, `verify_root=.claude/verify-reports`; 별도 선언이 없을 때만 Codex 기본값(`.Codex/plans`, `.Codex/verify-reports`)을 쓴다.
-- `Test-Path <plan_root>/<slug>.md` ✅
-- plan frontmatter status=approved
-- `Test-Path <verify_root>/plan-<slug>-verify-attempt-*.json` (최신) + status=DONE/DONE_WITH_CONCERNS (D13 attempt schema)
-- 현재 slice id의 `touched_files` 명시되어 있음
-- plan frontmatter `drive_config.dispatch`가 있거나 프로젝트가 요구하면 현재 slice의 `mode`(inline/sdd)와 `model`을 읽는다. 요구되는데 없으면 구현하지 말고 plan으로 돌아가 `drive_config`를 합성한다.
+작은 로컬 slice는 inline으로, 독립적이고 큰 결합 slice는 fresh dispatch로
+구현할 수 있다. dispatch하더라도 아래 기준을 prompt에 그대로 붙인다.
 
-위 부족하면 `/plan` 또는 `/plan-verify`로 돌아감.
+```text
+You are implementing Task <slice id> from the approved plan.
 
-## impl-verify gate controller (D24 ralph, 후속)
+Context (do not inherit the controller session):
+- slice body: <inline paste>
+- touched_files: <list>
+- verification metadata and commands: <inline paste>
+- WHY commit format: <inline paste>
 
-각 슬라이스 commit 후 *자동*으로 `impl-verify` gate를 만족시킨다. 별도 gate 참고문서를 만들지 않는다.
-`impl-verify` skill이 fresh reviewer를 쓸지, oracle/self-review/AST0/batch seam으로 강등할지 결정한다. 단 deterministic·behavior/integration/judgment attempt 1과 BLOCKED 뒤 재검증은 fresh read-only reviewer가 필수이며 강등하지 않는다.
-여기서 "각 슬라이스"는 **gate 만족 지점**이지 full per-slice reviewer 고정이 아니다. `impl-verify`가 batch seam을 택하면 여러 저위험 슬라이스를 한 seam artifact로 만족시킬 수 있다.
+Your job:
+- edit only touched_files; stop on an out-of-slice or intent-overrun signal
+- enumerate and close caller/producer/consumer/derived-output impact
+- for unit_test/tdd-parity, record actual RED then GREEN output
+- for deterministic contracts, run and report preflight command/output/exit/coverage
+- never report an unrun command or rely on a prior DONE claim
+- commit with WHY: and return the actual status
+```
 
-- attempt 1 실행 → JSON 산출 (`slice-<N>-attempt-1.json`)
-- status=BLOCKED → impl이 fix → attempt 2 →.. attempt 10
-- attempt 10 BLOCKED 또는 `repeated_from_attempt`로 동일 critical 재등장 → `escalation_required: true` + 사용자 escalate
-- **자율주행 자리** — 사용자 의도 "끝까지 자동" 정합. model-driven 순차 구동에서 머무름 (D28 cache 윈도우)
-- **무한 spinning 가드**: ralph 루프 자체의 내부 카운터(N=10)가 가드 — 빌트인 turn 한도에 의존 안 함 (P0-2  Reeval 참고)
+## Commit과 verify cycle
 
-attempt M 실행 시 attempt M-1 결과 paste 전달 → `impl-verify` gate가 `repeated_from_attempt` 판정.
+커밋은 한 slice만 포함하고 다음 형식을 따른다.
 
-## Cross-runtime adversarial review
+```text
+<한 줄 제목>
 
-Codex sessions do not call Codex as an external reviewer. If a project declares a
-separate reviewer runtime, run that review after all configured `impl-verify`
-gates and any required `impl-novelist` pass. Record the result as an advisory
-artifact under `<verify_root>`; do not let the advisory replace Methodos
-`impl-verify` evidence.
+WHY: <결정> | 비용(지금/부채): Xm/Ym | Reeval: <조건>
+Slice: <slice id>
+Touched: <touched_files 목록>
+```
 
-## 산출 artifact (강제)
+각 slice commit 뒤 `slice-<N>-attempt-1.json`을 만든다. BLOCKED이면 impl은
+fix를 만들고 `attempt M+1`을 호출한다. fresh reviewer는 narrow fix의 issue
+closure·changed paths·caller/producer/consumer/derived-output만 scoped로
+재검증하며, oracle/acceptance criteria나 public/caller graph가 바뀌거나
+scope가 닫히지 않으면 full slice reverify로 올린다. reviewer가 없거나 evidence가
+없으면 DONE으로 진행하지 않는다.
 
-각 슬라이스 끝에:
-- **git commit** with WHY body:
-  ```
-  <한 줄 제목>
-
-  WHY: <한 줄 결정> | 비용(지금/부채): Xm/Ym | Reeval: <조건>
-  Slice: <slice id>
-  Touched: <touched_files 목록>
-  ```
-- (선택) `<verify_root>/slice-<N>-attempt-<M>.json` 또는 batch seam artifact — 이건 `/impl-verify`가 산출
-
-## 절차 (얇음)
-
-1. **사전 조건 점검**: 위 조건을 모두 통과. 안 되면 escalate.
-2. **plan slice 본문 paste**: plan frontmatter에서 해당 slice 추출. *본문 안에 inline*. 파일 읽기 의존 X (superpowers "Never make subagent read plan file" 정신).
-3. **구현**:
-   - touched_files 안에서만 작업
-   - *슬라이스 외 파일 건드릴 신호* 시 즉시 멈춤·보고 ([1C] 누더기 위 누더기 거부)
-   - **plan 의도 초과 자동 신호** (superpowers `implementer-prompt.md` L51 차용): 만드는 파일이 plan slice 의도를 *명백히 넘어 자라면* (예: 단일 함수 → 모듈 신설) → 분리 시도 X, 즉시 멈추고 *DONE_WITH_CONCERNS*로 보고. plan 가이드 없이 자체 분할 금지.
-   - [3J] 추출 시점: *재사용* 목적 공유 모듈은 같은-이유 2차 사용처 전 분리 X (단 크기·응집 분해·사용자 명시 요청은 예외 — 호출처 1개여도 OK)
-   - **영향범위(caller) 확인**: 슬라이스가 *public 시그니처·동작*을 바꾸면 `git grep`/AST로 호출처를 열거 → 같은 슬라이스에서 함께 갱신하거나 영향 없음을 직접 확인한다. 못 닫은 caller는 issue에 기록하되 통과 근거가 아니며 BLOCKED/NEEDS_CONTEXT다. **touched_files 안만 보는 게 함정 — 파급은 밖에 있을 수 있음.**
-   - **TDD red-green (테스트 오라클 슬라이스 — verification.type=unit_test/tdd-parity)**: 테스트 먼저 작성 → 실행해 *RED 관찰* → 최소 구현 → 실행해 *GREEN 관찰* → commit. 실제 RED/GREEN 명령 출력 둘을 handoff에 남긴다. commit 분리·로그만으로 대체하지 않으며, 없으면 BLOCK 후 안전한 실행 맥락에서 다시 만든다.
-   - **결정론적 artifact/command preflight**: artifact/fixture/hash/schema/닫힌 command 계약이면 initial commit **전** command·pass 기준·producer→consumer→derived-output coverage·가능한 scope selector를 선언하고 직접 실행한다. command/output/exit와 `git write-tree` 값을 `implementer_preflight` handoff에 남긴다. commit 뒤 tree가 일치하는지 확인한다. 실패·미선언·tree 불일치면 reviewer에게 넘겨 통과시키지 않는다.
-4. **실행모드 선택 (G-A — inline vs fresh-subagent dispatch, OPEN)**:
-
-   oracle 수식자의 *쌍대* 결정. 라우터가 정해주지 않는다 — 게이트가 아래 trade-off를 *surface*하고 모델이 판단한다 (rigid rule 아님, OPEN = decision-gated judgment):
-   - **기준 = context-locality**(컨트롤러가 이미 이 코드를 쥐고 있나) + **coupling**(슬라이스가 다른 슬라이스와 파일 공유·의존하나)
-   - 둘 다 yes(**보유 + 결합**) → **inline** (dispatch 격리이득 < 재로딩 비용) ← *중간 케이스, 이전 harness에 누락됐던 자리* (실전 실사용 gap)
-   - **isolable + 미보유**(독립·큰 슬라이스, est_min ≥ 15 또는 touched ≥ 5) → **dispatch** (아래 템플릿)
-   - **순수이동(AST 0 diff)** → inline (controller self-review + AST diff만, 격리 한계효용 0)
-   - 작은·로컬 슬라이스 → 컨트롤러 직접 (inline)
-
-   > **불변식 (dispatch = isolated subagent의 유일한 채널)**: subagent는 세션 상속이 없어 *프롬프트에 적힌 것만* 안다. 따라서 impl-verify가 **BLOCK으로 강제하는 기준(out_of_slice 경계 · caller impact-radius · TDD red-green · evidence 무결성)을 모두 여기서 echo**한다. impl-verify에 새 BLOCK 기준이 생기면 이 템플릿도 동기 (같은 BLOCK 기준을 양쪽에 맞춘다).
-
-   위임(dispatch) 시 prompt 형식 (Task tool, general-purpose):
-   ```
-   You are implementing Task <slice id> from plan <slug>.
-
-   ## Context (DO NOT inherit my session — read only what's below)
-   - Plan slice 본문 (paste 전체, file read 금지):
-     <plan frontmatter에서 해당 slice 전체 inline paste>
-   - touched_files: <목록>
-   - verification 명령: <plan에 기재된 명령>
-   - WHY body 필수 형식: <impl 산출 artifact 참고>
-
-   ## Your job
-   - touched_files 안에서만 작업
-   - 슬라이스 외 파일 신호 시 즉시 멈춤·보고
-   - plan 의도 초과 자라면 멈추고 DONE_WITH_CONCERNS
-    - **영향범위(caller) 확인**: public 시그니처·동작을 바꾸면 `git grep`으로 호출처 열거 → 같은 슬라이스에서 갱신 / 영향 없음 직접 확인. 못 닫은 caller는 issue에 기록하되 통과 근거가 아니며 BLOCKED/NEEDS_CONTEXT다. **touched_files 밖이라고 무시 금지**.
-    - **TDD red-green 강제 (테스트 오라클 슬라이스 — verification.type=unit_test 또는 tdd-parity)**: 테스트 먼저 작성 → 실제 실패(RED) 출력 기록 → 최소 구현 → 실제 통과(GREEN) 출력 기록 → commit. commit 분리·로그만으로 대체하지 않으며, 출력이 없으면 BLOCK 후 안전한 실행 맥락에서 다시 만든다.
-    - **결정론적 artifact/command preflight**: initial commit 전 command·pass 기준·producer→consumer→derived-output coverage·가능한 scope selector를 선언하고 실행한다. command/output/exit와 `git write-tree` 값을 `implementer_preflight`로 보고하고, commit 뒤 tree 일치를 확인한다. 실패·미선언·tree 불일치면 reviewer에게 넘겨 통과시키지 않는다.
-    - 실제로 실행하지 않은 command/output을 report/evidence에 쓰지 않는다.
-   - 끝나면 WHY: prefix commit + self-review 4차원(completeness·quality·discipline·testing) 보고
-
-   ## Report 4 상태
-   DONE / DONE_WITH_CONCERNS / BLOCKED / NEEDS_CONTEXT
-   ```
-
-   **주의** (superpowers Red Flags):
-   - "Never make subagent read plan file" — plan 본문은 *paste*, file path 던지지 말 것
-   - subagent에 컨트롤러 세션 컨텍스트 *상속 금지* — 위 paste만으로 self-contained
-   - 모델 선택: 1-2 파일 mechanical → cheap, multi-file integration → standard, architecture/design → most capable
-5. **commit + WHY**:
-   - WHY body 강제 (조건문이 매 턴 측정)
-6. **다음 슬라이스 또는 `/impl-verify` 호출**
+모든 slice가 DONE인 뒤 goal owner는 최종 candidate SHA에서 선언된 full regression을
+한 번 실행하고 최종 slice artifact의 `terminal_regression`에 기록한다. 별도
+terminal artifact를 만들거나 preflight/targeted check를 full regression으로
+대체하지 않는다. 명령이 선언되지 않았으면 그 사실과 잔여 범위를 기록한다.
 
 ## 안 하는 것
 
-- 슬라이스 외 파일 *수정* (읽기는 OK)
-- WHY body 누락 commit
-- 한 commit에 여러 슬라이스 묶음
-- *증상 봉합* 결정 ([1A] 원인 2번 자문)
-- 가짜 추상화 ([3J] 한 사용처뿐인 재사용 목적 분리는 보류)
-
-## 다음 단계
-
-- 슬라이스 끝 → `/impl-verify` 격리 검증 (2-stage)
-- 검증 DONE → 다음 슬라이스
-- 검증 DONE_WITH_CONCERNS / BLOCKED → fix 슬라이스로 사이클 (`/impl-verify`의 "다음 단계" 표 참고)
-- 모든 슬라이스 DONE + configured impl-verify gates DONE → (다파일 ∨ 다flow) `impl-novelist` narrative #4 → (별도 reviewer runtime이 설정된 대형·아키텍처 변경 시) runtime advisory review 1회 → **(선택, G-D) 전체 diff `/simplify` 1회 마무리 패스 — 값 있을 때만 (OPEN)** → 골 종료를 소유한 controller가 `<verify_root>/terminal-<slug>-regression.json` 확인·작성: 같은 candidate SHA의 DONE을 재사용하거나 선언된 full regression을 1회 실행 → 결정 기록 또는 `WHY:` 요약 + 골 종료
-
-## Reeval
-
-- 큰 슬라이스 위임 패턴이 *진짜 반복*인지 (≥3회) → 위임 형식 본문 확장
-- 슬라이스 외 파일 신호 *오탐* 사례 → 정의 명확화
+- slice 밖 파일 수정, 임의 추상화·분할, 여러 slice를 한 commit에 묶기
+- caller 영향 미확인 상태에서 reviewer를 통과시키기
+- 실행하지 않은 evidence, commit log만으로 TDD RED를 주장하기
+- reviewer 대신 controller가 DONE 판정을 쓰기
 
 ---
 
 ## 결정 신호
 
-
-- 슬라이스 commit 직전 → [3H] 한 슬라이스 단독 동작·검증 가능 / [1C] 누더기 거부
-- (다파일 ∨ 다flow) `impl-novelist` narrative #4 DONE 후, 별도 reviewer runtime이 설정된 대형·아키텍처 변경 → runtime advisory review 1회, 최종 diff 대상·advisory-fold ([2J] cross-runtime Evidence)
+- commit 직전: 한 slice 단독 구현·검증 가능성과 scope를 확인한다.
+- commit 직후: fresh read-only impl-verify artifact가 DONE인지 확인한다.
