@@ -18,7 +18,7 @@ AST0 확인, batch seam verify로 강등할 수 있다.
 
 ## 트리거 (self-trigger — 라우터 없음)
 
-- 자동 발동: 슬라이스 commit 직후 "통과" 단언 전, 해당 slice를 덮는 `<verify_root>` artifact(`slice-<N>.json` 또는 batch seam artifact) 부재 시
+- 자동 발동: 슬라이스 commit 직후 "통과" 단언 전, 현재 commit을 덮는 `<verify_root>/slice-<N>-attempt-<M>.json` 또는 batch seam artifact 부재 시
 - 자연어: "impl 검증", "이 구현 어떻게 보여?", "impl-verify"
 - 명시: `/impl-verify <slice N>`
 
@@ -31,12 +31,13 @@ AST0 확인, batch seam verify로 강등할 수 있다.
 
 ## 산출 artifact (강제)
 
-`<verify_root>/slice-<N>.json` 또는 batch seam artifact — 필수 필드:
+`<verify_root>/slice-<N>-attempt-<M>.json` 또는 batch seam artifact — 필수 필드:
 - `kind`: "impl-verify"
 - `target`: slice N
+- `attempt`: M
 - `status`: 4상태
-- `evidence`: 최소 2개 (각 stage에서 1개씩)
-- `issues`: severity 분류
+- `evidence`: Stage 1 최소 1개, Stage 2가 실행됐을 때만 Stage 2 최소 1개
+- `issues`: severity와 stable issue ID (`ISSUE-...` 또는 프로젝트 기존 ID)
 - `touched_files`: 실제 수정 파일 목록
 - `out_of_slice_touches`: 빈 배열이어야 [1C] 통과 — 채워져 있으면 BLOCKED
 - `self_review`: 4차원
@@ -46,10 +47,25 @@ AST0 확인, batch seam verify로 강등할 수 있다.
 
 ## Reviewer dispatch contract
 
-- 기본값은 Codex `impl-verify-reviewer` subagent role이다. 프로젝트 worker thread, PONCOU A-F thread, 또는 이미 작업 중인 세션을 reviewer로 쓰지 않는다.
-- 오라클, AST0, batch seam 때문에 fresh reviewer를 쓰지 않으면 artifact에 `reviewer_mode`, `reviewer_role`, `downgrade_reason`, 그리고 대신 확인한 evidence를 기록한다.
-- subagent tool이 없거나 사용할 수 없으면 `reviewer_mode=unavailable`로 기록하고, controller가 아래 2-stage를 직접 수행한다.
+- 기본값은 Codex `impl-verify-reviewer` subagent role이다. 프로젝트 worker thread나 이미 작업 중인 구현 세션을 reviewer로 쓰지 않는다.
+- **우선 규칙**: `deterministic_artifact_or_command`와 `behavior_integration_or_judgment`의 attempt 1, 그리고 BLOCKED 뒤의 모든 attempt는 `fresh_subagent` read-only reviewer가 필수다. 이 경우 oracle/self-review/AST0/batch seam 강등은 적용하지 않으며, subagent를 쓸 수 없으면 controller self-review로 DONE을 쓰지 말고 `NEEDS_CONTEXT`로 fail-closed 한다.
+- 그 밖의 저위험·미차단 oracle/AST0/batch seam만 fresh reviewer를 쓰지 않을 수 있다. 그때 artifact에 `reviewer_mode`, `reviewer_role`, `downgrade_reason`, 그리고 대신 확인한 evidence를 기록한다.
 - reviewer mode를 기록하지 않은 상태로 DONE/DONE_WITH_CONCERNS를 쓰지 않는다.
+
+## 검증 유형 판정 (가장 먼저)
+
+오라클 이름보다 먼저 **무엇을 독립 실행으로 닫을 수 있는가**를 분류한다. 이 분류는 reviewer를 생략하는 허가가 아니다. 어떤 실행을 언제 다시 할지 정하는 비용·정확성 경계다.
+
+| 검증 유형 | 신호 | initial attempt 처리 |
+|---|---|---|
+| `deterministic_artifact_or_command` | artifact/fixture/hash/schema/정해진 command처럼 같은 입력에서 기계적으로 참·거짓이 나는 계약 | 구현자가 initial commit 전에 **선언한 executable preflight**를 실행·기록한다. 선언에는 command, pass 기준, 확인하는 producer→consumer→derived-output 관계와 가능한 좁은 scope selector를 넣는다. 실패·미선언은 BLOCKED다. attempt 1의 fresh reviewer는 그 출력도 믿지 않고 같은 preflight를 직접 실행한다. |
+| `behavior_integration_or_judgment` | public API 동작, caller 조합, 외부 시스템, visual, custom 판단처럼 실행 성공만으로 계약이 닫히지 않는 경우 | slice spec·diff·caller/integration 영향과 해당 targeted check를 fresh reviewer가 직접 검증한다. 테스트가 있어도 이 분류를 자동으로 낮추지 않는다. |
+
+`unit_test`는 닫힌 data 계약만 직접 증명하면 첫 분류에 보조 evidence가 될 수 있지만, public behavior나 caller 조합을 바꾸면 둘째 분류도 함께 적용한다. 애매하면 둘째 분류로 둔다. arbitrary time budget으로 이 판단을 낮추지 않는다.
+
+여러 green 명령을 나열해 artifact 관계가 닫혔다고 추측하지 않는다. 관계 무결성이라면 preflight 하나가 선언된 producer→consumer→derived-output edge를 실제로 따라 대조해야 한다.
+
+구현자는 preflight command/output/exit, coverage, 그리고 commit 전 `git write-tree` 값을 handoff에 기록한다. commit 뒤 controller는 `git rev-parse <HEAD>^{tree}`가 그 값과 같은지 확인해 reviewer input에 paste한다. 이는 provenance이지 reviewer artifact evidence가 아니다. 통과 근거는 fresh reviewer가 이번 attempt에 직접 얻은 출력뿐이다.
 
 ## 오라클 판정 (impl-verify 자체 — 라우터 수식자 fold, /)
 
@@ -76,7 +92,7 @@ AST0 확인, batch seam verify로 강등할 수 있다.
 
 | 신호 | impl-verify 처리 |
 |---|---|
-| **오라클 있음** (parity/gold/측정/육안) | per-slice 격리 2-stage → **controller 경량 self-review**로 강등. 진짜 통과 판정은 *오라클 흔적* 인용. 아낀 무게는 plan-verify + 오라클 + codex로. 단 plan-verify·codex·오라클은 유지 — 오라클이 못 보는 설계 모순·엣지는 이 셋이 잡음 |
+| **오라클 있음** (parity/gold/측정/육안) | per-slice 격리 2-stage → **controller 경량 self-review**로 강등 가능. 단 above fresh-reviewer 우선 규칙이 걸린 attempt에는 강등하지 않는다. 진짜 통과 판정은 *오라클 흔적* 인용. |
 | **순수이동 (AST 0 diff)** | **fresh agent 금지**. controller self-review + `git diff`/AST 0-diff 확인만. 기계적 이동에 격리 reviewer 한계효용 0 |
 | **batch seam** | per-slice 아니라 *독립 실행 가능 seam*에서 1회. 느슨결합·저위험만 묶음 — 독립·고위험 슬라이스는 per-slice 유지 (조기발견 상실 트레이드오프) |
 
@@ -98,14 +114,16 @@ AST0 확인, batch seam verify로 강등할 수 있다.
    - `git diff <prev-commit>.HEAD --stat` → touched_files 확인
    - **out_of_slice_touches 검출**: plan slice.touched_files에 없는 파일 발견 시 → BLOCKED ([1C] 신호)
    - **plan 의도 초과 자동 신호** (superpowers `implementer-prompt.md` L51 차용): 생성·확장된 파일이 plan slice 의도 *명백히 초과* (예: slice 1줄 짜리인데 신규 파일 3개 생성, 또는 단일 함수 추가 의도였는데 모듈 신설) → 자동 *important issue* 등록 + status 최소 DONE_WITH_CONCERNS
-   - **영향범위(caller) 누락 검출** — `out_of_slice_touches`의 대칭(범위 밖 건드림이 아니라 *범위 안인데 파급 미확인*): touched_files 안에서 *시그니처·동작이 바뀐 public 함수·artifact*마다 `git grep`/AST로 호출처를 열거 → 각 caller가 (a) 같은 슬라이스에서 함께 갱신됐거나 (b) 영향 없음이 직접 확인됐거나 (c) `issues`에 *잔여 불확실성*으로 명시돼야 함. 셋 다 아닌 caller 1개라도 존재 시 → BLOCKED (impact-radius 미확인). "일부만 읽고 파급 못 봄" 방지 — 게이트 통과는 graph/grep·코드·테스트 *합의* 또는 잔여 불확실성 *명시*로만
+   - **영향범위(caller) 누락 검출** — `out_of_slice_touches`의 대칭(범위 밖 건드림이 아니라 *범위 안인데 파급 미확인*): touched_files 안에서 *시그니처·동작이 바뀐 public 함수·artifact*마다 `git grep`/AST로 호출처를 열거 → 각 caller가 (a) 같은 슬라이스에서 함께 갱신됐거나 (b) 영향 없음이 직접 확인돼야 한다. 못 닫은 caller/producer/consumer/derived-output은 issue에 기록하되 해소가 아니며 → BLOCKED 또는 NEEDS_CONTEXT다.
 3. spec 부합 점검 (코드 *직접 읽기*):
    - **빠진 것**: 요구사항 line-by-line 체크리스트 → 미구현 항목
    - **시키지 않은 추가**: spec 밖 기능·"nice to have" 검출
    - **잘못 해석**: 같은 단어 다른 의미로 구현?
-   - plan의 verification 명령 *직접 실행* ([2J] Evidence 강제)
+   - attempt 1은 위 검증 유형을 먼저 artifact에 적고, deterministic이면 declared preflight를 **직접 실행**한다. 구현자의 preflight는 coverage 대조용으로만 읽고 reviewer output으로 대체하지 않는다.
+   - behavior/integration/judgment이면 declared targeted check와 caller/integration 경로를 직접 실행·대조한다. 이 단계의 slice 검증은 terminal full regression이 아니다.
+   - attempt 2 이상은 아래 scoped re-verify 절차가 정한 명령만 직접 실행한다. 이전 attempt의 command/output을 이번 evidence로 복사하지 않는다.
    - 출력 직접 인용 → evidence 필드
-4. **Stage 1 통과 조건**: 빠진 것 0 + 시키지 않은 추가 0 + out_of_slice_touches 빈 배열 + 미처리 caller 0 ((a)/(b)/(c) 중 하나로 모두 해소)
+4. **Stage 1 통과 조건**: 빠진 것 0 + 시키지 않은 추가 0 + out_of_slice_touches 빈 배열 + 미처리 caller/producer/consumer/derived-output 0
 
 ### Stage 2: Code Quality Review
 
@@ -115,10 +133,10 @@ Stage 1 ✅이어야 진입.
 2. **[3J] 점검**: 새 공유 모듈 발견 시 "두 번째 사용처 진짜 있나?"
 3. **[1D] 점검**: 같은 값·결정이 여러 곳에 있나? (DRY)
 4. **gc-skill 임계치**: 현재 세션에 노출된 `gc` skill의 `gc_audit.py`를 실행한다(예: `py -3 <gc_skill_root>/gc_audit.py`). 임계치 초과 있으면 important issue
-5. **TDD 흔적 — *red-green 양방향 관찰 강제*** ("If you didn't watch the test fail, you don't know if it tests the right thing"):
+5. **TDD 흔적 — *red-green 양방향 관찰 강제*** (`verification.type=unit_test`/`tdd-parity`일 때만; artifact/command 슬라이스에 새 TDD를 꾸며내지 않음) ("If you didn't watch the test fail, you don't know if it tests the right thing"):
    - 새 테스트 존재만으로 부족. *실패→통과* 양방향 흔적 필수
-   - 검증 방법: `git log --oneline <prev>.HEAD -- <test_path>` 에 red commit + green commit 분리, **또는** verify 단계에서 *fix를 임시 revert → 테스트 실행해서 실제 fail → restore → 다시 pass* 사이클 직접 실행
-   - 양방향 관찰 흔적 없으면 → testing 차원 *important issue* + evidence에 사이클 명령 출력 인용
+   - 구현자가 남긴 실제 RED와 GREEN 명령 출력 모두를 직접 대조한다. commit 분리·`git log`만으로 RED/GREEN을 추정하지 않는다.
+   - reviewer는 shared worktree를 revert/restore하지 않는다. 양방향 출력이 없으면 testing 차원 **critical issue**로 BLOCKED하고 `/impl`이 안전한 실행 맥락에서 흔적을 다시 만들게 한다.
 6. **Evidence**: 각 검증마다 *실제 실행한* 명령 + 출력 인용. 미실행 명령은 evidence에 기재하지 말 것
 
 ### 통합 status
@@ -130,7 +148,14 @@ Stage 1 ✅이어야 진입.
 | ✅ | ❌ important만 | DONE_WITH_CONCERNS |
 | ✅ | ✅ | DONE |
 
-JSON 저장: `<verify_root>/slice-<N>.json` 또는 batch seam artifact.
+JSON 저장: `<verify_root>/slice-<N>-attempt-<M>.json` 또는 batch seam artifact.
+
+### Terminal full regression (골 종료 후보마다 1회)
+
+모든 slice gate가 닫힌 뒤, **골 종료를 판정할 바로 그 commit**에서만 plan 또는 프로젝트가 선언한 full-regression command를 한 번 실행한다. per-attempt·per-fix의 편의상 전체 suite를 되풀이하지 않는다. preflight·targeted check가 full regression을 대신한다고 주장하지도 않는다.
+
+- 골 종료를 소유한 impl controller만 `<verify_root>/terminal-<slug>-regression.json`을 쓴다. command, output, terminal-candidate SHA를 남기고, 같은 SHA의 DONE artifact가 있으면 재사용한다. 전체 regression이 선언되지 않았다면 없는 명령을 발명하거나 실행했다고 쓰지 말고 그 사실과 잔여 범위를 명시한다.
+- terminal regression이 실패하면 그 후보는 종료하지 않는다. 수정으로 새 후보가 생긴 뒤에만 그 **새 후보**에 대해 1회 다시 실행한다.
 
 > **기준 동기화**: 여기 BLOCK급 기준(out_of_slice 경계 · caller impact-radius · TDD red-green · evidence 무결성)을 추가·변경하면 impl의 dispatch "Your job" 템플릿에도 같은 기준을 적는다. producer(dispatch)-verifier 비대칭 방지. 격리 dispatch subagent는 프롬프트에 없는 기준을 못 지킴.
 
@@ -155,14 +180,13 @@ verify status에 따라 자연 흐름 (OMC `ultraqa` 반복 사이클 정신 차
 | BLOCKED | critical issue 본문 paste → `/impl` 또는 `/plan` 재검토 → 사이클 반복 *until status=DONE* |
 | NEEDS_CONTEXT | 컨트롤러에게 escalate — 사용자 입력 필요 |
 
-**중요**: fix 사이클은 *기존 slice-N.json을 덮어쓰지 않음*. 새 슬라이스로 처리 (각 사이클이 *재현 가능 흔적* — [2J] 그대로).
+**중요**: fix 사이클은 기존 attempt artifact를 덮어쓰지 않는다. 같은 slice의 `attempt M+1`로 기록하며, 새 슬라이스로 위장하지 않는다.
 
 **scoped re-verify (재검증 attempt 2~3)**:
-- attempt 1만 코드베이스 fresh 독립 재독(Stage 1+2 풀). **fix 재검증 attempt는 전체 재독 금지** — 이전 `slice-<N>-attempt-<M>.json`의 `issues`(걸린 것) + `git diff <prev-fix-sha>.HEAD`만 읽고 범위 한정:
-  - 걸린 issue가 fix됐나 (해소 판정은 diff 직접 확인 — JSON 주장 인용 금지)
-  - touched_files에 fix-introduced regression 생겼나
-- **scope 이탈 안전판**: fix diff가 `out_of_slice_touches` 신호(슬라이스 밖 광범위 수정) 내면 scoped 가정 깨짐 → 그 라운드만 **full 재독으로 승격**.
-- 모델: scoped라 이미 쌈 → opus 유지. 더 짜려면 재검증 attempt만 sonnet 강등 *가능*(옵션, 강제 아님).
+- reviewer는 매 attempt fresh/read-only다. 이전 artifact에서 **issue ID와 요구된 closure**만 받아 scope를 만들고, 이전 reviewer의 결론·명령 출력은 증거로 인용하지 않는다.
+- scope는 (a) prior issue가 고쳐진 실제 diff·코드, (b) fix paths, (c) 바뀐 public symbol/artifact의 callers와 producer·consumer·aggregate-output 영향으로 구성한다. 각 항목을 이번 attempt에 직접 읽거나 실행한다. deterministic이면 declared selector로 **영향받은 관계만** 다시 확인하고, behavior/integration/judgment이면 그 caller/integration 경로의 targeted check를 다시 실행한다.
+- 다음이면 scoped 가정을 버리고 full slice reverify로 승격한다: preflight/targeted check/fixture·golden·screenshot·measurement의 command·expected 기준·coverage가 바뀜, caller/producer/consumer graph 또는 public behavior가 넓어짐, declared selector로 닫지 못하는 aggregate/shared output까지 파급됨, out-of-slice touch가 생김, 또는 영향 반경을 직접 닫을 수 없음. 마지막 경우 먼저 full reverify를 하고도 반경을 닫지 못하면 `NEEDS_CONTEXT`; 어느 쪽도 DONE이 될 수 없다.
+- scoped reverify에서도 Stage 2는 fix-introduced abstraction/DRY/TDD/evidence 문제를 **변경·영향 경로**에 대해 새로 점검한다. 매 attempt에 전체 oracle·전체 regression을 반복하지 않는다.
 
 ## Reeval
 

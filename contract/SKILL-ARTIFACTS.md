@@ -27,7 +27,7 @@
 | `docs/specs/<slug>.md` | `/grill-me` 스킬 (사용자 결정 공간, 명시 실행) | intent 인터뷰 + spec 4-check self-review + user 명시 승인 |
 | `<plan_root>/<slug>.md` | `/plan` 스킬 (사용자 결정 공간, 명시 실행) | PRD 상세화 + self-review 3-dim + user 명시 승인 |
 | `<verify_root>/plan-<slug>.json` | `/plan-verify` 스킬 | plan 격리 검증 끝 |
-| `<verify_root>/slice-<N>.json` | `/impl-verify` 스킬 (각 슬라이스마다 N=1,2,...) | impl 슬라이스 검증 끝 |
+| `<verify_root>/slice-<N>-attempt-<M>.json` | `/impl-verify` 스킬 (각 슬라이스마다 N=1,2,...; attempt M=1,2,...) | impl 슬라이스 검증 끝 |
 | `<verify_root>/<review-runtime>-impl-<slug>.json` | 선택적 cross-runtime advisory review | 모든 슬라이스 impl-verify와 최종 novelist 통과 후 1회, loop 없음 |
 | `<diagnose_root>/<bug-slug>.md` | 빌트인 `diagnose:` 스킬 | 디버깅 6단계 끝 |
 | `<friction_path>` | `blame-code` 스킬 | 교정·코드귀책 발화 자동 또는 수동 `/blame-code` |
@@ -236,7 +236,7 @@ self_review:
 
 > 2026-05-23 agent promote 후: 본 generic schema는 *agent 미사용* fallback. agent 산출은 아래 *kind별 specific schema* 4종 사용.
 
-`<verify_root>/plan-<slug>.json` 과 `slice-<N>.json` 공통 형식.
+`<verify_root>/plan-<slug>.json` 과 `slice-<N>-attempt-<M>.json` 공통 형식.
 
 ```json
 {
