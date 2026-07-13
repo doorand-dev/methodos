@@ -78,6 +78,14 @@ closure·changed paths·caller/producer/consumer/derived-output만 scoped로
 scope가 닫히지 않으면 full slice reverify로 올린다. reviewer가 없거나 evidence가
 없으면 DONE으로 진행하지 않는다.
 
+reviewer를 dispatch할 때마다 `impl-verify`의 `검증 분류와 attempt 1` 및
+`BLOCKED fix 후 재검증`을 point-of-use로 다시 읽는다. attempt 1은 lineage의
+baseline full reviewer 한 번이고, attempt M+1은 fresh scoped reviewer와 낮춘
+reasoning effort를 명시한다. 직전 reviewer의 model/effort 또는 런타임 기본값을
+상속하지 않는다.
+verify artifact에는 approved plan revision, current/parent candidate SHA,
+full/scoped scope, 실제 reviewer model과 reasoning effort를 기록한다.
+
 모든 slice가 DONE인 뒤 goal owner는 최종 candidate SHA에서 선언된 full regression을
 한 번 실행하고 최종 slice artifact의 `terminal_regression`에 기록한다. 별도
 terminal artifact를 만들거나 preflight/targeted check를 full regression으로

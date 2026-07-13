@@ -4,7 +4,7 @@ description: |
   Fresh-context, read-only verification of one implemented slice: spec coverage,
   caller/producer/consumer impact, and code quality when source code changed.
   **Self-trigger** after a slice commit and before saying it is complete when no
-  `slice-<N>-attempt-<M>.json` covers the candidate. Classify the slice once as
+  `slice-N-attempt-M.json` covers the candidate. Classify the slice once as
   `deterministic_artifact_or_command` or `behavior_integration_or_judgment`.
   **Evidence** is actual command output only; an unverified caller or unavailable
   reviewer cannot produce DONE. User-facing NEEDS_CONTEXT text stays plain Korean.
@@ -30,6 +30,8 @@ description: |
 `<verify_root>/slice-<N>-attempt-<M>.json`은 다음을 포함한다.
 
 - `kind`, `target`, `attempt`, `status`(DONE/DONE_WITH_CONCERNS/BLOCKED/NEEDS_CONTEXT)
+- `approved_plan_revision`, `candidate_sha`, `parent_candidate_sha`,
+  `review_scope`(full/scoped), `reviewer_model`, `reviewer_reasoning_effort`
 - `verification_class`: `deterministic_artifact_or_command` 또는
   `behavior_integration_or_judgment` (slice에서 한 번 결정)
 - `stage_results.spec`, `stage_results.quality`(PASS/FAIL/NEEDS_CONTEXT/SKIPPED)
@@ -54,6 +56,15 @@ NEEDS_CONTEXT다.
 |---|---|---|
 | `deterministic_artifact_or_command` | 같은 입력에서 artifact, fixture, hash, schema 또는 닫힌 command의 기계적 참/거짓이 나옴 | **spec coverage + oracle adequacy + integrated preflight 독립 재실행만** 한다. preflight는 선언된 producer→consumer→derived-output edge와 좁은 selector를 실제로 따라가야 한다. source code/abstraction이 없으면 Stage 2, gc, TDD를 `SKIPPED`하고 이유를 기록한다. source code/abstraction이 있으면 그 변경 경로에 한해 Stage 2를 추가한다. |
 | `behavior_integration_or_judgment` | public 동작, caller 조합, integration, 외부 시스템 또는 판단이 실행 성공만으로 닫히지 않음 | full 2-stage를 실행한다. Stage 1에서 spec과 영향 graph를 닫고, 통과한 뒤 Stage 2에서 quality·gc·적용 가능한 TDD를 확인한다. |
+
+attempt 1은 같은 slice candidate lineage의 유일한 baseline full review다.
+여기서 full은 위 분류가 정한 범위를 뜻한다. source code가 바뀌지 않은
+deterministic slice에 불필요한 Stage 2를 추가한다는 뜻이 아니다. reviewer
+dispatch는 세션 기억이 아니라 이 절과 프로젝트의 machine route를 매번 다시
+읽어 결정한다.
+같은 lineage는 같은 `approved_plan_revision`과 slice에서 prior issue closure를
+위해 이어진 `parent_candidate_sha → candidate_sha` chain이다. plan revision이
+바뀌면 attempt 1의 새 lineage로 시작한다.
 
 구현자는 deterministic 경로에서 commit 전에 preflight의 command, pass 기준,
 producer→consumer→derived-output coverage, scope selector를 선언하고 실행한다.
@@ -113,6 +124,14 @@ issue ID와 요구된 closure뿐이며, 이전 결론·명령·출력은 이번 
 2. fix의 changed paths
 3. 바뀐 symbol/artifact의 caller 및 producer→consumer→derived-output 영향
 
+attempt M+1은 fresh `impl-verify-scoped-reviewer`로 dispatch한다. 프로젝트가
+model/reasoning route를 선언하면 그 route를 point-of-use로 다시 읽고 둘 다
+명시한다. 별도 route가 없으면 attempt 1의 reasoning effort를 다음처럼 낮춘다:
+`xhigh/high → medium`, `medium → low`, `low/minimal → 그대로`. 이전 reviewer의
+model·reasoning effort나 런타임 기본값을 상속하지 않는다. dispatch surface가
+profile 또는 reasoning effort를 고를 수 없으면 낮췄다고 주장하지 말고
+`NEEDS_CONTEXT`로 닫는다.
+
 deterministic narrow fix이고 oracle/acceptance criteria와 public/caller graph가
 그대로이며 위 영향이 모두 닫히면, deterministic은 영향받은 selector/preflight만,
 behavior/integration narrow fix도 영향받은 caller/integration targeted check만
@@ -124,6 +143,8 @@ Stage 2/gc/TDD를 건너뛴 이유를 기록한다.
 변경, public API/public-caller graph 변경, out-of-slice touch, aggregate/shared output까지
 selector로 닫히지 않음, 또는 영향 범위가 아직 미폐쇄. full reverify에서도 fresh
 reviewer와 실제 evidence를 사용한다. scope가 끝내 닫히지 않으면 DONE할 수 없다.
+attempt 번호 증가나 변경되지 않은 계약 안에서 새 issue가 발견된 사실만으로는
+full reverify로 승격하지 않는다.
 
 ## 최종 후보의 full regression
 
