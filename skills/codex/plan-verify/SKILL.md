@@ -2,8 +2,8 @@
 name: plan-verify
 description: |
   Isolated adversarial verification of a plan (4 dimensions: conflicts with past decisions · decision [0]~[3J] principles · user global rules · plan internal consistency).
-  **Self-trigger (no router)**: first approved plan gets one full review. A DONE-baseline amendment gets scoped-delta review by default; promote to full only when its scoped assumptions collapse. "plan 검증", "이 계획 어떻게 보여?", "plan-verify".
-  **Evidence (FORCE)**: every issue must *directly quote* command output or file:line — no abstract pass ("looks fine"), no evidence from unrun commands. Output `<verify_root>/plan-slug-verify-attempt-N.json`. Explicit: `/plan-verify slug`.
+  **Self-trigger (no router)**: each newly approved plan revision gets one full attempt-1 review. A BLOCKED fix gets scoped attempt M+1 by default; promote to full only on an explicit escalation predicate. "plan 검증", "이 계획 어떻게 보여?", "plan-verify".
+  **Evidence (FORCE)**: every issue must *directly quote* command output or file:line — no abstract pass ("looks fine"), no evidence from unrun commands. Output `verify_root/plan-slug-cycle-C-attempt-N.json`. Explicit: `/plan-verify slug`.
   **Plain language (FORCE)**: write user escalations not as technical detail but as "what is blocked and what happens if you choose each option", in plain Korean.
 ---
 
@@ -14,7 +14,7 @@ description: |
 
 ## 트리거 (self-trigger — 라우터 없음)
 
-- 자동 발동: 최초 status=approved 직후. DONE baseline amendment면 frontmatter `amendment.baseline_status: DONE`와 `scope`로 delta만 읽는다. source spec SHA, user-visible behavior, authority/data, irreversible operation, public contract, cross-slice ownership 중 하나가 바뀌거나 scope 밖 파일/가정이 나오면 full로 승격한다.
+- 자동 발동: 최초 status=approved 직후와 새 `approved_plan_revision` 직후. 승인된 amendment도 새 lineage attempt 1 full로 시작한다. 같은 lineage의 BLOCKED fix만 attempt M+1 scoped로 간다.
 - 자연어: "plan 검증", "이 계획 어떻게 보여?", "plan-verify"
 - 명시: `/plan-verify <slug>`
 
@@ -40,16 +40,20 @@ plan approved → 본 plan-verify-reviewer attempt 1~3
 
 ## 산출 artifact (강제,  Phase 2 D13)
 
-`<verify_root>/plan-<slug>-verify-attempt-<N>.json` (N=1, 2, 3) — 필수 필드:
+`<verify_root>/plan-<slug>-cycle-<C>-attempt-<N>.json` (C≥1, N=1, 2, 3) — 필수 필드:
 - `kind`: "plan-verify"
+- `approved_plan_revision`: 같은 lineage를 식별하는 사용자 승인 SHA
+- `candidate_sha` / `parent_candidate_sha`: 이번 plan blob SHA와 직전 attempt의 blob SHA
+- `review_scope`: `full` / `scoped`
+- `reviewer_model` / `reviewer_reasoning_effort`: dispatch에 실제 명시한 값
 - `attempt`: 1, 2, 또는 3 (D13 N=3 한계, 벤치마크 차용 후속)
 - `status`: DONE / DONE_WITH_CONCERNS / BLOCKED / NEEDS_CONTEXT
 - `evidence`: 최소 1개 (검증 명령 + 출력 인용)
-- `issues`: critical / important / minor + `repeated_from_attempt` (이전 attempt에서 본 issue면 N 명시)
+- `issues`: stable `issue_id` + critical / important / minor + `repeated_from_attempt` (이전 attempt에서 본 issue면 N 명시)
 - `escalation_required` / `escalation_reason`
 - `self_review`: 4차원
 - `reviewer_mode`: `fresh_subagent` | `controller_self_review` | `unavailable`
-- `reviewer_role`: `decision-reviewer` | `plan-verify-reviewer` | `none`
+- `reviewer_role`: `plan-verify-reviewer` | `none`
 - `downgrade_reason`: fresh reviewer를 쓰지 않았을 때만 필수
 
 **자동 수정 흐름** (N=3, 벤치마크 차용):
@@ -58,19 +62,19 @@ plan approved → 본 plan-verify-reviewer attempt 1~3
 - 사용자에겐 *기술 세부 X* — 남은 사용자 체감 시나리오/결정 필요 여부만
 - `user_facing_escalation`을 만들 때 `blocked_scenarios`와 `decision_options`는 쉬운 말로 쓴다. 금지: internal file graph, reviewer jargon, verification type, schema field 이름만 던지기. 허용: "이 선택을 하면 기존 저장값을 덮을 수 있어요", "이 선택은 안전하지만 결과가 적게 나올 수 있어요".
 
-**scoped re-verify (attempt 2~3)**:
-- attempt 1만 plan 전체 fresh 독립 재독. **attempt 2~3은 전체 재독 금지** — 이전 `attempt-N.json`의 `issues`(걸린 것) + plan 수정 delta(diff 또는 변경 슬라이스)만 읽고 "그 issue 해소됐나 + 수정이 새 모순 만들었나" 두 가지로 범위 한정.
-- 영속 `attempt-N.json`이 "무엇을 걸었나"의 메모리 — *해소 판정*은 수정본 직접 확인(독립성 유지, JSON 주장 그대로 인용 금지).
-- 모델: scoped라 이미 쌈 → opus 유지. 더 짜려면 attempt 2~3만 sonnet 강등 *가능*(옵션).
+**lineage·review scope·route**:
+- 같은 `approved_plan_revision` 안에서 BLOCKED issue를 고친 plan blob chain만 같은 lineage다. 새 approved revision 또는 사용자 결정으로 시작한 새 cycle은 attempt 1의 새 lineage다.
+- attempt 1만 class-appropriate baseline full review다. attempt M+1은 fresh scoped reverify이며 stable prior issue, fix delta/changed paths, 영향받은 contract·caller·decision graph와 selector만 검증한다. unchanged contract 안의 새 issue도 scoped 안에서 처리한다.
+- full reverify는 acceptance/oracle 변경, public/caller/decision graph 변경, out-of-scope touch, selector로 닫히지 않는 shared output, impact radius 미폐쇄일 때만 허용하고 `escalation_reason`에 predicate를 기록한다. attempt 증가나 unchanged contract의 새 issue는 full 사유가 아니다.
+- dispatch 직전 nearest `AGENTS.md`가 지시한 project machine route가 있으면 point-of-use로 다시 읽어 model과 reasoning effort를 둘 다 명시한다. route가 없으면 `full=plan-verify-reviewer(gpt-5.6-sol/xhigh)`, `scoped=plan-verify-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다. 직전 reviewer/controller 값이나 runtime default를 상속하지 않는다.
+- 영속 artifact는 이전 issue의 메모리일 뿐 해소 증거가 아니다. 수정본과 이번 reviewer가 실행한 출력으로 직접 판정한다.
 
 **DONE baseline amendment**:
-- 기본은 baseline 전체가 아니라 `amendment.scope` slice, 해당 path/contract, 그리고 baseline과의 diff만 fresh reviewer에게 paste한다.
-- preflight PASS 뒤 semantic reviewer는 1회만 호출한다. 그 reviewer가 찾은 기계 결함은 preflight로 고친 뒤 1회만 scoped re-review한다.
-- 동일 critical이 다시 나오거나 사용자 선택이 새로 필요할 때만 full review 또는 사용자 escalate한다. 단순 internal HOW 보정은 full baseline 재독 사유가 아니다.
+- amendment를 승인하면 `approved_plan_revision`을 갱신하고 새 lineage attempt 1 full로 시작한다. repair attempt artifact나 scoped repair profile을 재사용하지 않는다.
 
 ## 절차 (얇음)
 
-1. **preflight + 범위 결정**: preflight PASS를 evidence로 기록한다. 최초 approved plan이면 전체를 읽고, DONE amendment면 scope+delta만 읽는다. full 승격 predicate를 충족한 경우만 baseline 전체를 읽는다.
+1. **preflight + 범위·route 결정**: preflight PASS를 evidence로 기록한다. 새 lineage attempt 1이면 전체를 읽고, 같은 lineage의 BLOCKED fix attempt M+1이면 scope+delta만 읽는다. full 승격 predicate를 충족한 경우만 baseline 전체를 읽는다. dispatch 직전 project machine route 또는 위 Codex 기본 profile을 다시 읽고 model/effort를 명시한다.
    - `decision-reviewer`나 `plan-verify-reviewer`가 필요한 경우, 프로젝트 worker thread가 아니라 Codex subagent role을 사용하고 `wait_agent`로 완료를 회수한다. watcher/heartbeat로 완료를 판정하지 않는다.
    - subagent tool이 없거나 호출하지 않기로 판단하면 `reviewer_mode=controller_self_review` 또는 `unavailable`과 `downgrade_reason`을 artifact에 기록한다.
    - reviewer 여부를 기록하지 않은 상태로 DONE/DONE_WITH_CONCERNS를 쓰지 않는다.
@@ -84,7 +88,7 @@ plan approved → 본 plan-verify-reviewer attempt 1~3
    - *주관 평가 금지* — 측정 가능 근거 인용
 4. **자기 점검** (Self-review 4차원):
    - Completeness / Quality / Discipline / Testing
-5. **JSON 저장**: `<verify_root>/plan-<slug>-verify-attempt-<N>.json`. lazy 생성. plan frontmatter `verify_attempt` 카운터 동기화.
+5. **JSON 저장**: `<verify_root>/plan-<slug>-cycle-<C>-attempt-<N>.json`. lazy 생성. plan frontmatter `verify_attempt` 카운터 동기화.
 6. **status 결정**:
    - critical 0 + important 0 → DONE
    - critical 0 + important ≥ 1 → DONE_WITH_CONCERNS

@@ -83,6 +83,10 @@ reviewer를 dispatch할 때마다 `impl-verify`의 `검증 분류와 attempt 1` 
 baseline full reviewer 한 번이고, attempt M+1은 fresh scoped reviewer와 낮춘
 reasoning effort를 명시한다. 직전 reviewer의 model/effort 또는 런타임 기본값을
 상속하지 않는다.
+project machine route가 없으면 full은
+`impl-verify-reviewer(gpt-5.6-sol/xhigh)`, scoped는
+`impl-verify-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다. explicit full
+escalation predicate가 있는 attempt M+1만 full profile로 보낸다.
 verify artifact에는 approved plan revision, current/parent candidate SHA,
 full/scoped scope, 실제 reviewer model과 reasoning effort를 기록한다.
 

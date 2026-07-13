@@ -26,7 +26,7 @@ description: |
 | `plan-verify` | plan approved 직후, impl 전 (격리 적대 검증) | `<verify_root>/plan-<slug>-..json` |
 | `impl` | plan approved, 슬라이스 구현·자율주행 | git commit (`WHY:` prefix) |
 | `impl-verify` | 슬라이스 commit 후 "통과" 단언 전 (오라클 판정 내장, batch seam 가능) | `<verify_root>/slice-<N>-..json` 또는 batch seam artifact |
-| `impl-novelist` (#4) | 모든 slice와 configured impl-verify gates 후, 다파일 ∨ 다flow 최종 통합 서사 | `<verify_root>/narrative-<slug>-final.json` |
+| `impl-novelist` (#4) | 모든 slice와 configured impl-verify gates 후, 다파일 ∨ 다flow 최종 통합 서사 | `<verify_root>/narrative-<slug>-final-attempt-<M>.json` |
 | runtime advisory review (impl 내부) | 별도 reviewer runtime이 설정된 대형·아키텍처 변경, *마무리 직전* 1회 | `<verify_root>/<review-runtime>-impl-<slug>.json` |
 | `spec-novelist` (#2) | spec 직후, 다파일 ∨ 다flow 실사용 서사 | spec fold |
 | `decision` (governance) | 옵션 비교·비가역·임시방편 자리 | `docs/adr/NNNN-*.md` 또는 `WHY:` 주석 |

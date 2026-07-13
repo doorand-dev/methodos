@@ -126,10 +126,10 @@ issue ID와 요구된 closure뿐이며, 이전 결론·명령·출력은 이번 
 
 attempt M+1은 fresh `impl-verify-scoped-reviewer`로 dispatch한다. 프로젝트가
 model/reasoning route를 선언하면 그 route를 point-of-use로 다시 읽고 둘 다
-명시한다. 별도 route가 없으면 attempt 1의 reasoning effort를 다음처럼 낮춘다:
-`xhigh/high → medium`, `medium → low`, `low/minimal → 그대로`. 이전 reviewer의
+명시한다. 별도 route가 없으면 full은 `impl-verify-reviewer(gpt-5.6-sol/xhigh)`,
+scoped는 `impl-verify-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다. 이전 reviewer의
 model·reasoning effort나 런타임 기본값을 상속하지 않는다. dispatch surface가
-profile 또는 reasoning effort를 고를 수 없으면 낮췄다고 주장하지 말고
+profile 또는 reasoning effort를 고를 수 없으면 명시했다고 주장하지 말고
 `NEEDS_CONTEXT`로 닫는다.
 
 deterministic narrow fix이고 oracle/acceptance criteria와 public/caller graph가

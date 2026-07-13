@@ -64,6 +64,9 @@ DO NOT:
 <Procedure>
 1. **Ingestion**: read spec user_stories + success criteria + out_of_scope from the paste. Note the base..head SHA range for regression scope.
 
+   - attempt 1 is the approved-plan lineage's only baseline full walk. On attempt M+1, ingest only stable prior issue IDs/required closure, the fix changed paths, and affected actor/entrypoint/flow selectors. Do not repeat the full integration walk.
+   - promote attempt M+1 to full only when acceptance/oracle changed, public/caller/decision graph changed, an out-of-scope touch appeared, a shared output cannot close by selector, or impact radius remains open. Attempt number or a new issue inside the unchanged contract is not a promotion trigger.
+
 2. **Per-story walk**: for each user_story, **as that story's actor** (customer, or operator/maintainer/next-AI/scheduler-CI/downstream — walk each if the stories name several) —
    - Write first-person prose of doing it.
    - Identify the entry point that actor hits (default command/UI path, NOT a flag-gated one).
@@ -86,10 +89,17 @@ Return JSON via stdout in this exact shape:
 
 ```json
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "kind": "impl-narrative-final",
   "target": "<slug>",
   "attempt": 1,
+  "approved_plan_revision": "<lineage SHA>",
+  "base_ref": "<regression base SHA>",
+  "candidate_sha": "<assembled implementation HEAD SHA>",
+  "parent_candidate_sha": null,
+  "review_scope": "full" | "scoped",
+  "reviewer_model": "<explicit model>",
+  "reviewer_reasoning_effort": "<explicit effort>",
   "created_at_local": "YYYY-MM-DDTHH:MM:SS+09:00",
   "status": "DONE" | "BROKEN" | "NEEDS_CONTEXT",
   "escalation_required": false,
@@ -102,6 +112,7 @@ Return JSON via stdout in this exact shape:
   ],
   "findings": [
     {
+      "issue_id": "<stable id>",
       "grade": "broken" | "regression" | "deferred_decision" | "polish",
       "where": "<file:line — the path that fails to deliver>",
       "user_story": "<which story/success criterion>",
@@ -120,8 +131,11 @@ Return JSON via stdout in this exact shape:
 ```
 
 **D24 ralph attempt 룰** (천장 N은 controller가 impl-verify와 동일 정책으로 주입):
-- `attempt` 필드는 controller가 호출 시 주입. 저장: `.claude/verify-reports/narrative-<slug>-final-attempt-<M>.json`
-- attempt M+1 호출 시 attempt M 결과 paste 받음 → 같은 `broken`/`regression` 재등장이면 `escalation_required: true`
+- controller가 attempt, approved plan revision, current/parent candidate SHA, review scope, 실제 reviewer model/effort를 주입한다. 저장: `.claude/verify-reports/narrative-<slug>-final-attempt-<M>.json`
+- 같은 approved plan revision의 BROKEN-fix candidate chain만 같은 lineage다. 새 approved revision/user-decision cycle은 attempt 1의 새 lineage다.
+- attempt 1만 모든 actor/user_story와 regression을 걷는 full baseline이다. attempt M+1은 stable issue+fix paths+affected flow selector만 fresh scoped reverify한다.
+- attempt M+1 full은 `escalation_reason`이 `acceptance_or_oracle_changed`, `public_caller_or_decision_graph_changed`, `out_of_scope_touch`, `shared_output_unclosed`, `impact_radius_unclosed` 중 하나일 때만 허용한다. 이전 reviewer/controller model/effort를 상속하지 않는다.
+- 같은 `broken`/`regression` 재등장이면 `escalation_required: true`
 - 천장 도달 BROKEN → 무조건 `escalation_required: true` + `escalation_reason` 명시
 
 Status decision rule:

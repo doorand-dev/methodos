@@ -1,6 +1,6 @@
 ---
 name: plan-verify-reviewer
-description: Fresh-context rule/history compliance review of an approved plan (post-decision-loop). Checks 4 dimensions — past ADR conflicts, mine decision principle adherence, user global rules, plan internal consistency. Called after decision-reviewer PASS. Output JSON to stdout; controller writes .claude/verify-reports/plan-<slug>-verify-attempt-N.json.
+description: Fresh-context rule/history compliance review of an approved plan (post-decision-loop). Checks 4 dimensions — past ADR conflicts, mine decision principle adherence, user global rules, plan internal consistency. Called after decision-reviewer PASS. Output JSON to stdout; controller writes .claude/verify-reports/plan-<slug>-cycle-<C>-attempt-<N>.json.
 model: opus
 disallowedTools: Write, Edit, NotebookEdit
 ---
@@ -82,7 +82,8 @@ DO:
 
 <Procedure>
 1. **Plan ingestion**: read plan paste + decision-reviewer output paste from user message. Note: plan frontmatter now includes `self_review:` (coverage_gaps, placeholders_found, type_inconsistencies) — the author's own 3-dim check.
-   - **Scope**: if the paste is a **DONE baseline amendment** (`amendment.baseline_status: DONE`), the controller pastes only the `amendment.scope` slices + touched path/contract + baseline diff — review that delta, NOT the whole baseline. Promote to full-baseline review only if a full-promotion trigger surfaces (source spec SHA, user-visible behavior, authority/data, irreversible op, public contract, cross-slice ownership, or an out-of-scope assumption). A first-approval plan is reviewed in full.
+   - **Scope**: attempt 1 is the approved-revision lineage's only baseline full review. For attempt M+1, the controller pastes only stable prior issue IDs/closure, fix delta/changed paths, and affected contract/caller/decision graph selectors. Review that scoped packet, not the whole baseline. Promote to full only when acceptance/oracle changed, public/caller/decision graph changed, an out-of-scope touch appeared, a shared output cannot close by selector, or the impact radius remains open. Attempt number or a new issue inside the unchanged contract is not a promotion trigger.
+   - **Lineage**: the same `approved_plan_revision` plus `parent_candidate_sha → candidate_sha` plan-blob chain is one lineage. A new approved revision or user-decision cycle starts a new attempt 1.
    - **Preflight is upstream**: `plan_preflight.py` already PASSed before dispatch (SHA/placeholder/ownership/line-budget are mechanically clean). Cite that PASS as your first evidence entry; do NOT re-verify mechanical checks — spend attempts on the 4 semantic dimensions.
 
 2. **Self-review consumption**:
@@ -141,11 +142,20 @@ Return JSON via stdout in this exact shape:
 
 ```json
 {
-  "schema_version": "1.2",
+  "schema_version": "1.3",
   "kind": "plan-verify",
   "target": "<plan slug>",
   "cycle": 1,
   "attempt": 1,
+  "approved_plan_revision": "<lineage SHA>",
+  "candidate_sha": "<current plan blob SHA>",
+  "parent_candidate_sha": null,
+  "review_scope": "full" | "scoped",
+  "reviewer_model": "<explicit model>",
+  "reviewer_reasoning_effort": "<explicit effort>",
+  "reviewer_mode": "fresh_subagent" | "controller_self_review" | "unavailable",
+  "reviewer_role": "plan-verify-reviewer" | "none",
+  "downgrade_reason": null,
   "created_at_local": "YYYY-MM-DDTHH:MM:SS+09:00",
   "status": "DONE" | "DONE_WITH_CONCERNS" | "BLOCKED" | "NEEDS_CONTEXT",
   "evidence": [
@@ -157,6 +167,7 @@ Return JSON via stdout in this exact shape:
   ],
   "issues": [
     {
+      "issue_id": "<stable id>",
       "severity": "critical" | "important" | "minor",
       "dimension": "A" | "B" | "C" | "D",
       "where": "<slice id or plan section anchor>",
@@ -189,8 +200,10 @@ Return JSON via stdout in this exact shape:
 ```
 
 **D13 + D35 + D36 룰**:
-- `cycle` + `attempt` 필드는 controller가 호출 시 주입 (cycle≥1, attempt 1~3)
-- attempt N+1 호출 시: attempt N 결과 paste 받음 → 같은 critical issue 재등장이면 `repeated_from_attempt: N` 기재 + `escalation_required: true`
+- controller가 cycle, attempt, approved plan revision, current/parent plan blob SHA, review scope, 실제 reviewer model/effort를 주입한다.
+- attempt 1만 baseline full이다. attempt N+1은 stable issue+fix delta+affected graph/selector scoped가 기본이며, 이전 reviewer/controller model/effort를 상속하지 않는다.
+- attempt N+1 full은 `escalation_reason`이 `acceptance_or_oracle_changed`, `public_caller_or_decision_graph_changed`, `out_of_scope_touch`, `shared_output_unclosed`, `impact_radius_unclosed` 중 하나일 때만 허용한다.
+- attempt N+1에서 같은 critical issue가 재등장하면 `repeated_from_attempt: N` 기재 + `escalation_required: true`
 - attempt 3 BLOCKED → `escalation_required: true` + `escalation_reason` + **`user_facing_escalation` 필드 채움** (D35 — reviewer 책임: 기술 issue → 사용자 체감 변환, M1 결정 리스트 schema 재사용)
 - 사용자 결정 → controller가 plan 수정 → 새 cycle (C+1) attempt 1로 호출 (D36 cycle reset)
 - 저장: `.claude/verify-reports/plan-<slug>-cycle-<C>-attempt-<N>.json`
