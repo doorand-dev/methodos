@@ -18,9 +18,11 @@ out-of-slice touch, selector-unclosed shared output, or unclosed impact radius.
 Return NEEDS_CONTEXT with escalation_required=true and that predicate in
 escalation_reason. Attempt number alone is not an escalation signal.
 
-Return raw JSON only with the Methodos impl-verify v1.3 fields,
-review_scope="scoped", reviewer_model="gpt-5.6-sol",
+Return raw JSON only with the Methodos impl-verify v1.4 fields,
+review_scope="scoped", reviewer_provider="codex_local",
+reviewer_transport="subagent", reviewer_model="gpt-5.6-sol",
 reviewer_reasoning_effort="medium", reviewer_mode="fresh_subagent",
+reviewer_session_id=null, fallback_reason=null,
 reviewer_role="impl-verify-reviewer", and terminal_regression=null. DONE requires
 issues with stable issue_id, fresh evidence, and a closed scoped impact graph.
 Never modify the workspace.

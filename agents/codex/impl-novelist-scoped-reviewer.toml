@@ -19,9 +19,11 @@ change, out-of-scope touch, selector-unclosed shared output, or unclosed impact
 radius. Return NEEDS_CONTEXT with escalation_required=true and that predicate in
 escalation_reason. Attempt number alone is not an escalation signal.
 
-Return raw JSON only with schema_version="1.1", kind="impl-narrative-final",
+Return raw JSON only with schema_version="1.2", kind="impl-narrative-final",
 target, attempt, approved_plan_revision, base_ref, candidate_sha,
-parent_candidate_sha, review_scope="scoped", reviewer_model="gpt-5.6-sol",
-reviewer_reasoning_effort="medium", status, escalation fields, narrative, fresh
+parent_candidate_sha, review_scope="scoped", reviewer_provider="codex_local",
+reviewer_transport="subagent", reviewer_model="gpt-5.6-sol",
+reviewer_reasoning_effort="medium", reviewer_session_id=null,
+fallback_reason=null, status, escalation fields, narrative, fresh
 evidence, findings with stable issue_id, and self_review. Never modify the workspace.
 """

@@ -202,7 +202,7 @@ Return JSON via stdout in this exact shape:
 
 ```json
 {
-  "schema_version": "1.3",
+  "schema_version": "1.4",
   "kind": "impl-verify",
   "target": "slice-<N>",
   "attempt": 1,
@@ -210,8 +210,12 @@ Return JSON via stdout in this exact shape:
   "candidate_sha": "<current candidate SHA>",
   "parent_candidate_sha": null,
   "review_scope": "full" | "scoped",
+  "reviewer_provider": "<explicit provider>",
+  "reviewer_transport": "<explicit transport>",
   "reviewer_model": "<explicit model>",
   "reviewer_reasoning_effort": "<explicit effort>",
+  "reviewer_session_id": "<ChatGPT session id | null>",
+  "fallback_reason": "provider_send_failure | model_or_effort_unconfirmed | timeout | finality_failure | attachment_or_context_failure | null",
   "verification_class": "deterministic_artifact_or_command | behavior_integration_or_judgment",
   "created_at_local": "YYYY-MM-DDTHH:MM:SS+09:00",
   "status": "DONE" | "DONE_WITH_CONCERNS" | "BLOCKED" | "NEEDS_CONTEXT",
@@ -220,7 +224,7 @@ Return JSON via stdout in this exact shape:
     "quality": "PASS" | "FAIL" | "NEEDS_CONTEXT" | "SKIPPED"
   },
   "stage2_skip_reason": null,
-  "reviewer_mode": "fresh_subagent",
+  "reviewer_mode": "fresh_web_session" | "fresh_subagent" | "fresh_external_session",
   "reviewer_role": "impl-verify-reviewer",
   "escalation_required": false,
   "escalation_reason": null,
@@ -259,10 +263,14 @@ Return JSON via stdout in this exact shape:
 ```
 
 **D24 자동 fix attempt 룰** (N=10):
-- controller가 attempt, approved plan revision, current/parent candidate SHA, review scope, 실제 reviewer model/effort를 주입한다. 저장 경로: `.claude/verify-reports/slice-<N>-attempt-<M>.json`
+- controller가 attempt, approved plan revision, current/parent candidate SHA,
+  review scope, 실제 provider/transport/model/effort/session/fallback reason을 주입한다.
+  저장 경로: `.claude/verify-reports/slice-<N>-attempt-<M>.json`
 - 같은 approved plan revision과 slice의 prior-issue closure candidate chain만 같은 lineage다. plan revision이 바뀌면 attempt 1의 새 lineage다.
 - attempt 1만 class-appropriate baseline full이다. attempt M+1은 stable issue+fix paths+affected graph selector만 fresh scoped reverify한다.
 - attempt M+1 full은 `escalation_reason`이 `oracle_or_acceptance_changed`, `public_or_caller_graph_changed`, `out_of_slice_touch`, `shared_output_unclosed`, `impact_radius_unclosed` 중 하나일 때만 허용한다. 이전 reviewer/controller model/effort를 상속하지 않는다.
+- scoped `NEEDS_CONTEXT`가 위 predicate를 발견한 routing envelope이면 controller는
+  같은 attempt/candidate/parent로 full 재dispatch하고 full 결과만 저장한다.
 - 같은 critical issue 재등장이면 `repeated_from_attempt: <M>` 기재 + `escalation_required: true`
 - attempt 10 BLOCKED → 무조건 `escalation_required: true` + `escalation_reason` 명시
 - **자율주행 자리** — 사용자 의도 "끝까지 자동" 정합. hard ceiling은 attempt

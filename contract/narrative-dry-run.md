@@ -52,8 +52,21 @@
 - 같은 `approved_plan_revision`과 `parent_candidate_sha → candidate_sha` BROKEN-fix chain만 같은 lineage다. 새 approved revision 또는 사용자 결정 cycle은 attempt 1의 새 lineage다.
 - attempt 1은 모든 actor/user_story와 regression 범위를 걷는 유일한 baseline full review다. attempt M+1은 stable prior issue, fix changed paths, 영향받은 actor/entrypoint/flow selector만 fresh scoped reverify한다.
 - full reverify는 acceptance/oracle 변경, public/caller/decision graph 변경, out-of-scope touch, selector로 닫히지 않는 shared output, impact radius 미폐쇄 중 하나일 때만 허용한다. `escalation_reason`에 predicate를 기록한다. attempt 증가나 unchanged contract 안의 새 issue는 full 사유가 아니다.
-- dispatch 직전 nearest `AGENTS.md`가 지시한 project machine route가 있으면 point-of-use로 다시 읽어 model과 reasoning effort를 둘 다 명시한다. route가 없으면 Codex는 full `impl-novelist(gpt-5.6-sol/xhigh)`, scoped `impl-novelist-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다. 이전 reviewer/controller 값이나 runtime default를 상속하지 않는다.
-- artifact에는 approved plan revision, current/parent candidate SHA, `review_scope`, 실제 reviewer model/effort를 기록한다.
+- scoped reviewer가 위 predicate로 `NEEDS_CONTEXT`를 반환하면 그 응답은 routing
+  envelope이며 terminal artifact로 저장하지 않는다. 같은 attempt/candidate/parent를 유지해 full route로
+  재dispatch하고 full 결과 하나만 저장한다. 다른 `NEEDS_CONTEXT`는 terminal이다.
+- dispatch 직전 nearest `AGENTS.md`가 지시한 project machine route가 있으면
+  point-of-use로 다시 읽어 provider/model/reasoning effort를 모두 명시한다. route가
+  없으면 Codex full은 fresh `ask-chatgpt-pro(pro/extended)`가 primary이고
+  `impl-novelist(gpt-5.6-sol/xhigh)`는 transport/finality fallback 전용이다. scoped는
+  `impl-novelist-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다.
+- Pro의 final `BROKEN`/`NEEDS_CONTEXT`/issue verdict는 성공한 review이며 fallback하지
+  않는다. local full fallback은 `provider_send_failure`,
+  `model_or_effort_unconfirmed`, `timeout`, `finality_failure`,
+  `attachment_or_context_failure` 중 하나로 결과 자체를 얻지 못했을 때만 fresh/
+  read-only로 한 번 허용한다. 둘 다 실패하면 `NEEDS_CONTEXT`다.
+- artifact에는 approved plan revision, current/parent candidate SHA, `review_scope`,
+  실제 provider/transport/model/effort/session과 fallback 사유를 기록한다.
 
 ## novelist agent 페르소나 (순진성 강제)
 

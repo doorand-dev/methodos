@@ -142,7 +142,7 @@ Return JSON via stdout in this exact shape:
 
 ```json
 {
-  "schema_version": "1.3",
+  "schema_version": "1.4",
   "kind": "plan-verify",
   "target": "<plan slug>",
   "cycle": 1,
@@ -151,9 +151,13 @@ Return JSON via stdout in this exact shape:
   "candidate_sha": "<current plan blob SHA>",
   "parent_candidate_sha": null,
   "review_scope": "full" | "scoped",
+  "reviewer_provider": "<explicit provider>",
+  "reviewer_transport": "<explicit transport>",
   "reviewer_model": "<explicit model>",
   "reviewer_reasoning_effort": "<explicit effort>",
-  "reviewer_mode": "fresh_subagent" | "controller_self_review" | "unavailable",
+  "reviewer_session_id": "<ChatGPT session id | null>",
+  "fallback_reason": "provider_send_failure | model_or_effort_unconfirmed | timeout | finality_failure | attachment_or_context_failure | null",
+  "reviewer_mode": "fresh_web_session" | "fresh_subagent" | "fresh_external_session" | "controller_self_review" | "unavailable",
   "reviewer_role": "plan-verify-reviewer" | "none",
   "downgrade_reason": null,
   "created_at_local": "YYYY-MM-DDTHH:MM:SS+09:00",
@@ -200,9 +204,12 @@ Return JSON via stdout in this exact shape:
 ```
 
 **D13 + D35 + D36 룰**:
-- controller가 cycle, attempt, approved plan revision, current/parent plan blob SHA, review scope, 실제 reviewer model/effort를 주입한다.
+- controller가 cycle, attempt, approved plan revision, current/parent plan blob SHA,
+  review scope, 실제 provider/transport/model/effort/session/fallback reason을 주입한다.
 - attempt 1만 baseline full이다. attempt N+1은 stable issue+fix delta+affected graph/selector scoped가 기본이며, 이전 reviewer/controller model/effort를 상속하지 않는다.
 - attempt N+1 full은 `escalation_reason`이 `acceptance_or_oracle_changed`, `public_caller_or_decision_graph_changed`, `out_of_scope_touch`, `shared_output_unclosed`, `impact_radius_unclosed` 중 하나일 때만 허용한다.
+- scoped `NEEDS_CONTEXT`가 위 predicate를 발견한 routing envelope이면 controller는
+  같은 attempt/candidate/parent로 full 재dispatch하고 full 결과만 저장한다.
 - attempt N+1에서 같은 critical issue가 재등장하면 `repeated_from_attempt: N` 기재 + `escalation_required: true`
 - attempt 3 BLOCKED → `escalation_required: true` + `escalation_reason` + **`user_facing_escalation` 필드 채움** (D35 — reviewer 책임: 기술 issue → 사용자 체감 변환, M1 결정 리스트 schema 재사용)
 - 사용자 결정 → controller가 plan 수정 → 새 cycle (C+1) attempt 1로 호출 (D36 cycle reset)

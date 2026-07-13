@@ -83,12 +83,15 @@ reviewer를 dispatch할 때마다 `impl-verify`의 `검증 분류와 attempt 1` 
 baseline full reviewer 한 번이고, attempt M+1은 fresh scoped reviewer와 낮춘
 reasoning effort를 명시한다. 직전 reviewer의 model/effort 또는 런타임 기본값을
 상속하지 않는다.
-project machine route가 없으면 full은
-`impl-verify-reviewer(gpt-5.6-sol/xhigh)`, scoped는
-`impl-verify-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다. explicit full
-escalation predicate가 있는 attempt M+1만 full profile로 보낸다.
+project machine route가 없으면 full은 fresh
+`ask-chatgpt-pro(pro/extended)` primary와 허용된 transport/finality 실패에만 fresh
+`impl-verify-reviewer(gpt-5.6-sol/xhigh)` fallback을 쓰고, scoped는
+`impl-verify-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다. Pro의 BLOCKED/issue verdict는
+정상 review라 fallback하지 않는다. explicit full escalation predicate가 있는 attempt
+M+1만 full route로 보낸다.
 verify artifact에는 approved plan revision, current/parent candidate SHA,
-full/scoped scope, 실제 reviewer model과 reasoning effort를 기록한다.
+full/scoped scope, 실제 provider/transport/model/effort/session과 fallback 사유를
+기록한다.
 
 모든 slice가 DONE인 뒤 goal owner는 최종 candidate SHA에서 선언된 full regression을
 한 번 실행하고 최종 slice artifact의 `terminal_regression`에 기록한다. 별도

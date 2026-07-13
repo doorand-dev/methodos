@@ -31,7 +31,9 @@ description: |
 
 - `kind`, `target`, `attempt`, `status`(DONE/DONE_WITH_CONCERNS/BLOCKED/NEEDS_CONTEXT)
 - `approved_plan_revision`, `candidate_sha`, `parent_candidate_sha`,
-  `review_scope`(full/scoped), `reviewer_model`, `reviewer_reasoning_effort`
+  `review_scope`(full/scoped), `reviewer_provider`, `reviewer_transport`,
+  `reviewer_model`, `reviewer_reasoning_effort`, `reviewer_session_id`,
+  `fallback_reason`
 - `verification_class`: `deterministic_artifact_or_command` 또는
   `behavior_integration_or_judgment` (slice에서 한 번 결정)
 - `stage_results.spec`, `stage_results.quality`(PASS/FAIL/NEEDS_CONTEXT/SKIPPED)
@@ -39,7 +41,8 @@ description: |
   Stage 2를 실행했으면 Stage 2도 최소 1개
 - `stage2_skip_reason`: quality가 SKIPPED일 때 필수
 - `issues`: severity와 stable issue ID, `touched_files`, `out_of_slice_touches`
-- `reviewer_mode=fresh_subagent`, `reviewer_role=impl-verify-reviewer`,
+- `reviewer_mode=fresh_web_session|fresh_subagent`,
+  `reviewer_role=impl-verify-reviewer`,
   `self_review` 4차원
 
 reviewer를 dispatch할 수 없거나 evidence가 비면 DONE/DONE_WITH_CONCERNS를
@@ -125,12 +128,20 @@ issue ID와 요구된 closure뿐이며, 이전 결론·명령·출력은 이번 
 3. 바뀐 symbol/artifact의 caller 및 producer→consumer→derived-output 영향
 
 attempt M+1은 fresh `impl-verify-scoped-reviewer`로 dispatch한다. 프로젝트가
-model/reasoning route를 선언하면 그 route를 point-of-use로 다시 읽고 둘 다
-명시한다. 별도 route가 없으면 full은 `impl-verify-reviewer(gpt-5.6-sol/xhigh)`,
-scoped는 `impl-verify-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다. 이전 reviewer의
-model·reasoning effort나 런타임 기본값을 상속하지 않는다. dispatch surface가
-profile 또는 reasoning effort를 고를 수 없으면 명시했다고 주장하지 말고
-`NEEDS_CONTEXT`로 닫는다.
+provider/model/reasoning route를 선언하면 그 route를 point-of-use로 다시 읽고 모두
+명시한다. 별도 route가 없으면 full은 fresh `ask-chatgpt-pro(pro/extended)`가
+primary이고 `impl-verify-reviewer(gpt-5.6-sol/xhigh)`는 transport/finality fallback
+전용이다. scoped는 `impl-verify-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다.
+
+Full Pro prompt에는 canonical reviewer prompt, inline slice contract, candidate refs,
+필요한 diff/source와 fresh machine evidence를 self-contained attachment/context
+packet으로 보낸다. Pro의 final `BLOCKED`/`NEEDS_CONTEXT`/issue verdict는 성공한
+review이므로 fallback하지 않는다. local full fallback은
+`provider_send_failure`, `model_or_effort_unconfirmed`, `timeout`, `finality_failure`,
+`attachment_or_context_failure` 중 하나로 review 결과를 얻지 못했을 때만 fresh/
+read-only로 한 번 허용하고 `fallback_reason`에 기록한다. fallback도 실패하면
+`NEEDS_CONTEXT`다. 이전 reviewer의 provider/model/effort나 runtime default를
+상속하지 않는다.
 
 deterministic narrow fix이고 oracle/acceptance criteria와 public/caller graph가
 그대로이며 위 영향이 모두 닫히면, deterministic은 영향받은 selector/preflight만,
@@ -145,6 +156,10 @@ selector로 닫히지 않음, 또는 영향 범위가 아직 미폐쇄. full rev
 reviewer와 실제 evidence를 사용한다. scope가 끝내 닫히지 않으면 DONE할 수 없다.
 attempt 번호 증가나 변경되지 않은 계약 안에서 새 issue가 발견된 사실만으로는
 full reverify로 승격하지 않는다.
+
+scoped reviewer가 위 predicate로 `NEEDS_CONTEXT`를 반환하면 그 응답은 routing
+envelope이며 terminal attempt artifact로 저장하지 않는다. 같은 attempt/candidate/parent를 유지해 full
+route로 재dispatch하고 full 결과 하나만 저장한다. 다른 `NEEDS_CONTEXT`는 terminal이다.
 
 ## 최종 후보의 full regression
 

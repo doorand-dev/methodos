@@ -15,10 +15,22 @@ the Claude agent prompt as source material for a Codex subagent adaptation:
 ## Procedure
 
 1. Locate the target spec, implementation range, and repo under review. Ask for missing required inputs instead of inventing them.
-2. Prefer a fresh-context, read-only invocation using the canonical agent prompt.
-3. Pass only the spec user stories, success criteria, base/head range, and repo location required by that prompt. Do not pass implementation discussion.
+2. Read the nearest project machine route at point of use. Without one, run the
+   full baseline through a fresh `ask-chatgpt-pro(pro/extended)` web session.
+   Keep `impl-novelist(gpt-5.6-sol/xhigh)` only as a fresh read-only fallback
+   when no review result is obtained because of an allowed transport/finality
+   failure. Same-lineage repair attempts use the fresh scoped
+   `impl-novelist-scoped-reviewer(gpt-5.6-sol/medium)`.
+3. Pass the canonical prompt, spec user stories, success criteria, base/head range,
+   required source/diff, and fresh machine evidence as a self-contained attachment/
+   context packet. Do not pass implementation discussion.
 4. Require raw JSON output in the canonical shape from the agent prompt.
-5. If fresh-context invocation is unavailable, say that the run is degraded and perform a read-only manual pass from the same stance. Do not claim it satisfies a Methodos gate unless the gate's artifact requirements are met.
+5. Treat a final Pro `BROKEN`, `NEEDS_CONTEXT`, or issue-bearing result as a
+   successful review; never use its verdict as a fallback reason. Permit local
+   full fallback only for `provider_send_failure`,
+   `model_or_effort_unconfirmed`, `timeout`, `finality_failure`, or
+   `attachment_or_context_failure`, and persist the reason. If both routes fail,
+   return `NEEDS_CONTEXT` rather than claiming the gate passed.
 
 ## Boundaries
 

@@ -10,7 +10,8 @@ description: |
 # /plan-verify — plan 격리 적대적 검증 (얇은 stub)
 
 > *얇은 stub*. Reeval: sycophancy 2회 등장 시 ( 참고).
-> Codex에서는 먼저 Codex subagent role을 사용해 fresh reviewer를 띄운다. 사용할 수 없거나 명시적으로 강등하면 그 사유를 artifact에 남긴다.
+> Codex full review는 fresh ChatGPT Pro 웹 세션이 primary다. 결과 자체를 얻지
+> 못한 transport/finality 실패에서만 fresh local xhigh reviewer로 fallback한다.
 
 ## 트리거 (self-trigger — 라우터 없음)
 
@@ -45,14 +46,17 @@ plan approved → 본 plan-verify-reviewer attempt 1~3
 - `approved_plan_revision`: 같은 lineage를 식별하는 사용자 승인 SHA
 - `candidate_sha` / `parent_candidate_sha`: 이번 plan blob SHA와 직전 attempt의 blob SHA
 - `review_scope`: `full` / `scoped`
+- `reviewer_provider` / `reviewer_transport`: 실제 실행 provider와 transport
 - `reviewer_model` / `reviewer_reasoning_effort`: dispatch에 실제 명시한 값
+- `reviewer_session_id`: Pro 성공 시 ChatGPT session id, local이면 null
+- `fallback_reason`: local full fallback일 때만 허용된 사유, 그 외 null
 - `attempt`: 1, 2, 또는 3 (D13 N=3 한계, 벤치마크 차용 후속)
 - `status`: DONE / DONE_WITH_CONCERNS / BLOCKED / NEEDS_CONTEXT
 - `evidence`: 최소 1개 (검증 명령 + 출력 인용)
 - `issues`: stable `issue_id` + critical / important / minor + `repeated_from_attempt` (이전 attempt에서 본 issue면 N 명시)
 - `escalation_required` / `escalation_reason`
 - `self_review`: 4차원
-- `reviewer_mode`: `fresh_subagent` | `controller_self_review` | `unavailable`
+- `reviewer_mode`: `fresh_web_session` | `fresh_subagent` | `controller_self_review` | `unavailable`
 - `reviewer_role`: `plan-verify-reviewer` | `none`
 - `downgrade_reason`: fresh reviewer를 쓰지 않았을 때만 필수
 
@@ -66,7 +70,22 @@ plan approved → 본 plan-verify-reviewer attempt 1~3
 - 같은 `approved_plan_revision` 안에서 BLOCKED issue를 고친 plan blob chain만 같은 lineage다. 새 approved revision 또는 사용자 결정으로 시작한 새 cycle은 attempt 1의 새 lineage다.
 - attempt 1만 class-appropriate baseline full review다. attempt M+1은 fresh scoped reverify이며 stable prior issue, fix delta/changed paths, 영향받은 contract·caller·decision graph와 selector만 검증한다. unchanged contract 안의 새 issue도 scoped 안에서 처리한다.
 - full reverify는 acceptance/oracle 변경, public/caller/decision graph 변경, out-of-scope touch, selector로 닫히지 않는 shared output, impact radius 미폐쇄일 때만 허용하고 `escalation_reason`에 predicate를 기록한다. attempt 증가나 unchanged contract의 새 issue는 full 사유가 아니다.
-- dispatch 직전 nearest `AGENTS.md`가 지시한 project machine route가 있으면 point-of-use로 다시 읽어 model과 reasoning effort를 둘 다 명시한다. route가 없으면 `full=plan-verify-reviewer(gpt-5.6-sol/xhigh)`, `scoped=plan-verify-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다. 직전 reviewer/controller 값이나 runtime default를 상속하지 않는다.
+- scoped reviewer가 위 predicate로 `NEEDS_CONTEXT`를 반환하면 그 응답은 routing
+  envelope이며 terminal artifact로 저장하지 않는다. 같은 attempt/candidate/parent를 유지해 full route로
+  재dispatch하고 full 결과 하나만 저장한다. 다른 `NEEDS_CONTEXT`는 terminal이다.
+- dispatch 직전 nearest `AGENTS.md`가 지시한 project machine route가 있으면
+  point-of-use로 다시 읽어 provider/model/reasoning effort를 모두 명시한다. route가
+  없으면 full은 fresh `ask-chatgpt-pro(pro/extended)`가 primary이고
+  `plan-verify-reviewer(gpt-5.6-sol/xhigh)`는 transport/finality fallback 전용이다.
+  scoped는 `plan-verify-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다.
+- full Pro prompt에는 canonical reviewer prompt, plan packet, candidate refs, 필요한
+  ADR/source와 fresh machine evidence를 self-contained하게 첨부한다. Pro의 final
+  `BLOCKED`/`NEEDS_CONTEXT`/issue verdict는 성공한 review이므로 fallback하지 않는다.
+- local full fallback은 `provider_send_failure`, `model_or_effort_unconfirmed`,
+  `timeout`, `finality_failure`, `attachment_or_context_failure` 중 하나로 review 결과를
+  얻지 못했을 때만 fresh/read-only로 한 번 허용하고 사유를 artifact에 기록한다.
+  fallback도 실패하면 `NEEDS_CONTEXT`다. 직전 reviewer/controller 값이나 runtime
+  default를 상속하지 않는다.
 - 영속 artifact는 이전 issue의 메모리일 뿐 해소 증거가 아니다. 수정본과 이번 reviewer가 실행한 출력으로 직접 판정한다.
 
 **DONE baseline amendment**:
@@ -74,9 +93,13 @@ plan approved → 본 plan-verify-reviewer attempt 1~3
 
 ## 절차 (얇음)
 
-1. **preflight + 범위·route 결정**: preflight PASS를 evidence로 기록한다. 새 lineage attempt 1이면 전체를 읽고, 같은 lineage의 BLOCKED fix attempt M+1이면 scope+delta만 읽는다. full 승격 predicate를 충족한 경우만 baseline 전체를 읽는다. dispatch 직전 project machine route 또는 위 Codex 기본 profile을 다시 읽고 model/effort를 명시한다.
-   - `decision-reviewer`나 `plan-verify-reviewer`가 필요한 경우, 프로젝트 worker thread가 아니라 Codex subagent role을 사용하고 `wait_agent`로 완료를 회수한다. watcher/heartbeat로 완료를 판정하지 않는다.
-   - subagent tool이 없거나 호출하지 않기로 판단하면 `reviewer_mode=controller_self_review` 또는 `unavailable`과 `downgrade_reason`을 artifact에 기록한다.
+1. **preflight + 범위·route 결정**: preflight PASS를 evidence로 기록한다. 새 lineage attempt 1이면 전체를 읽고, 같은 lineage의 BLOCKED fix attempt M+1이면 scope+delta만 읽는다. full 승격 predicate를 충족한 경우만 baseline 전체를 읽는다. dispatch 직전 project machine route 또는 위 Codex 기본 route를 다시 읽고 provider/model/effort를 명시한다.
+   - full이면 `ask-chatgpt-pro`를 point-of-use로 읽고 fresh Pro session의 finality를
+     기계적으로 확인한다. scoped 또는 허용된 full fallback만 Codex subagent role을
+     사용하고 `wait_agent`로 완료를 회수한다.
+   - scoped subagent 또는 허용된 local full fallback을 실행할 수 없으면
+     `reviewer_mode=unavailable`, `downgrade_reason`과 해당 transport/finality 사유를
+     기록하고 `NEEDS_CONTEXT`로 닫는다. controller self-review는 gate를 충족하지 않는다.
    - reviewer 여부를 기록하지 않은 상태로 DONE/DONE_WITH_CONCERNS를 쓰지 않는다.
 2. ***적대적 검증* (격리 부재를 외부 자료 대조로 보완)** — 다음 4 차원 모두 점검:
    - **A. 과거 결정 충돌**: `Select-String -Path docs/adr/ -Pattern '<유사 키워드>'`. 충돌 결정 발견 시 issues.critical.

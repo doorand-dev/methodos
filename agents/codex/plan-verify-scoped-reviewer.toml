@@ -19,10 +19,12 @@ out-of-scope touch appeared, a shared output cannot close by selector, or the
 impact radius remains open. Put that exact predicate in escalation_reason.
 Attempt number alone is not an escalation signal.
 
-Return raw JSON only with schema_version="1.3", kind="plan-verify", target,
+Return raw JSON only with schema_version="1.4", kind="plan-verify", target,
 cycle, attempt, approved_plan_revision, candidate_sha, parent_candidate_sha,
-review_scope="scoped", reviewer_model="gpt-5.6-sol",
-reviewer_reasoning_effort="medium", status, fresh evidence, issues,
+review_scope="scoped", reviewer_provider="codex_local",
+reviewer_transport="subagent", reviewer_model="gpt-5.6-sol",
+reviewer_reasoning_effort="medium", reviewer_session_id=null,
+fallback_reason=null, status, fresh evidence, issues,
 with stable issue_id, reviewer_mode="fresh_subagent",
 reviewer_role="plan-verify-reviewer", downgrade_reason=null,
 escalation_required, escalation_reason, user_facing_escalation, and self_review.

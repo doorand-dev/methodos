@@ -236,14 +236,17 @@ class ProfileUpdateRequest(BaseModel):
 10. **/plan-verify 자동 트리거 + 자동 수정 conv + cycle 흐름** (D10/D13/D35/D36):
 
     plan-verify-reviewer agent 격리 검증 → BLOCKED 시 plan SKILL이 conv로 자동 수정:
-    - Codex에서는 `plan-verify-reviewer` subagent role을 사용한다. 기존 작업 thread나 PONCOU worker thread를 reviewer로 재사용하지 않는다. `wait_agent`로 결과를 회수하며 artifact watcher/heartbeat를 completion bus로 쓰지 않는다.
+    - Codex에서는 아래 route가 고른 fresh reviewer를 사용한다. full primary는
+      `ask-chatgpt-pro`의 session/finality 계약으로 회수하고, scoped 또는 허용된 local
+      full fallback만 Codex subagent role과 `wait_agent`를 사용한다. 기존 작업 thread나
+      PONCOU worker thread를 reviewer로 재사용하지 않는다.
 
     - **N=3 한계** (D13) — 최초 approved plan의 cycle 내부 `verify_attempt` 카운터 frontmatter. 같은 approved revision lineage에서 attempt 1만 baseline full이고, BLOCKED fix의 attempt M+1은 stable issue+fix delta+영향받은 graph/selector만 fresh scoped review한다.
     - **cycle 카운터** (D36,  F4) — escalate→user-decision→plan rev = 1 cycle. `approved_plan_revision` SHA 바뀌면 `verify_cycle += 1`, `verify_attempt = 0`, `escalation_reason = null` reset
     - 각 attempt 산출: `<verify_root>/plan-<slug>-cycle-<C>-attempt-<N>.json` (D36 경로 갱신)
     - attempt 3 BLOCKED 또는 같은 critical 2회 반복 → 사용자 escalate. full reverify는 acceptance/oracle, public/caller/decision graph, out-of-scope touch, selector로 닫히지 않는 shared output, impact radius 미폐쇄 중 하나를 artifact `escalation_reason`에 기록할 때만 허용한다. attempt 증가나 unchanged contract의 새 issue만으로 full로 돌아가지 않는다. DONE amendment는 새 승인 SHA와 새 lineage attempt 1 full로 시작한다.
-    - reviewer dispatch 직전 `plan-verify`의 `lineage·review scope·route`를 point-of-use로 다시 읽는다. project machine route가 있으면 거기서 model/effort를 둘 다 명시하고, 없으면 full `plan-verify-reviewer(gpt-5.6-sol/xhigh)`, scoped `plan-verify-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다. 이전 reviewer/controller 값이나 runtime default는 상속하지 않는다.
-    - artifact에 `approved_plan_revision`, current/parent plan blob SHA, `review_scope`, 실제 `reviewer_model`/`reviewer_reasoning_effort`를 기록한다. 새 approved revision 또는 사용자 결정 cycle은 attempt 1의 새 lineage다.
+    - reviewer dispatch 직전 `plan-verify`의 `lineage·review scope·route`를 point-of-use로 다시 읽는다. project machine route가 있으면 provider/model/effort를 모두 명시하고, 없으면 full은 fresh `ask-chatgpt-pro(pro/extended)` primary와 허용된 transport/finality 실패에만 fresh `plan-verify-reviewer(gpt-5.6-sol/xhigh)` fallback을 쓰며 scoped는 `plan-verify-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다. Pro의 BLOCKED/issue verdict는 정상 review라 fallback하지 않는다.
+    - artifact에 `approved_plan_revision`, current/parent plan blob SHA, `review_scope`, 실제 provider/transport/model/effort/session과 fallback 사유를 기록한다. 새 approved revision 또는 사용자 결정 cycle은 attempt 1의 새 lineage다.
     - **escalation 표시** (D35,  F3): plan-verify-reviewer가 `user_facing_escalation` 필드 생성 (M1 결정 리스트 schema 재사용 — `blocked_scenarios` + `decision_options`). plan SKILL은 *전달만*, 변환 X. 사용자 응답 → slice frontmatter `recommended` 1:1 매핑
     - **자동 재진행** (D36): 사용자 결정 → plan SKILL conv 수정 → plan-verify 자동 재호출 (사용자 명시 명령 X). 새 cycle 시작
     - **Cache 윈도우 5분 유지** : attempt N BLOCKED → 즉시 자동 수정. cycle 사이 사용자 결정 자리만 cache miss 감수 (의도된 trade-off)
@@ -296,7 +299,7 @@ class ProfileUpdateRequest(BaseModel):
 
     plan status=approved 후 **모델이 plan-verify → 조건부 사용자 결정 공간(plan-verify escalation, M2 scenario delta approval) → impl(슬라이스별) → impl-verify gate(oracle/self-review/AST0/batch seam 가능) → impl-novelist(다파일 ∨ 다flow 최종 통합 서사)**를 순차 구동하고, 각 스테이지 경계에서 artifact 흔적(`<verify_root>/*.json` status·`WHY:` commit·`docs/adr/` 존재)을 직접 확인한다 (artifact 계약). 거대 조건문을 생성·복붙하지 않는다. 사용자 경험의 what 변경·비가역·사용자 자산 영향이 새로 생기면 그 결정만 묻고, 해소 후 자동 재진행한다.
 
-    impl-novelist dispatch 직전 `contract/narrative-dry-run.md`의 `#4 attempt·route 계약`을 point-of-use로 다시 읽는다. 같은 approved plan revision과 `parent_candidate_sha → candidate_sha` repair chain에서 attempt 1만 full이고, BROKEN fix 뒤 attempt M+1은 fresh scoped profile을 쓴다. project machine route가 없으면 full `impl-novelist(gpt-5.6-sol/xhigh)`, scoped `impl-novelist-scoped-reviewer(gpt-5.6-sol/medium)`을 명시하며 이전 reviewer/controller/runtime default를 상속하지 않는다.
+    impl-novelist dispatch 직전 `contract/narrative-dry-run.md`의 `#4 attempt·route 계약`을 point-of-use로 다시 읽는다. 같은 approved plan revision과 `parent_candidate_sha → candidate_sha` repair chain에서 attempt 1만 full이고, BROKEN fix 뒤 attempt M+1은 fresh scoped profile을 쓴다. project machine route가 없으면 full은 fresh `ask-chatgpt-pro(pro/extended)` primary와 허용된 transport/finality 실패에만 fresh `impl-novelist(gpt-5.6-sol/xhigh)` fallback을 쓰며 scoped는 `impl-novelist-scoped-reviewer(gpt-5.6-sol/medium)`을 명시한다. Pro의 BROKEN/issue verdict는 정상 review라 fallback하지 않는다.
 
 ## Inline 정책
 
