@@ -15,8 +15,9 @@ cross-runtime source material, not the Codex execution route.
 ## Procedure
 
 1. Locate the target spec or ask for the spec paste if none is available.
-2. Use the fresh read-only `spec-novelist` profile, which inherits the parent
-   session model and reasoning effort.
+2. Spawn the fresh read-only `spec-novelist` profile with
+   `fork_turns="none"`. The profile inherits the parent session model and
+   reasoning effort; context inheritance remains disabled.
 3. Pass only the spec content required by that prompt. Do not pass main-session intent history.
 4. Require raw JSON output in the canonical shape from the agent prompt.
 5. Fold gaps once into the spec and continue to its existing user review. Do not

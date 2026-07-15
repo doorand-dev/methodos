@@ -58,12 +58,13 @@ After every planned slice is committed and local checks pass:
    full spec/plan requirements, actual diff, impact graph, declared targeted
    commands, and one full-regression command when the project declares one.
 2. Dispatch fresh read-only `impl-novelist(gpt-5.6-sol/medium)` attempt 1 full
-   as the final quality floor.
+   with `fork_turns="none"` as the final quality floor. Pass the review packet
+   after spawning; never inherit all or recent main-session turns.
 3. The final reviewer independently checks requirements/scope, caller and data
    impact, code quality, commands/full regression, and every actor/user story.
 4. `DONE` ends the workflow. Never schedule a routine second review.
 5. `BROKEN` returns stable issues to this skill. Make the smallest repair and a
-   WHY commit, then dispatch fresh
+   WHY commit, then dispatch with `fork_turns="none"` the fresh
    parent-model/effort `impl-novelist-scoped-reviewer` as attempt 2+ with only:
    prior issue closure, repair paths, affected impact/flow/test selectors, and
    the new candidate SHA.

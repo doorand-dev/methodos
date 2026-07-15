@@ -17,14 +17,16 @@ per-slice `impl-verify` are not Codex gates.
 2. Read the nearest project machine route at point of use. External ChatGPT Pro
    or Claude Fable/Opus is allowed only when the user explicitly requests it.
 3. For attempt 1, dispatch the fresh read-only
-   `impl-novelist(gpt-5.6-sol/medium)` profile as the final quality floor.
+   `impl-novelist(gpt-5.6-sol/medium)` profile with `fork_turns="none"` as the
+   final quality floor. Send the self-contained packet only after spawning.
 4. Pass a self-contained packet: approved requirements, slice contracts, exact
    base/candidate refs, actual diff/source, impact selectors, and commands. Do
    not pass implementation discussion or prior DONE claims.
 5. Require `impl-narrative-final` v1.3 JSON. DONE ends the workflow immediately;
    never schedule a routine second review.
 6. If attempt 1 or later returns BROKEN, implement the repair and dispatch the
-   parent-model/effort `impl-novelist-scoped-reviewer` for attempt 2+. Give it
+   parent-model/effort `impl-novelist-scoped-reviewer` with `fork_turns="none"`
+   for attempt 2+. Give it
    only stable issue closure, repair paths, affected impact/flow/test selectors,
    and the new candidate ref.
 7. If a repair changes approved requirements, acceptance/oracle, public contract,

@@ -12,7 +12,10 @@ Use this skill as a fresh-context audit lens. A context novelist lives as the ne
 
 Decide the smallest context packet that lets a future agent do the next task safely, without inheriting stale narrative or evidence dumps.
 
-This is a skill, not a replacement for the narrative novelist agents. For independent review, run a fresh thread/subagent with this skill and only the proposed packet or target files.
+This is a skill, not a replacement for the narrative novelist agents. For
+independent review, spawn the subagent with `fork_turns="none"`, then send this
+skill and only the proposed packet or target files. Never use `all` or a recent
+turn count; the agent cannot discard inherited conversation after spawning.
 
 When a controller must run both narrative and context checks, dispatch this in parallel with the stage-specific novelist:
 - spec stage: `spec-novelist` agent + `context-novelist` skill/agent.
