@@ -1,0 +1,12 @@
+{
+  "sessionId": "01KXJFR3CJ52NXPPP47R9VSAKZ",
+  "targetId": "5E8A0430BFBAF53CFE399E7AC17AE24F",
+  "rootUrl": "https://chatgpt.com/",
+  "conversationUrl": "https://chatgpt.com/c/6a574acf-1d20-83ee-9999-caedd7e22459",
+  "inputCount": 22,
+  "providerAttachmentLimit": 20,
+  "missingNames": [
+    "check_readiness_resolution.py",
+    "readiness_promote.py"
+  ]
+}

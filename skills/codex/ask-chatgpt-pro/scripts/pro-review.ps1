@@ -4,7 +4,12 @@ param(
     [string]$Action,
 
     [string]$Prompt,
+    [string]$SystemPrompt,
     [string[]]$File,
+    [string[]]$DirectFile,
+    [string[]]$ExecutedEvidenceFile,
+    [string]$RepoRoot = (Get-Location).Path,
+    [int]$MaxDirectFiles = 3,
     [string]$SessionId,
     [string]$ContextFromFiles,
     [string[]]$ContextExclude,
@@ -340,6 +345,189 @@ function Get-TextSha256([string]$text) {
     }
 }
 
+function Get-FileSha256([string]$path) {
+    return (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant()
+}
+
+function Get-NormalizedFullPath([string]$path) {
+    return [System.IO.Path]::GetFullPath($path)
+}
+
+function Test-SensitiveBundlePath([string]$relativePath) {
+    $normalized = $relativePath.Replace("\", "/")
+    $segments = @($normalized.Split("/", [System.StringSplitOptions]::RemoveEmptyEntries))
+    foreach ($segment in $segments) {
+        if ($segment -ieq "secrets" -or $segment -ieq ".env" -or $segment -ilike ".env.*") {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Get-RepoRelativePath([string]$path, [string]$root) {
+    $fullPath = Get-NormalizedFullPath $path
+    $fullRoot = (Get-NormalizedFullPath $root).TrimEnd("\", "/") + [System.IO.Path]::DirectorySeparatorChar
+    if (-not $fullPath.StartsWith($fullRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Bundle input must be under -RepoRoot. input=$fullPath repoRoot=$root"
+    }
+    return $fullPath.Substring($fullRoot.Length).Replace("\", "/")
+}
+
+function Get-UniqueExistingFiles($paths) {
+    $seen = @{}
+    $resolved = @()
+    foreach ($path in @($paths)) {
+        if ([string]::IsNullOrWhiteSpace([string]$path)) {
+            continue
+        }
+        $fullPath = Get-NormalizedFullPath ([string]$path)
+        if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
+            throw "Missing attachment input: $fullPath"
+        }
+        if (-not $seen.ContainsKey($fullPath)) {
+            $seen[$fullPath] = $true
+            $resolved += $fullPath
+        }
+    }
+    return @($resolved)
+}
+
+function New-DeterministicContextBundle($paths, $executedEvidencePaths, [string]$root) {
+    $inputs = @(Get-UniqueExistingFiles $paths)
+    if ($inputs.Count -eq 0) {
+        return $null
+    }
+    $evidenceSet = @{}
+    foreach ($path in @(Get-UniqueExistingFiles $executedEvidencePaths)) {
+        $evidenceSet[$path] = $true
+    }
+    foreach ($path in $evidenceSet.Keys) {
+        if ($inputs -notcontains $path) {
+            throw "Executed evidence must be included in the context bundle inputs: $path"
+        }
+    }
+
+    $manifestFiles = @()
+    foreach ($path in $inputs) {
+        $relativePath = Get-RepoRelativePath $path $root
+        if (Test-SensitiveBundlePath $relativePath) {
+            throw "Sensitive input is rejected from context bundles: $relativePath"
+        }
+        $item = Get-Item -LiteralPath $path
+        $manifestFiles += [pscustomobject]@{
+            repoRelativePath = $relativePath
+            sha256 = Get-FileSha256 $path
+            byteSize = [int64]$item.Length
+            role = $(if ($evidenceSet.ContainsKey($path)) { "executed-evidence" } else { "context" })
+            sourcePath = $path
+        }
+    }
+    $manifestFiles = @($manifestFiles | Sort-Object repoRelativePath)
+    $inputLedger = ($manifestFiles | ForEach-Object { $_.repoRelativePath + "`0" + $_.sha256 + "`0" + $_.byteSize + "`0" + $_.role }) -join "`n"
+    $inputSha256 = Get-TextSha256 $inputLedger
+    $publicFiles = @($manifestFiles | ForEach-Object {
+        [pscustomobject]@{
+            repoRelativePath = $_.repoRelativePath
+            sha256 = $_.sha256
+            byteSize = $_.byteSize
+            role = $_.role
+        }
+    })
+    $manifest = [pscustomobject]@{
+        schemaVersion = 1
+        inputCount = $publicFiles.Count
+        inputSha256 = $inputSha256
+        files = $publicFiles
+    }
+    $evidenceFiles = @($publicFiles | Where-Object { $_.role -eq "executed-evidence" })
+    $evidencePacket = [pscustomobject]@{
+        schemaVersion = 1
+        inputCount = $evidenceFiles.Count
+        inputSha256 = Get-TextSha256 (($evidenceFiles | ForEach-Object { $_.repoRelativePath + "`0" + $_.sha256 + "`0" + $_.byteSize }) -join "`n")
+        files = $evidenceFiles
+    }
+
+    Add-Type -AssemblyName System.IO.Compression
+    $bundlePath = Join-Path $env:TEMP ("ask-chatgpt-pro-context-" + $inputSha256.Substring(0, 16) + ".zip")
+    $stream = [System.IO.File]::Open($bundlePath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+    try {
+        $archive = [System.IO.Compression.ZipArchive]::new($stream, [System.IO.Compression.ZipArchiveMode]::Create, $true, $script:Utf8NoBom)
+        try {
+            $fixedTimestamp = [DateTimeOffset]::new(2000, 1, 1, 0, 0, 0, [TimeSpan]::Zero)
+            foreach ($entryData in @(
+                [pscustomobject]@{ name = "MANIFEST.json"; text = ($manifest | ConvertTo-Json -Depth 12) },
+                [pscustomobject]@{ name = "EXECUTED-EVIDENCE.json"; text = ($evidencePacket | ConvertTo-Json -Depth 12) }
+            )) {
+                $entry = $archive.CreateEntry($entryData.name, [System.IO.Compression.CompressionLevel]::Optimal)
+                $entry.LastWriteTime = $fixedTimestamp
+                $writer = [System.IO.StreamWriter]::new($entry.Open(), $script:Utf8NoBom)
+                try { $writer.Write($entryData.text) } finally { $writer.Dispose() }
+            }
+            foreach ($file in $manifestFiles) {
+                $entry = $archive.CreateEntry(("files/" + $file.repoRelativePath), [System.IO.Compression.CompressionLevel]::Optimal)
+                $entry.LastWriteTime = $fixedTimestamp
+                $input = [System.IO.File]::OpenRead($file.sourcePath)
+                $output = $entry.Open()
+                try { $input.CopyTo($output) } finally { $output.Dispose(); $input.Dispose() }
+            }
+        } finally {
+            $archive.Dispose()
+        }
+    } finally {
+        $stream.Dispose()
+    }
+
+    return [pscustomobject]@{
+        path = $bundlePath
+        sha256 = Get-FileSha256 $bundlePath
+        byteSize = (Get-Item -LiteralPath $bundlePath).Length
+        inputCount = $publicFiles.Count
+        inputSha256 = $inputSha256
+        evidenceCount = $evidenceFiles.Count
+        manifest = $manifest
+    }
+}
+
+function Resolve-AttachmentRoute($files, $directFiles, $executedEvidenceFiles, [string]$root, [int]$maxDirectFiles) {
+    if ($maxDirectFiles -lt 1) {
+        throw "-MaxDirectFiles must be at least 1."
+    }
+    $allFiles = @(Get-UniqueExistingFiles $files)
+    $explicitDirect = @(Get-UniqueExistingFiles $directFiles)
+    foreach ($path in $explicitDirect) {
+        if (-not ($allFiles -contains $path)) {
+            $allFiles = @($path) + $allFiles
+        }
+    }
+
+    if ($explicitDirect.Count -gt $maxDirectFiles) {
+        throw "Direct attachment count $($explicitDirect.Count) exceeds -MaxDirectFiles $maxDirectFiles."
+    }
+    $direct = if ($explicitDirect.Count -gt 0) {
+        @($explicitDirect)
+    } elseif ($allFiles.Count -le $maxDirectFiles) {
+        @($allFiles)
+    } else {
+        @($allFiles | Select-Object -First $maxDirectFiles)
+    }
+    $bundleInputs = @($allFiles | Where-Object { $direct -notcontains $_ })
+    $bundle = New-DeterministicContextBundle $bundleInputs $executedEvidenceFiles $root
+    $uploadPaths = @($direct)
+    if ($null -ne $bundle) {
+        $uploadPaths += $bundle.path
+    }
+    $duplicateNames = @($uploadPaths | Group-Object { Split-Path -Leaf $_ } | Where-Object { $_.Count -gt 1 } | ForEach-Object { $_.Name })
+    if ($duplicateNames.Count -gt 0) {
+        throw "Upload basenames must be unique for sent-turn evidence: $($duplicateNames -join ', ')"
+    }
+    return [pscustomobject]@{
+        directFiles = $direct
+        bundleInputs = $bundleInputs
+        contextBundle = $bundle
+        uploadPaths = $uploadPaths
+    }
+}
+
 function Get-SessionData($sessionObject) {
     if ($null -eq $sessionObject) {
         return $null
@@ -412,11 +600,126 @@ function Find-TargetConversationUrl($targetId) {
     return $null
 }
 
+function Save-LateConversationUrl($sessionId, $targetId, [string]$conversationUrl) {
+    $reattach = Try-AgbrowseJson @("web-ai", "sessions", "reattach", $sessionId, "--json") "sessions.reattach.url-settle"
+    if (-not $reattach.ok) {
+        return [pscustomobject]@{
+            ok = $false
+            status = "found_not_persisted"
+            conversationUrl = $conversationUrl
+            error = $reattach.outputHead
+        }
+    }
+    $show = Try-AgbrowseJson @("web-ai", "sessions", "show", $sessionId, "--json") "sessions.show.url-persist"
+    $storedUrl = $(if ($show.ok) { Get-ConversationUrl $show.value } else { $null })
+    $storedTargetId = $(if ($show.ok) { Get-TargetId $show.value } else { $null })
+    $persisted = ($storedUrl -eq $conversationUrl -and ([string]::IsNullOrWhiteSpace($targetId) -or $storedTargetId -eq $targetId))
+    return [pscustomobject]@{
+        ok = $persisted
+        status = $(if ($persisted) { "settled_and_persisted" } else { "found_not_persisted" })
+        conversationUrl = $conversationUrl
+        storedUrl = $storedUrl
+        targetId = $targetId
+        storedTargetId = $storedTargetId
+        error = $(if ($show.ok) { $null } else { $show.outputHead })
+    }
+}
+
+function Test-SentTurnAttachments($targetId, $uploadPaths) {
+    $expectedNames = @($uploadPaths | ForEach-Object { Split-Path -Leaf $_ })
+    if ($expectedNames.Count -eq 0) {
+        return [pscustomobject]@{
+            ok = $true
+            status = "no_attachments"
+            requestedCount = 0
+            matchedCount = 0
+            expectedNames = @()
+            matchedNames = @()
+            missingNames = @()
+        }
+    }
+
+    $active = Try-AgbrowseJson @("active-tab", "--json") "active-tab.attachment-evidence"
+    $originalTargetId = $(if ($active.ok) { Get-ObjectProperty $active.value @("targetId", "tabId", "id") } else { $null })
+    $switched = $false
+    try {
+        if (-not [string]::IsNullOrWhiteSpace($targetId) -and $originalTargetId -ne $targetId) {
+            $switch = Try-AgbrowseJson @("tab-switch", $targetId, "--json") "tab-switch.attachment-evidence"
+            if (-not $switch.ok) {
+                return [pscustomobject]@{
+                    ok = $false
+                    status = "target_unavailable"
+                    requestedCount = $expectedNames.Count
+                    matchedCount = 0
+                    expectedNames = $expectedNames
+                    matchedNames = @()
+                    missingNames = $expectedNames
+                    error = $switch.outputHead
+                }
+            }
+            $switched = $true
+        }
+
+        $expectedJson = $expectedNames | ConvertTo-Json -Compress
+        $expression = @"
+(() => {
+  const expected = $expectedJson;
+  const turns = Array.from(document.querySelectorAll('[data-turn="user"], [data-message-author-role="user"]'));
+  const turn = turns.at(-1);
+  if (!turn) return { turnFound: false, attachmentNames: [] };
+  const nodes = Array.from(turn.querySelectorAll('[data-testid*="attachment" i], [data-testid*="file" i], [aria-label*="attachment" i], [aria-label*="file" i], .group\\/file-tile, [role="group"]'));
+  const haystack = nodes.flatMap(node => [node.innerText || node.textContent || '', node.getAttribute?.('aria-label') || '', node.getAttribute?.('title') || '', node.getAttribute?.('data-testid') || '']).join('\n').toLowerCase();
+  return { turnFound: true, attachmentNames: expected.filter(name => haystack.includes(String(name).toLowerCase())) };
+})()
+"@
+        $probe = $null
+        for ($attempt = 1; $attempt -le 3; $attempt++) {
+            $native = Invoke-AgbrowseNative @("evaluate", $expression)
+            if ($native.exitCode -eq 0) {
+                try { $probe = Convert-AgbrowseJson $native.stdout "evaluate.attachment-evidence" } catch { $probe = $null }
+            }
+            if ($null -ne $probe -and $probe.turnFound) {
+                break
+            }
+            if ($attempt -lt 3) {
+                Start-Sleep -Seconds 1
+            }
+        }
+        if ($null -eq $probe -or -not $probe.turnFound) {
+            return [pscustomobject]@{
+                ok = $false
+                status = "sent_turn_unavailable"
+                requestedCount = $expectedNames.Count
+                matchedCount = 0
+                expectedNames = $expectedNames
+                matchedNames = @()
+                missingNames = $expectedNames
+            }
+        }
+        $matched = @($expectedNames | Where-Object { @($probe.attachmentNames) -contains $_ })
+        $missing = @($expectedNames | Where-Object { $matched -notcontains $_ })
+        return [pscustomobject]@{
+            ok = ($missing.Count -eq 0 -and $matched.Count -eq $expectedNames.Count)
+            status = $(if ($missing.Count -eq 0) { "matched" } else { "mismatch" })
+            requestedCount = $expectedNames.Count
+            matchedCount = $matched.Count
+            expectedNames = $expectedNames
+            matchedNames = $matched
+            missingNames = $missing
+        }
+    } finally {
+        if ($switched -and -not [string]::IsNullOrWhiteSpace($originalTargetId)) {
+            [void](Try-AgbrowseJson @("tab-switch", $originalTargetId, "--json") "tab-switch.attachment-evidence.restore")
+        }
+    }
+}
+
 function Wait-SettledConversationUrl($sessionId, $sendObject, $settleSeconds, $pollSeconds) {
     $targetId = Get-TargetId $sendObject
     $initialUrl = Get-ConversationUrl $sendObject
     if (Test-ChatGptConversationUrl $initialUrl) {
         return [pscustomobject]@{
+            ok = $true
             status = "settled"
             source = "send"
             conversationUrl = $initialUrl
@@ -431,12 +734,15 @@ function Wait-SettledConversationUrl($sessionId, $sendObject, $settleSeconds, $p
     while ((Get-Date) -lt $deadline) {
         $tabUrl = Find-TargetConversationUrl $targetId
         if (Test-ChatGptConversationUrl $tabUrl) {
+            $persist = Save-LateConversationUrl $sessionId $targetId $tabUrl
             return [pscustomobject]@{
-                status = "settled"
-                source = "tabs"
+                ok = $persist.ok
+                status = $persist.status
+                source = "tabs+sessions.reattach"
                 conversationUrl = $tabUrl
                 initialUrl = $initialUrl
                 checkedSeconds = [Math]::Round(((Get-Date) - $startedAt).TotalSeconds, 1)
+                persistence = $persist
             }
         }
 
@@ -445,6 +751,7 @@ function Wait-SettledConversationUrl($sessionId, $sendObject, $settleSeconds, $p
             $showUrl = Get-ConversationUrl $show.value
             if (Test-ChatGptConversationUrl $showUrl) {
                 return [pscustomobject]@{
+                    ok = $true
                     status = "settled"
                     source = "sessions.show"
                     conversationUrl = $showUrl
@@ -461,6 +768,7 @@ function Wait-SettledConversationUrl($sessionId, $sendObject, $settleSeconds, $p
     }
 
     return [pscustomobject]@{
+        ok = $false
         status = "root_or_unavailable"
         source = "timeout"
         conversationUrl = $bestUrl
@@ -988,6 +1296,7 @@ if ($Action -eq "send") {
         throw "-Prompt is required when -Action send."
     }
 
+    $attachmentRoute = Resolve-AttachmentRoute $File $DirectFile $ExecutedEvidenceFile $RepoRoot $MaxDirectFiles
     $sendArgs = @(
         "web-ai", "send",
         "--vendor", "chatgpt",
@@ -996,13 +1305,16 @@ if ($Action -eq "send") {
         "--prompt", $Prompt,
         "--json"
     )
+    if (-not [string]::IsNullOrWhiteSpace($SystemPrompt)) {
+        $sendArgs += @("--system", $SystemPrompt)
+    }
 
     if (-not $ReuseTab) {
         $sendArgs += "--new-tab"
     }
 
-    if ($File -and $File.Count -gt 0) {
-        foreach ($path in $File) {
+    if ($attachmentRoute.uploadPaths.Count -gt 0) {
+        foreach ($path in $attachmentRoute.uploadPaths) {
             $sendArgs += @("--file", $path)
         }
     } elseif (-not [string]::IsNullOrWhiteSpace($ContextFromFiles)) {
@@ -1045,19 +1357,43 @@ if ($Action -eq "send") {
     if ([string]::IsNullOrWhiteSpace($WatchLog)) {
         $WatchLog = Get-DefaultWatchLog $sid
     }
+    $urlProbe = Wait-SettledConversationUrl $sid $send $UrlSettleSeconds $UrlSettlePollSeconds
+    $attachmentEvidence = Test-SentTurnAttachments (Get-TargetId $send) $attachmentRoute.uploadPaths
+    if (-not $attachmentEvidence.ok) {
+        Write-Json ([pscustomobject]@{
+            ok = $false
+            action = "send"
+            status = "provider_attachment_mismatch"
+            providerSendStatus = "sent"
+            sessionId = $sid
+            targetId = Get-TargetId $send
+            conversationUrl = $urlProbe.conversationUrl
+            conversationUrlStatus = $urlProbe.status
+            urlCapture = $urlProbe
+            attachmentEvidence = $attachmentEvidence
+            contextBundle = $attachmentRoute.contextBundle
+            warnings = $send.warnings
+            next = "Do not watch or collect this turn as a valid review. Inspect the sent turn and resend once with a smaller direct set plus one context bundle."
+        })
+        exit 2
+    }
     if ($NoWatch) {
-        $urlProbe = Wait-SettledConversationUrl $sid $send $UrlSettleSeconds $UrlSettlePollSeconds
         Write-Json ([pscustomobject]@{
             ok = $true
             action = "send"
             status = "sent_for_heartbeat_collect"
+            providerSendStatus = "sent"
             sessionId = $sid
             conversationUrl = $urlProbe.conversationUrl
             conversationUrlStatus = $urlProbe.status
             conversationUrlSource = $urlProbe.source
             urlProbe = $urlProbe
+            urlCapture = $urlProbe
             url = $send.url
             targetId = Get-TargetId $send
+            attachmentEvidence = $attachmentEvidence
+            directFiles = $attachmentRoute.directFiles
+            contextBundle = $attachmentRoute.contextBundle
             watchLog = $WatchLog
             watchCommand = "powershell -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Action watch-accelerate -SessionId $sid -AutomationId <automationId>"
             watcherPid = $null
@@ -1077,18 +1413,22 @@ if ($Action -eq "send") {
         $watcher = $watch.watcher
         $watchCommand = $watch.command
     } catch {
-        $urlProbe = Wait-SettledConversationUrl $sid $send $UrlSettleSeconds $UrlSettlePollSeconds
         Write-Json ([pscustomobject]@{
             ok = $false
             action = "send"
             status = "sent_but_unmonitored"
+            providerSendStatus = "sent"
             sessionId = $sid
             conversationUrl = $urlProbe.conversationUrl
             conversationUrlStatus = $urlProbe.status
             conversationUrlSource = $urlProbe.source
             urlProbe = $urlProbe
+            urlCapture = $urlProbe
             url = $send.url
             targetId = Get-TargetId $send
+            attachmentEvidence = $attachmentEvidence
+            directFiles = $attachmentRoute.directFiles
+            contextBundle = $attachmentRoute.contextBundle
             watchLog = $watchLog
             watchCommand = "agbrowse web-ai watch --session $sid --json --navigate *> `"$watchLog`""
             error = [string]$_
@@ -1097,19 +1437,22 @@ if ($Action -eq "send") {
         exit 2
     }
 
-    $urlProbe = Wait-SettledConversationUrl $sid $send $UrlSettleSeconds $UrlSettlePollSeconds
-
     Write-Json ([pscustomobject]@{
         ok = $true
         action = "send"
         status = "sent_and_watched"
+        providerSendStatus = "sent"
         sessionId = $sid
         conversationUrl = $urlProbe.conversationUrl
         conversationUrlStatus = $urlProbe.status
         conversationUrlSource = $urlProbe.source
         urlProbe = $urlProbe
+        urlCapture = $urlProbe
         url = $send.url
         targetId = Get-TargetId $send
+        attachmentEvidence = $attachmentEvidence
+        directFiles = $attachmentRoute.directFiles
+        contextBundle = $attachmentRoute.contextBundle
         watchLog = $watchLog
         watchCommand = $watchCommand
         watcherPid = $watcher.Id
