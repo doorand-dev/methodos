@@ -1,10 +1,7 @@
 ---
 name: plan-verify
 description: |
-  Isolated adversarial verification of a plan (4 dimensions: conflicts with past decisions · decision [0]~[3J] principles · user global rules · plan internal consistency).
-  **Self-trigger (no router)**: each newly approved plan revision gets one full attempt-1 review. A BLOCKED fix gets scoped attempt M+1 by default; promote to full only on an explicit escalation predicate. "plan 검증", "이 계획 어떻게 보여?", "plan-verify".
-  **Evidence (FORCE)**: every issue must *directly quote* command output or file:line — no abstract pass ("looks fine"), no evidence from unrun commands. Output `verify_root/plan-slug-cycle-C-attempt-N.json`. Explicit: `/plan-verify slug`.
-  **Plain language (FORCE)**: write user escalations not as technical detail but as "what is blocked and what happens if you choose each option", in plain Korean.
+  Isolated evidence-backed adversarial verification of an approved plan against past decisions, Methodos principles, user rules, and internal consistency. Self-trigger once per new approved revision; BLOCKED fixes receive scoped reverify. Do not fire without a formal plan, or for an explicitly requested single-slice plan touching 1-2 files with `decision_needed=false` and no user-visible behavior, authority/data, public-contract, or irreversible change; continue automatically. Explicit “plan 검증”, “이 계획 어떻게 보여?”, `/plan-verify` overrides the skip. Quote actual command output or file:line for every issue and explain escalations in plain Korean.
 ---
 
 # /plan-verify — plan 격리 적대적 검증 (얇은 stub)
@@ -15,7 +12,10 @@ description: |
 
 ## 트리거 (self-trigger — 라우터 없음)
 
-- 자동 발동: 최초 status=approved 직후와 새 `approved_plan_revision` 직후. 승인된 amendment도 새 lineage attempt 1 full로 시작한다. 같은 lineage의 BLOCKED fix만 attempt M+1 scoped로 간다.
+- 자동 발동: 아래 작은 plan 자동 생략 조건에 해당하지 않는 최초
+  status=approved 직후와 새 `approved_plan_revision` 직후. 승인된 amendment도 새
+  lineage attempt 1 full로 시작한다. 같은 lineage의 BLOCKED fix만 attempt M+1
+  scoped로 간다.
 - 자연어: "plan 검증", "이 계획 어떻게 보여?", "plan-verify"
 - 명시: `/plan-verify <slug>`
 
@@ -31,7 +31,13 @@ plan approved → decision-reviewer (자동 1회, D25) → 본 plan-verify-revie
 plan approved → 본 plan-verify-reviewer attempt 1~3
 ```
 
-`decision_needed=false` + M2 delta 없음 + public behavior/authority/data 변화 없는 behavior-preserving 구조 보정은 decision-reviewer skip. 자명한 1-2파일 수정은 둘 다 skip 권장.
+`decision_needed=false` + M2 delta 없음 + public behavior/authority/data 변화 없는 behavior-preserving 구조 보정은 decision-reviewer skip.
+
+정식 plan이 없으면 이 게이트는 발동하지 않는다. 사용자가 작은 작업에도 plan을
+명시 요청한 경우, plan이 단일 slice·touched_files 1-2개·`decision_needed=false`이고
+사용자 체감 동작·보안/권한·데이터/사용자 자산·public contract·비가역 변경이 없으면
+plan-verify도 자동 생략한다. 사용자에게 생략 여부나 진행 여부를 묻지 않고 구현으로
+이어간다. 사용자가 plan 검증을 명시 요청하면 이 생략 조건보다 명시 요청이 우선한다.
 
 ## 사전 조건
 

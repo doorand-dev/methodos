@@ -2,21 +2,30 @@
 name: impl
 description: |
   Implement an approved plan one slice at a time and produce a WHY-prefixed git
-  commit. Trigger after plan approval and plan-verify completion when a slice is
-  unimplemented. Keep work inside the slice, preserve caller impact checks, and
-  hand every candidate to the fresh read-only impl-verify reviewer.
+  commit. Trigger after plan approval when a slice is unimplemented and either
+  plan-verify is complete or the plan meets the documented automatic small-plan
+  skip predicate. Keep work inside the slice, preserve caller impact checks, and
+  hand every planned candidate to the fresh read-only impl-verify reviewer.
 ---
 
 # /impl — 슬라이스 구현 스킬
 
 ## 트리거와 사전 조건
 
-- plan status=approved, plan-verify가 DONE이며 현재 slice의 commit/verify
-  artifact가 없을 때 자동 발동한다.
+- plan status=approved이고 현재 slice의 commit/verify artifact가 없으며 다음 중
+  하나를 충족할 때 자동 발동한다.
+  - plan-verify가 DONE이다.
+  - plan이 단일 slice·touched_files 1-2개·`decision_needed=false`이고 사용자
+    체감 동작·보안/권한·데이터/사용자 자산·public contract·비가역 변경이 없어
+    `plan-verify`의 작은 plan 자동 생략 조건을 충족한다.
 - "구현", "implement", "이 슬라이스 만들어", `/impl <slice>` 요청도 트리거다.
 - nearest `AGENTS.md`와 plan frontmatter에서 `plan_root`/`verify_root`를
-  정하고, approved plan·최신 plan-verify artifact·slice `touched_files`를
-  확인한다. 부족하면 `/plan` 또는 `/plan-verify`로 돌아간다.
+  정하고, approved plan·slice `touched_files`와 plan-verify DONE artifact 또는
+  작은 plan 자동 생략 근거를 확인한다. 둘 다 없으면 `/plan-verify`로 돌아간다.
+
+정식 plan 자체가 없는 자동 직행 작업은 이 스킬의 대상이 아니다. 일반 구현 흐름으로
+같은 턴에 최소 수정·관련 검증 1개 이상·프로젝트 규칙상 커밋까지 끝내며, 별도
+`/impl` 또는 fresh impl-verify reviewer를 만들지 않는다.
 
 ## 구현 절차
 

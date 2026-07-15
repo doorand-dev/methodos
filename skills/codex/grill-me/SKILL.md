@@ -1,13 +1,7 @@
 ---
 name: grill-me
 description: |
-  User-intent alignment interview → spec.md — relentless one-question grilling + AI-recommended answers + codebase-grep first.
-  **Spec trigger (FORCE)**: when "스펙", "스펙화", "spec 작성", "요구사항 문서화", "구현 전 문서화", "검토받아", "novelist 리뷰" appear, reach for grill-me first.
-  **Self-trigger (no router)**: when intent for a new feature or non-trivial work appears, *before any code is written*, and the goal/success-criteria/scope are not yet sufficiently closed.
-  **spec-novelist input rule**: do not pass only a file path — paste the full spec body or the needed excerpt into the prompt.
-  **novelist rule**: for a complex spec, dispatch `spec-novelist` in fresh context. Add `context-novelist` only when the scope is a doc/procedure/prompt/handoff/review-or-dispatch packet that an AI reads.
-  **HARD-GATE (FORCE)**: if a new feature involves any of multi-file ∨ new schema ∨ user-visible flow change, this gate (intent alignment → spec) is *mandatory* before code — blocks the model's "just start coding" bias. Output `docs/specs/slug.md`; after status=approved, proceed to plan.
-  **Does not fire**: small edits (touched 1-2 · no flow · no new schema → go direct) / picking up work whose spec is already settled (go direct to that stage). Explicit: `/grill-me slug 또는 거친 골`.
+  Align unclear new-feature intent into an approved spec using one-question grilling and codebase grep first. Self-trigger before code for new or non-trivial work; multi-file, new-schema, or user-visible-flow features require it. Do not fire after a read-only scan when goal/check are clear, only 1-2 files are expected, and flow, schema/public API, security/authority/data/user assets, irreversibility, and unresolved WHAT decisions are absent: silently skip spec/formal plan and implement, verify, and project-required commit in the same turn. An existing approved spec goes to its next stage. Explicit triggers: “스펙”, “스펙화”, “spec 작성”, “요구사항 문서화”, “구현 전 문서화”, “검토받아”, “novelist 리뷰”, `/grill-me`.
 ---
 
 # /grill-me — intent 인터뷰 → spec.md (분산화 )
@@ -33,12 +27,17 @@ description: |
 - `/grill-me <slug>` — 정해진 slug로 진입
 - `/grill-me <거친 골 한 줄>` — slug 자체 결정 후 진입
 
-### 발동하지 않을 때 (D16 skip 조건 — *모두* 충족 시)
+### 발동하지 않을 때 (D16 자동 직행 조건 — *모두* 충족 시)
+- 코드·호출부를 읽기 전용으로 확인한 뒤에도 목표와 성공 검증이 명확함
 - touched_files 예상 1-2개
 - 사용자 체감 flow 변화 없음
-- 새 schema/API 없음
+- 새 schema/public API 없음
+- 보안·권한·데이터·사용자 자산·비가역 변경 없음
+- 사용자에게 받아야 할 WHAT 결정 없음
 
-→ 위 *모두* 충족 시 grill-me skip, 바로 `/plan` 직행 가능.
+→ 사용자가 크기를 분류하게 묻지 않는다. grill-me와 정식 `/plan`을 생략하고
+같은 턴에 최소 수정 → 관련 검증 1개 이상 → 프로젝트 규칙상 커밋까지 진행한다.
+첫 편집 전에 조건 하나라도 어긋나면 해당 게이트로 진입한다.
 
 ### 발동하되 인터뷰는 skip — *대화 합성 모드* (to-prd 차용)
 

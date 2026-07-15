@@ -1,11 +1,7 @@
 ---
 name: plan
 description: |
-  Take a spec and decompose into slices + inline signature/schema + verification-type enum + 3-dim self-review + M1 decision list + M2 scenario delta.
-  **Self-trigger (no router)**: right after a spec (`docs/specs/slug.md`) is approved, on "이 spec 구현해/이어가", or when multi-slice non-trivial work is about to be implemented. Enter directly from "plan", "계획 짜", "PRD 작성", "기능 분해".
-  **User decision space (FORCE)**: do not skip the M1 decision list, plan approval, plan-verify escalation, or M2 scenario-delta approval. Once resolved, plan-verify → impl → impl-verify → impl-novelist run as model-driven autonomous drive.
-  **spec-novelist preflight (FORCE)**: if the spec frontmatter has `novelist.required: true` but `status != done`, halt plan synthesis and require the spec-novelist fold first.
-  **right-sizing (OPEN)**: slice thickness and whether a P0 spike is needed are model judgment by situation. Explicit call is optional: `/plan slug 또는 거친 골`.
+  Decompose an approved spec or multi-slice non-trivial task into slices, signatures, verification, and decision gates. Self-trigger after spec approval or before multi-slice implementation; explicit triggers include “plan”, “계획 짜”, “PRD 작성”, and “기능 분해”. Preserve required user decisions, then autonomously run plan-verify → impl → impl-verify → impl-novelist. Do not fire after a read-only scan when goal/check are clear, only 1-2 files are expected, and flow, schema/public API, security/authority/data/user assets, irreversibility, and unresolved WHAT decisions are absent; silently implement, verify, and project-required commit in the same turn. An explicit plan request overrides this direct path.
 ---
 
 # /plan — PRD 상세화 (standalone, 사용자 결정 공간)
@@ -16,6 +12,10 @@ description: |
 - 자연어: "plan", "계획 짜", "PRD 작성", "기능 분해"
 - 명시: `/plan <slug 또는 거친 골 한 줄>`
 - right-sizing(슬라이스 두께·P0 스파이크)은 **OPEN** — 상황으로 모델 판단 ( FORCE/OPEN)
+- 작은 작업 자동 직행: 첫 편집 전 영향 범위를 확인해 `grill-me`의 D16 자동
+  직행 조건을 모두 충족하면 정식 plan artifact와 승인 정지를 만들지 않는다.
+  같은 턴에 수정·검증·프로젝트 규칙상 커밋까지 진행한다. 사용자가 명시적으로
+  plan을 요청한 경우에만 작은 작업도 이 스킬로 들어온다.
 
 ## 산출 artifact (강제)
 
@@ -233,7 +233,12 @@ class ProfileUpdateRequest(BaseModel):
 
     사용자 체감: 큰 결정 자리에 "나중에 바꾸기 어려운 선택이 있어 한 번 더 확인했어요"처럼 쉬운 말로 알림 (액션 0).
 
-10. **/plan-verify 자동 트리거 + 자동 수정 conv + cycle 흐름** (D10/D13/D35/D36):
+10. **/plan-verify 조건부 자동 트리거 + 자동 수정 conv + cycle 흐름** (D10/D13/D35/D36):
+
+    단일 slice·touched_files 1-2개·`decision_needed=false`이고 사용자 체감 동작·
+    보안/권한·데이터/사용자 자산·public contract·비가역 변경이 없으면
+    plan-verify를 자동 생략하고 12의 구현으로 이어간다. 사용자가 plan 검증을
+    명시 요청하면 생략하지 않는다.
 
     plan-verify-reviewer agent 격리 검증 → BLOCKED 시 plan SKILL이 conv로 자동 수정:
     - Codex에서는 아래 route가 고른 fresh reviewer를 사용한다. full과 scoped 모두
@@ -297,7 +302,14 @@ class ProfileUpdateRequest(BaseModel):
 
 12. **model-driven 순차 구동** (D20, 자율주행):
 
-    plan status=approved 후 **모델이 plan-verify → 조건부 사용자 결정 공간(plan-verify escalation, M2 scenario delta approval) → impl(슬라이스별) → impl-verify gate(oracle/self-review/AST0/batch seam 가능) → impl-novelist(다파일 ∨ 다flow 최종 통합 서사)**를 순차 구동하고, 각 스테이지 경계에서 artifact 흔적(`<verify_root>/*.json` status·`WHY:` commit·`docs/adr/` 존재)을 직접 확인한다 (artifact 계약). 거대 조건문을 생성·복붙하지 않는다. 사용자 경험의 what 변경·비가역·사용자 자산 영향이 새로 생기면 그 결정만 묻고, 해소 후 자동 재진행한다.
+    plan status=approved 후 **모델이 조건에 따라 plan-verify 또는 작은 plan 자동
+    생략 → 조건부 사용자 결정 공간(plan-verify escalation, M2 scenario delta
+    approval) → impl(슬라이스별) → impl-verify gate(oracle/self-review/AST0/batch
+    seam 가능) → impl-novelist(다파일 ∨ 다flow 최종 통합 서사)**를 순차 구동하고,
+    실행한 스테이지 경계의 artifact 흔적(`<verify_root>/*.json` status·`WHY:`
+    commit·`docs/adr/` 존재)을 직접 확인한다 (artifact 계약). 거대 조건문을
+    생성·복붙하지 않는다. 사용자 경험의 what 변경·비가역·사용자 자산 영향이
+    새로 생기면 그 결정만 묻고, 해소 후 자동 재진행한다.
 
     impl-novelist dispatch 직전 `contract/narrative-dry-run.md`의 `#4 attempt·route 계약`을 point-of-use로 다시 읽는다. 같은 approved plan revision과 `parent_candidate_sha → candidate_sha` repair chain에서 attempt 1만 full이고, BROKEN fix 뒤 attempt M+1은 fresh scoped profile을 쓴다. 기본 full은 `model`/`model_reasoning_effort`를 생략한 fresh `impl-novelist`가 부모 세션 값을 상속하고, scoped는 `impl-novelist-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다. 외부 Pro/Claude는 사용자 명시 요청 때만 실행하며 자동 fallback으로 쓰지 않는다.
 
