@@ -34,6 +34,8 @@ description: |
   `review_scope`(full/scoped), `reviewer_provider`, `reviewer_transport`,
   `reviewer_model`, `reviewer_reasoning_effort`, `reviewer_session_id`,
   `fallback_reason`
+  - runtime이 상속값을 노출하지 않는 local full의 model/effort는
+    `inherited_from_parent`; Codex `fallback_reason`은 null
 - `verification_class`: `deterministic_artifact_or_command` 또는
   `behavior_integration_or_judgment` (slice에서 한 번 결정)
 - `stage_results.spec`, `stage_results.quality`(PASS/FAIL/NEEDS_CONTEXT/SKIPPED)
@@ -128,20 +130,18 @@ issue ID와 요구된 closure뿐이며, 이전 결론·명령·출력은 이번 
 3. 바뀐 symbol/artifact의 caller 및 producer→consumer→derived-output 영향
 
 attempt M+1은 fresh `impl-verify-scoped-reviewer`로 dispatch한다. 프로젝트가
-provider/model/reasoning route를 선언하면 그 route를 point-of-use로 다시 읽고 모두
-명시한다. 별도 route가 없으면 full은 fresh `ask-chatgpt-pro(pro/extended)`가
-primary이고 `impl-verify-reviewer(gpt-5.6-sol/xhigh)`는 transport/finality fallback
-전용이다. scoped는 `impl-verify-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다.
+provider/model/reasoning route를 선언하면 그 route를 point-of-use로 다시 읽는다.
+외부 provider route는 현재 사용자의 명시 요청이 있을 때만 쓴다. 기본 full은
+`model`/`model_reasoning_effort`를 생략한 fresh `impl-verify-reviewer`가 부모 세션
+값을 상속하고, scoped는 `impl-verify-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다.
 
-Full Pro prompt에는 canonical reviewer prompt, inline slice contract, candidate refs,
+Full prompt에는 canonical reviewer prompt, inline slice contract, candidate refs,
 필요한 diff/source와 fresh machine evidence를 self-contained attachment/context
-packet으로 보낸다. Pro의 final `BLOCKED`/`NEEDS_CONTEXT`/issue verdict는 성공한
-review이므로 fallback하지 않는다. local full fallback은
-`provider_send_failure`, `model_or_effort_unconfirmed`, `timeout`, `finality_failure`,
-`attachment_or_context_failure` 중 하나로 review 결과를 얻지 못했을 때만 fresh/
-read-only로 한 번 허용하고 `fallback_reason`에 기록한다. fallback도 실패하면
-`NEEDS_CONTEXT`다. 이전 reviewer의 provider/model/effort나 runtime default를
-상속하지 않는다.
+packet으로 보낸다. local reviewer를 실행할 수 없거나 packet이 부족하면 외부
+provider로 fallback하지 않고 `NEEDS_CONTEXT`로 닫는다. 사용자가 Pro/Claude 검토를
+명시하면 해당 provider의 session/model/finality 계약을 point-of-use로 읽고 별도
+fresh review로 실행한다. 그 실패도 자동 fallback 사유가 아니다. 이전 reviewer의
+provider/model/effort는 상속하지 않는다.
 
 deterministic narrow fix이고 oracle/acceptance criteria와 public/caller graph가
 그대로이며 위 영향이 모두 닫히면, deterministic은 영향받은 selector/preflight만,

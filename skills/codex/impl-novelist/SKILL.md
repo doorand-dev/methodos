@@ -15,22 +15,23 @@ the Claude agent prompt as source material for a Codex subagent adaptation:
 ## Procedure
 
 1. Locate the target spec, implementation range, and repo under review. Ask for missing required inputs instead of inventing them.
-2. Read the nearest project machine route at point of use. Without one, run the
-   full baseline through a fresh `ask-chatgpt-pro(pro/extended)` web session.
-   Keep `impl-novelist(gpt-5.6-sol/xhigh)` only as a fresh read-only fallback
-   when no review result is obtained because of an allowed transport/finality
-   failure. Same-lineage repair attempts use the fresh scoped
-   `impl-novelist-scoped-reviewer(gpt-5.6-sol/medium)`.
+2. Read the nearest project machine route at point of use. By default, run the
+   full baseline through a fresh read-only `impl-novelist` subagent whose custom
+   agent file omits `model` and `model_reasoning_effort`, so both inherit from
+   the parent session. Same-lineage repair attempts use the fresh scoped
+   `impl-novelist-scoped-reviewer(gpt-5.6-sol/medium)`. Use ChatGPT Pro or
+   Claude Fable/Opus only when the user explicitly requests that external
+   review.
 3. Pass the canonical prompt, spec user stories, success criteria, base/head range,
    required source/diff, and fresh machine evidence as a self-contained attachment/
    context packet. Do not pass implementation discussion.
 4. Require raw JSON output in the canonical shape from the agent prompt.
-5. Treat a final Pro `BROKEN`, `NEEDS_CONTEXT`, or issue-bearing result as a
-   successful review; never use its verdict as a fallback reason. Permit local
-   full fallback only for `provider_send_failure`,
-   `model_or_effort_unconfirmed`, `timeout`, `finality_failure`, or
-   `attachment_or_context_failure`, and persist the reason. If both routes fail,
-   return `NEEDS_CONTEXT` rather than claiming the gate passed.
+5. If the local subagent cannot run or the context packet is insufficient,
+   return `NEEDS_CONTEXT`; do not auto-call an external provider. For an
+   explicitly requested external review, apply that provider's session/model/
+   finality contract and treat its final `BROKEN`, `NEEDS_CONTEXT`, or
+   issue-bearing result as a successful review result. Its failure does not
+   authorize another provider automatically.
 
 ## Boundaries
 

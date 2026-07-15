@@ -56,17 +56,17 @@
   envelope이며 terminal artifact로 저장하지 않는다. 같은 attempt/candidate/parent를 유지해 full route로
   재dispatch하고 full 결과 하나만 저장한다. 다른 `NEEDS_CONTEXT`는 terminal이다.
 - dispatch 직전 nearest `AGENTS.md`가 지시한 project machine route가 있으면
-  point-of-use로 다시 읽어 provider/model/reasoning effort를 모두 명시한다. route가
-  없으면 Codex full은 fresh `ask-chatgpt-pro(pro/extended)`가 primary이고
-  `impl-novelist(gpt-5.6-sol/xhigh)`는 transport/finality fallback 전용이다. scoped는
+  point-of-use로 다시 읽는다. 외부 provider route는 현재 사용자의 명시 요청이 있을
+  때만 쓴다. 기본 Codex full은 `model`/`model_reasoning_effort`를 생략한 fresh
+  `impl-novelist`가 부모 세션 값을 상속하고, scoped는
   `impl-novelist-scoped-reviewer(gpt-5.6-sol/medium)`을 쓴다.
-- Pro의 final `BROKEN`/`NEEDS_CONTEXT`/issue verdict는 성공한 review이며 fallback하지
-  않는다. local full fallback은 `provider_send_failure`,
-  `model_or_effort_unconfirmed`, `timeout`, `finality_failure`,
-  `attachment_or_context_failure` 중 하나로 결과 자체를 얻지 못했을 때만 fresh/
-  read-only로 한 번 허용한다. 둘 다 실패하면 `NEEDS_CONTEXT`다.
+- local reviewer를 실행할 수 없거나 context packet이 부족하면 외부 provider로
+  fallback하지 않고 `NEEDS_CONTEXT`로 닫는다. 사용자가 Pro/Claude 검토를 명시하면
+  해당 provider의 session/model/finality 계약을 point-of-use로 읽고 별도 fresh
+  review로 실행한다. 그 실패도 자동 fallback 사유가 아니다.
 - artifact에는 approved plan revision, current/parent candidate SHA, `review_scope`,
-  실제 provider/transport/model/effort/session과 fallback 사유를 기록한다.
+  실제 provider/transport/model/effort/session을 기록한다. 기본 local route의
+  fallback 사유는 null이다.
 
 ## novelist agent 페르소나 (순진성 강제)
 
