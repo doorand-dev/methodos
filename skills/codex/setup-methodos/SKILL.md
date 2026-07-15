@@ -28,8 +28,8 @@ Use this stable pick-list:
 | Profile | Contents |
 |---|---|
 | `bootstrap` | `setup-methodos` |
-| `core` | `using-methodos`, `grill-me`, `plan`, `plan-verify`, `impl`, `impl-verify`, `decision` |
-| `core+novelists` | `core` plus `spec-novelist`, `impl-novelist`; add reviewer/novelist agents when the runtime supports isolated agents |
+| `core` | `using-methodos`, `grill-me`, `plan`, `impl`, `decision`, `impl-novelist`; add the final reviewer agent when isolated agents are supported |
+| `core+novelists` | `core` plus `spec-novelist`; add the spec and conditional decision reviewer agents when isolated agents are supported |
 | `continuity` | `handoff`, `snapshot`, `todo`, `context-novelist` |
 | `learning-loop` | `blame-code`, `finding`, `gc`, `improve-codebase-architecture` |
 | `optional` | `conditional-heartbeat`, `ask-chatgpt-pro`, `report-kit` |

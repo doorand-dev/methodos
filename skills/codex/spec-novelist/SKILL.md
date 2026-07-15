@@ -1,24 +1,24 @@
 ---
 name: spec-novelist
-description: Route explicit requests for spec novelist, spec narrative dry-run, naive-user spec review, or "스펙 노벨리스트" to the Methodos fresh-context spec-novelist agent. Use when the user asks to run, invoke, review with, or explain spec-novelist outside the grill-me gate. This is a thin discovery/router skill, not the canonical agent prompt; do not use it for context-novelist or implementation-final narrative review.
+description: Run one lightweight fresh-context narrative pass for a multi-actor or multi-flow spec, or on explicit spec novelist requests. Use the Codex spec-novelist gpt-5.6-sol/medium profile, fold gaps into the existing spec review, and never create a repeat review round. Do not use it for context packets or final implementation verification.
 ---
 
 # Spec Novelist
 
 Use this skill to make the name `spec-novelist` discoverable in ordinary Codex sessions.
 
-Do not replace the Methodos agent prompt with this file. This repository ships
-the Claude agent prompt as source material for a Codex subagent adaptation:
-
-`../../../agents/claude/spec-novelist.md`
+The stable Codex profile is `../../../agents/codex/spec-novelist.toml`. The
+Claude prompt remains cross-runtime source material, not the Codex execution route.
 
 ## Procedure
 
 1. Locate the target spec or ask for the spec paste if none is available.
-2. Prefer a fresh-context, read-only invocation using the canonical agent prompt.
+2. Use the fresh read-only `spec-novelist(gpt-5.6-sol/medium)` profile.
 3. Pass only the spec content required by that prompt. Do not pass main-session intent history.
 4. Require raw JSON output in the canonical shape from the agent prompt.
-5. If fresh-context invocation is unavailable, say that the run is degraded and perform a read-only manual pass from the same stance. Do not claim it satisfies a Methodos gate unless the gate's artifact requirements are met.
+5. Fold gaps once into the spec and continue to its existing user review. Do not
+   dispatch a second novelist after the fold.
+6. If fresh-context invocation is unavailable, say that the run is degraded and perform a read-only manual pass from the same stance. Do not claim it satisfies a Methodos gate unless the gate's artifact requirements are met.
 
 ## Boundaries
 

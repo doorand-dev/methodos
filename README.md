@@ -30,8 +30,8 @@ agent runtime. They are profiles, not installer commands.
 | Profile | Start With | Add When |
 |---|---|---|
 | `bootstrap` | `setup-methodos` | First adoption pass for a repository |
-| `core` | `using-methodos`, `grill-me`, `plan`, `plan-verify`, `impl`, `impl-verify`, `decision` | Any non-trivial Methodos workflow |
-| `core+novelists` | `core` plus `spec-novelist`, `impl-novelist`, Claude reviewer/novelist agents if supported | Multi-file or multi-flow feature work |
+| `core` | Codex: `using-methodos`, `grill-me`, `plan`, `impl`, `decision`, `impl-novelist`; Claude: add `plan-verify`, `impl-verify` | Any non-trivial Methodos workflow |
+| `core+novelists` | `core` plus `spec-novelist` and runtime reviewer/novelist agents | Multi-actor or multi-flow feature work |
 | `continuity` | `handoff`, `snapshot`, `todo`, `context-novelist` | Long-running work across sessions, compaction, or context surfaces |
 | `learning-loop` | `blame-code`, `finding`, `gc`, `improve-codebase-architecture` | Turning repeated confusion or stale artifacts into structural improvements |
 | `optional` | `conditional-heartbeat`, `ask-chatgpt-pro`, `report-kit` | Heartbeat wakeups, external second opinion, or HTML lifecycle reporting |
@@ -47,7 +47,7 @@ code. Methodos puts durable checkpoints between those steps:
 
 - intent becomes a written spec
 - the spec becomes vertical implementation slices
-- each plan and slice gets isolated verification
+- Claude can verify each plan/slice; Codex consolidates fresh verification at the final candidate
 - fresh-context novelist lenses walk lived-use stories before and after implementation
 - completion requires evidence artifacts, not just confident prose
 - runtime guards catch mismatches between agent prose, tool calls, evidence, and context placement
@@ -60,10 +60,10 @@ code. Methodos puts durable checkpoints between those steps:
 Idea
   -> grill-me writes docs/specs/<slug>.md
   -> plan writes <plan_root>/<slug>.md
-  -> plan-verify writes <verify_root>/plan-*.json
-  -> impl commits one slice at a time with WHY:
-  -> impl-verify writes <verify_root>/slice-*.json
-  -> impl-novelist walks the assembled result before final confidence
+  -> optional high-risk decision-reviewer runs once
+  -> impl commits one slice at a time with WHY: and local checks
+  -> Codex impl-novelist runs one full final technical+narrative review
+  -> failed-review repairs alone receive scoped final reverify
 ```
 
 The shared contract for these artifacts lives in
@@ -76,7 +76,7 @@ Methodos does not rely on agent prose alone. It applies three kinds of pressure:
 
 | Pressure | Question | Examples |
 |---|---|---|
-| Reviewer gates | Is the plan or slice correct, evidenced, and within contract? | `plan-verify`, `impl-verify`, reviewer agents |
+| Reviewer gates | Is the consequential decision or final candidate correct and evidenced? | conditional `decision-reviewer`, Codex final `impl-novelist`, Claude `plan-verify`/`impl-verify` |
 | Novelist lenses | Can the intended actor actually live through the story? | `spec-novelist`, `impl-novelist`, `context-novelist` |
 | Runtime guards | Did the runtime actually follow the stated intent? | model gates, evidence wording checks, context-surface guard |
 
@@ -92,9 +92,8 @@ byte-identical across runtimes.
 - Claude realizations live in `skills/claude/<skill>/SKILL.md`.
 - Codex realizations live in `skills/codex/<skill>/SKILL.md`.
 - Claude reviewer and novelist agent prompts live in `agents/claude/`.
-- Codex novelist router skills, such as `spec-novelist` and `impl-novelist`,
-  live in `skills/codex/`; Codex subagent wiring is left to the adopting
-  runtime.
+- Codex reviewer/novelist skills live in `skills/codex/`; stable read-only
+  custom-agent profiles live in `agents/codex/`.
 
 ## Skill Families
 
@@ -106,11 +105,11 @@ byte-identical across runtimes.
 | `using-methodos` | Passive orientation meta-skill, not a router | none |
 | `grill-me` | Intent alignment interview before non-trivial work | `docs/specs/<slug>.md` |
 | `plan` | Approved spec to vertical implementation slices | `<plan_root>/<slug>.md` |
-| `plan-verify` | Isolated adversarial plan review | `<verify_root>/plan-*.json` |
+| `plan-verify` | Claude isolated adversarial plan review; not an automatic Codex gate | `<verify_root>/plan-*.json` |
 | `impl` | Slice implementation with `WHY:` commits | git commits |
-| `impl-verify` | Isolated slice verification | `<verify_root>/slice-*.json` |
+| `impl-verify` | Claude isolated slice verification; not an automatic Codex gate | `<verify_root>/slice-*.json` |
 | `spec-novelist` | Fresh-context spec lived-use lens | Codex router skill or Claude agent fold |
-| `impl-novelist` | Final assembled implementation lived-use lens | narrative verify report |
+| `impl-novelist` | Claude lived-use lens; Codex single final technical+narrative verifier | narrative verify report |
 
 ### Governance
 

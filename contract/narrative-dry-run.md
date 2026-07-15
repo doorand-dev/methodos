@@ -22,14 +22,16 @@
 | # | 시점 | 모드 | 실행 주체 | 환류처 |
 |---|---|---|---|---|
 | #2 | spec 직후 (grill-me §6) | full | **외부 `spec-novelist` agent** (fresh, sonnet) | spec `user_stories` / `edge_cases` / `modules`. 확인은 §7 *기존* review gate에 흡수 |
-| #3 | plan-verify 후 delta (plan M2) | delta | **inline** (기계적 diff, 오염 여지 적음) | 체감 변화면 기존 M2 게이트 / 새 보완점은 spec `edge_cases`·plan slice |
-| #4 | 최종 구현 후 (model-driven 최종 게이트) | full | **외부 `impl-novelist` agent** (fresh, runtime route 명시) | 깨짐/regression → 게이트(아래) / polish → `<todo_root>/todos.md` |
+| #3 | semantic plan 보정 후 delta | delta | **inline** (Claude plan-verify 또는 Codex decision-reviewer fold 뒤) | 체감 변화면 사용자 결정 / 새 보완점은 spec `edge_cases`·plan slice |
+| #4 | 최종 구현 후 (model-driven 최종 게이트) | full | **fresh `impl-novelist` agent** (runtime route 명시) | 깨짐/regression → 게이트(아래) / polish → `<todo_root>/todos.md` |
 
 > #1 "방향 합의 직후"는 artifact가 아직 없어 *독립 스텝 아님* — grill-me §3 stress-test에 흡수.
 
 ## "깨짐(broken)" 사다리 — #4 게이트 판정 기준
 
-#4는 impl-verify(per-slice) *다음*에 온다. 각 slice가 plan대로임은 이미 통과된 상태. #4가 더 잡는 건 **slice 사이 이음새(seam)** — 전체를 사용자처럼 한 번에 걷는 유일한 자리라서.
+Claude #4는 per-slice impl-verify 다음에 온다. Codex #4는 별도 per-slice reviewer를
+두지 않고 requirements/scope, impact/quality, fresh commands/full regression,
+actor/user-story seam을 한 fresh final pass에서 함께 소유한다.
 
 | 등급 | 뜻 | #4 처리 |
 |---|---|---|
@@ -44,17 +46,16 @@
 ## 게이트 동작 (#4, 승인 게이트 추가 0)
 
 - 정상(DONE) → model-driven 흐름 정상 종료. 평소와 동일.
-- **깨짐/regression(BROKEN)** → 골 완료 결정 보류. **impl 재시도 auto-loop** (사용자 대답 강제 X — D34식 알림 한 줄). N 천장 도달 시 escalate (impl-verify ralph와 동일).
+- **깨짐/regression(BROKEN)** → 골 완료 결정 보류. **impl 재시도 auto-loop** (사용자 대답 강제 X — 알림 한 줄). runtime retry ceiling 도달 시 escalate.
 - polish/deferred → `<todo_root>/todos.md` 자동 적재 후 통과. **`friction.md`에 쓰지 말 것** — `blame-code` 명시 트리거 전용 불변식.
 
 ## #4 attempt·route 계약
 
 - 같은 `approved_plan_revision`과 `parent_candidate_sha → candidate_sha` BROKEN-fix chain만 같은 lineage다. 새 approved revision 또는 사용자 결정 cycle은 attempt 1의 새 lineage다.
 - attempt 1은 모든 actor/user_story와 regression 범위를 걷는 유일한 baseline full review다. attempt M+1은 stable prior issue, fix changed paths, 영향받은 actor/entrypoint/flow selector만 fresh scoped reverify한다.
-- full reverify는 acceptance/oracle 변경, public/caller/decision graph 변경, out-of-scope touch, selector로 닫히지 않는 shared output, impact radius 미폐쇄 중 하나일 때만 허용한다. `escalation_reason`에 predicate를 기록한다. attempt 증가나 unchanged contract 안의 새 issue는 full 사유가 아니다.
-- scoped reviewer가 위 predicate로 `NEEDS_CONTEXT`를 반환하면 그 응답은 routing
-  envelope이며 terminal artifact로 저장하지 않는다. 같은 attempt/candidate/parent를 유지해 full route로
-  재dispatch하고 full 결과 하나만 저장한다. 다른 `NEEDS_CONTEXT`는 terminal이다.
+- Claude full reverify는 Claude owner contract를 따른다. Codex attempt 2+는 항상
+  scoped다. 요구사항, acceptance/oracle, public contract, authority/data behavior,
+  impact graph가 바뀌면 scoped를 full로 넓히지 않고 새 lineage attempt 1 full로 시작한다.
 - dispatch 직전 nearest `AGENTS.md`가 지시한 project machine route가 있으면
   point-of-use로 다시 읽는다. 외부 provider route는 현재 사용자의 명시 요청이 있을
   때만 쓴다. 기본 Codex full은 `model`/`model_reasoning_effort`를 생략한 fresh
