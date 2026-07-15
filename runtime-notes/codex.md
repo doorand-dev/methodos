@@ -36,18 +36,19 @@ spec 서사는 아래 조건부 reviewer만 앞단에서 실행한다.
 
 | Gate | Scope | Primary | Model | Effort |
 |---|---|---|---|---|
-| spec-novelist (다중 actor/flow만) | one-shot | fresh local `spec-novelist` subagent | `gpt-5.6-sol` | `medium` |
+| spec-novelist (다중 actor/flow만) | one-shot | fresh local `spec-novelist` subagent | parent session 상속 | parent session 상속 |
 | decision-reviewer (고위험 결정만) | one-shot | fresh local `decision-reviewer` subagent | parent session 상속 | parent session 상속 |
-| final impl-novelist | attempt 1 full | fresh local `impl-novelist` subagent | parent session 상속 | parent session 상속 |
-| final impl-novelist | repair attempt 2+ scoped | fresh local `impl-novelist-scoped-reviewer` subagent | `gpt-5.6-sol` | `medium` |
+| final impl-novelist | attempt 1 full | fresh local `impl-novelist` subagent | `gpt-5.6-sol` | `medium` |
+| final impl-novelist | repair attempt 2+ scoped | fresh local `impl-novelist-scoped-reviewer` subagent | parent session 상속 | parent session 상속 |
 
 Final full review는 approved requirements, candidate refs, 필요한 파일, 영향 graph,
-검증 명령을 self-contained context packet으로 보낸다. full custom-agent TOML은
-`model`과 `model_reasoning_effort`를 선언하지 않는다. Codex가 두 값을 부모 세션에서
-상속하므로 사용자가 부모 세션을 xhigh로 선택하면 full reviewer도 xhigh다. Packet이
-canonical evidence/impact 요구를 판정하기에 부족하거나 reviewer를 실행할 수 없으면
-verdict를 추측하거나 외부 provider로 fallback하지 말고 `NEEDS_CONTEXT`로 닫는다.
-상속 동작의 upstream 근거는 Codex 공식 [Subagents 문서](https://learn.chatgpt.com/docs/agent-configuration/subagents.md)다.
+검증 명령을 self-contained context packet으로 보낸다. full custom-agent TOML만
+`gpt-5.6-sol`과 `medium`을 선언해 구현 부모 세션의 설정과 무관한 최종 품질 하한을
+둔다. spec·decision·scoped profile은 `model`과 `model_reasoning_effort`를 생략해
+부모 세션에서 상속한다. Packet이 canonical evidence/impact 요구를 판정하기에
+부족하거나 reviewer를 실행할 수 없으면 verdict를 추측하거나 외부 provider로
+fallback하지 말고 `NEEDS_CONTEXT`로 닫는다. 상속 동작의 upstream 근거는 Codex 공식
+[Subagents 문서](https://learn.chatgpt.com/docs/agent-configuration/subagents.md)다.
 
 사용자가 외부 Pro/Claude 검토를 명시적으로 요청하면 해당 provider skill/runtime의
 session·model·finality 계약을 point-of-use로 읽고 별도 fresh review로 실행한다. 이
@@ -57,11 +58,12 @@ Artifact에는 실제 실행 경로의 `reviewer_provider`, `reviewer_transport`
 `reviewer_model`, `reviewer_reasoning_effort`, `reviewer_session_id`,
 `fallback_reason`을 기록한다. `fallback_reason`은 shared schema 호환을 위해
 유지하지만 자동 fallback이 없는 Codex route에서는 null이다. 기본 local route의 provider/transport는
-`codex_local`/`subagent`, session id와 fallback reason은 null이다. local full의
-model/effort는 runtime이 실제 값을 노출하면 그 값을 기록하고, 노출하지 않으면 각각
-`inherited_from_parent`를 기록한다. 이 값은 unknown이 아니라 custom-agent 설정을
-생략해 부모 세션에서 상속했다는 명시적 provenance다. 명시적으로 요청한 외부 검토는
-실제 provider/transport/model/effort/session을 기록한다.
+`codex_local`/`subagent`, session id와 fallback reason은 null이다. local full은
+`gpt-5.6-sol`/`medium`을 기록한다. 부모 값을 상속하는 local profile은 runtime이 실제
+값을 노출하면 그 값을 기록하고, 노출하지 않으면 각각 `inherited_from_parent`를
+기록한다. 이 값은 unknown이 아니라 custom-agent 설정을 생략해 부모 세션에서
+상속했다는 명시적 provenance다. 명시적으로 요청한 외부 검토는 실제
+provider/transport/model/effort/session을 기록한다.
 
 Final attempt 1 DONE이면 종료하며 routine second review를 만들지 않는다. BROKEN fix로
 새 candidate가 생긴 경우에만 attempt 2+ scoped reviewer가 stable issue closure,

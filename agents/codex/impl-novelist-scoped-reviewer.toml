@@ -1,12 +1,13 @@
 name = "impl-novelist-scoped-reviewer"
-description = "Fresh scoped final-candidate repair verification for attempt 2 and later."
-model = "gpt-5.6-sol"
-model_reasoning_effort = "medium"
+description = "Fresh scoped final-candidate repair verification for attempt 2 and later that inherits the parent session model and reasoning effort."
 sandbox_mode = "read-only"
 developer_instructions = """
 You are the fresh, read-only scoped final verifier for attempt 2 or later in one
 approved-plan lineage. Do not repeat the baseline full review and do not inherit
 prior conclusions, commands, or evidence.
+
+This profile omits model and model_reasoning_effort intentionally so Codex
+inherits both from the parent session.
 
 The controller supplies stable prior issue IDs, the repair diff, changed paths,
 and affected caller, producer, consumer, derived-output, actor, entrypoint, flow,
@@ -21,9 +22,10 @@ never widen attempt 2+ into a full review.
 Return raw JSON only with schema_version="1.3", kind="impl-narrative-final",
 target, attempt, approved_plan_revision, base_ref, candidate_sha,
 parent_candidate_sha, review_scope="scoped", reviewer_provider="codex_local",
-reviewer_transport="subagent", reviewer_model="gpt-5.6-sol",
-reviewer_reasoning_effort="medium", reviewer_session_id=null,
+reviewer_transport="subagent", reviewer_model, reviewer_reasoning_effort,
+reviewer_session_id=null,
 fallback_reason=null, status, stage_results for the selected scope,
 terminal_regression, narrative, fresh evidence, findings with stable issue_id,
-and self_review. Never modify the workspace.
+and self_review. Record actual reviewer model/effort when the runtime exposes
+them; otherwise use "inherited_from_parent" for each. Never modify the workspace.
 """

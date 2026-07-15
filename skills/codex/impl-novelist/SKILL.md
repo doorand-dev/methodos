@@ -1,6 +1,6 @@
 ---
 name: impl-novelist
-description: Run the single fresh final verification gate for an assembled Codex implementation. Self-trigger after all planned implementation commits and local checks are complete, or on explicit final implementation review / impl novelist requests. Attempt 1 is full and inherits the parent model and effort; only repairs after a failed final review use scoped gpt-5.6-sol/medium. Do not run a routine second round after DONE.
+description: Run the single fresh final verification gate for an assembled Codex implementation. Self-trigger after all planned implementation commits and local checks are complete, or on explicit final implementation review / impl novelist requests. Attempt 1 is full and fixed to gpt-5.6-sol/medium as the final quality floor; only repairs after a failed final review use a scoped reviewer that inherits the parent model and effort. Do not run a routine second round after DONE.
 ---
 
 # Impl Novelist
@@ -16,15 +16,15 @@ per-slice `impl-verify` are not Codex gates.
    commands, full-regression command, and repo. Do not invent missing inputs.
 2. Read the nearest project machine route at point of use. External ChatGPT Pro
    or Claude Fable/Opus is allowed only when the user explicitly requests it.
-3. For attempt 1, dispatch the fresh read-only `impl-novelist` profile. It omits
-   `model` and `model_reasoning_effort`, so both inherit from the parent session.
+3. For attempt 1, dispatch the fresh read-only
+   `impl-novelist(gpt-5.6-sol/medium)` profile as the final quality floor.
 4. Pass a self-contained packet: approved requirements, slice contracts, exact
    base/candidate refs, actual diff/source, impact selectors, and commands. Do
    not pass implementation discussion or prior DONE claims.
 5. Require `impl-narrative-final` v1.3 JSON. DONE ends the workflow immediately;
    never schedule a routine second review.
-6. If attempt 1 or later returns BROKEN, implement the repair and dispatch
-   `impl-novelist-scoped-reviewer(gpt-5.6-sol/medium)` for attempt 2+. Give it
+6. If attempt 1 or later returns BROKEN, implement the repair and dispatch the
+   parent-model/effort `impl-novelist-scoped-reviewer` for attempt 2+. Give it
    only stable issue closure, repair paths, affected impact/flow/test selectors,
    and the new candidate ref.
 7. If a repair changes approved requirements, acceptance/oracle, public contract,
