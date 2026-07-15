@@ -47,16 +47,21 @@ description: |
 
 attempt M 호출 시 attempt M-1 결과 paste 전달 → impl-verify-reviewer가 `repeated_from_attempt` 판정.
 
-## Codex cross-model 적대 게이트 (대형·아키텍처 변경, 1회 loop X)
+## Codex cross-model 적대 검토 (사용자 명시 요청, 1회 loop X)
 
 **왜**: impl-verify-reviewer 포함 모든 검증자가 Claude 한 가족(fable/opus) → 공유 맹점. codex(GPT-5.4)로 cross-model 1회 적대 검증.
 
 **자리**: *진짜 맨 끝* 게이트 — 모든 슬라이스 impl-verify 통과 **+ (다flow) narrative #4 status DONE 후**, 골 종료 직전 1회. codex만 loop가 없으니 *코드가 바뀌는 마지막 게이트(narrative #4 fix 루프) 뒤*에 와야 최종 출하 diff를 본다. per-slice 아님 (whole-branch 1회 — per-slice×N = 사실상 loop).
 
-**활성화 (self-scope — 라우터 없음)**: 게이트가 변경 규모를 *자체 평가*해 **대형·아키텍처·보안 변경**(창발 L, 또는 결정 자리 많은 M+D33 — decision-reviewer D25/D33 조건 재사용)이면 자동 활성. 그 외(작은 M·S·XS)는 skip — codex 호출·artifact 생성 안 함. (tier는 사용자 선언 라벨이 아니라 자체 평가 근거 — `using-methodos`.)
+**활성화**: 사용자가 현재 작업에서 Codex cross-model 검토를 명시적으로 요청했을
+때만 실행한다. 변경 규모·보안·아키텍처·D33 또는 Codex 설치 여부만으로 자동
+활성화하지 않는다. 명시 요청이 없으면 codex 호출과 artifact 생성을 모두 skip한다.
 
 **절차** (컨트롤러 1턴, foreground — background polling은 model-driven 순차 구동에 결과 회수 행위자가 없어 못 씀):
-0. **precheck**: codex CLI 가용? 아니면 dispatch 생략 + 1회 안내 "대형·아키텍처 변경엔 codex 게이트 있음 — codex 설치/로그인 시 cross-model 검증 활성. 지금은 skip." → artifact `verdict: "error"`, `status: "SKIPPED"` 기록 후 통과.
+0. **precheck**: 사용자가 명시 요청했는지 먼저 확인한다. 요청이 없으면 아무
+artifact 없이 종료한다. 요청이 있는데 codex CLI가 없으면 dispatch를 생략하고
+"요청한 Codex 검토를 실행할 수 없음 — 설치/로그인 필요"라고 안내한 뒤 artifact
+`verdict: "error"`, `status: "SKIPPED"`를 기록한다.
 1. **base 결정 + 빈-diff precheck**: plan frontmatter `approved_plan_revision` SHA. 이 시점엔 모든 슬라이스가 *커밋됨* → working-tree diff가 비어 있으니 **반드시 branch-diff 모드** (`--base <approved_plan_revision>`). **codex 부르기 전 `git diff --shortstat <base>.HEAD`로 diff 비었는지 확인 — 비어 있으면 codex 호출 생략하고 `status: "SKIPPED"`(verdict `error`, reason "empty_diff: base 오설정 의심") 기록.** (smoke test 실측: codex는 빈 diff에 **거짓 `approve` 반환** → 그대로 믿으면 거짓 DONE. 빈 diff = base 설정 문제이지 "결함 없음"이 아님.)
 2. **foreground + timeout 단일 호출** (argv는 *분리 토큰* — 따옴표 한 덩어리면 `--base` 인식 못 해 "nothing to review"로 빠짐, smoke test 검증): `node <plugin-root>/scripts/codex-companion.mjs adversarial-review --wait --base <approved_plan_revision>`를 *bounded timeout*(예: 5분)으로 1회 실행. `<plugin-root>`는 절대 경로(예 `<runtime-plugin-cache>/openai-codex/codex/<ver>`) — plugin-root env가 없을 수 있으므로 절대 경로 권장. dispatch+capture+timeout이 한 Bash 호출에 (cross-turn polling 없음). 1회·맨끝이라 이 턴 1개 block 허용.
 3. **결과 → artifact** (`.claude/verify-reports/codex-impl-<slug>.json`). 저장 필드: `kind: "codex-impl"`, `target_slug`, `base`, `status`, `verdict`, `raw_review`, `findings`, `created_at`. stdout은 *렌더 markdown*(raw JSON 아님, smoke test 실측):
@@ -151,7 +156,7 @@ attempt M 호출 시 attempt M-1 결과 paste 전달 → impl-verify-reviewer가
 - 슬라이스 끝 → `/impl-verify` 격리 검증 (2-stage)
 - 검증 DONE → 다음 슬라이스
 - 검증 DONE_WITH_CONCERNS / BLOCKED → fix 슬라이스로 사이클 (`/impl-verify`의 "다음 단계" 표 참고)
-- 모든 슬라이스 DONE → (다flow) narrative #4 → (narrative #4 DONE 후, 대형·아키텍처 변경 시) Codex 적대 게이트 1회 → **(선택, G-D) 전체 diff `/simplify` 1회 마무리 패스 — 값 있을 때만 (OPEN)** → 결정 기록 또는 `WHY:` 요약 + 골 종료
+- 모든 슬라이스 DONE → (다flow) narrative #4 → (사용자 명시 요청 시) Codex 적대 검토 1회 → **(선택, G-D) 전체 diff `/simplify` 1회 마무리 패스 — 값 있을 때만 (OPEN)** → 결정 기록 또는 `WHY:` 요약 + 골 종료
 
 ## Reeval
 
@@ -163,4 +168,4 @@ attempt M 호출 시 attempt M-1 결과 paste 전달 → impl-verify-reviewer가
 ## 실행 전후 확인
 
 - 슬라이스 commit 직전 → [3H] 한 슬라이스 단독 동작·검증 가능 / [1C] 누더기 거부
-- (다flow) narrative #4 DONE 후 (대형·아키텍처 변경) → Codex cross-model 적대 게이트 1회, 최종 diff 대상·advisory-fold ([2J] cross-model Evidence)
+- (다flow) narrative #4 DONE 후 사용자가 명시 요청한 경우 → Codex cross-model 적대 검토 1회, 최종 diff 대상·advisory-fold ([2J] cross-model Evidence)
