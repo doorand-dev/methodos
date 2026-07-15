@@ -12,20 +12,26 @@ inherits both from the parent session.
 The controller supplies stable prior issue IDs, the repair diff, changed paths,
 and affected caller, producer, consumer, derived-output, actor, entrypoint, flow,
 and test selectors. Verify only issue closure, repair paths, affected impact, and
-targeted regression commands. Cite only commands you run now.
+targeted regression commands. Re-run only affected technical lenses and actor
+stories; justify every unaffected lens as SKIPPED. Cite only commands you run now.
+
+Keep the original finding backlink. Do not gate a new finding unless it
+backlinks one exact approved acceptance criterion, user story, or explicit
+public invariant. Require observable behavior and its minimum proving oracle,
+not a preferred implementation or unrelated coverage.
 
 If the repair changes approved requirements, acceptance/oracle, public contract,
 authority/data behavior, or the impact graph itself, return NEEDS_CONTEXT with
 escalation_required=true. The controller must start a new lineage attempt 1 full;
 never widen attempt 2+ into a full review.
 
-Return raw JSON only with schema_version="1.3", kind="impl-narrative-final",
+Return raw JSON only with schema_version="1.4", kind="impl-narrative-final",
 target, attempt, approved_plan_revision, base_ref, candidate_sha,
 parent_candidate_sha, review_scope="scoped", reviewer_provider="codex_local",
 reviewer_transport="subagent", reviewer_model, reviewer_reasoning_effort,
 reviewer_session_id=null,
 fallback_reason=null, status, stage_results for the selected scope,
 terminal_regression, narrative, fresh evidence, findings with stable issue_id,
-and self_review. Record actual reviewer model/effort when the runtime exposes
+backlink_type, backlink, observable_invariant, and self_review. Record actual reviewer model/effort when the runtime exposes
 them; otherwise use "inherited_from_parent" for each. Never modify the workspace.
 """

@@ -61,7 +61,8 @@ Idea
   -> grill-me writes docs/specs/<slug>.md
   -> plan writes <plan_root>/<slug>.md
   -> optional high-risk decision-reviewer runs once
-  -> impl commits one slice at a time with WHY: and local checks
+  -> impl commits one slice at a time with WHY: and local RED/GREEN/checks
+  -> explicitly high-risk slices receive one fresh Sol/medium checkpoint
   -> Codex impl-novelist runs one full final technical+narrative review
   -> failed-review repairs alone receive scoped final reverify
 ```
@@ -76,7 +77,7 @@ Methodos does not rely on agent prose alone. It applies three kinds of pressure:
 
 | Pressure | Question | Examples |
 |---|---|---|
-| Reviewer gates | Is the consequential decision or final candidate correct and evidenced? | conditional `decision-reviewer`, Codex final `impl-novelist`, Claude `plan-verify`/`impl-verify` |
+| Reviewer gates | Is the consequential decision, selected high-risk foundation, or final candidate correct and evidenced? | conditional `decision-reviewer`, Codex high-risk checkpoint and final `impl-novelist`, Claude `plan-verify`/`impl-verify` |
 | Novelist lenses | Can the intended actor actually live through the story? | `spec-novelist`, `impl-novelist`, `context-novelist` |
 | Runtime guards | Did the runtime actually follow the stated intent? | model gates, evidence wording checks, context-surface guard |
 
@@ -106,10 +107,10 @@ byte-identical across runtimes.
 | `grill-me` | Intent alignment interview before non-trivial work | `docs/specs/<slug>.md` |
 | `plan` | Approved spec to vertical implementation slices | `<plan_root>/<slug>.md` |
 | `plan-verify` | Claude isolated adversarial plan review; not an automatic Codex gate | `<verify_root>/plan-*.json` |
-| `impl` | Slice implementation with `WHY:` commits | git commits |
+| `impl` | Slice implementation with local checks, `WHY:` commits, and selective high-risk checkpoints | git commits plus conditional checkpoint artifact |
 | `impl-verify` | Claude isolated slice verification; not an automatic Codex gate | `<verify_root>/slice-*.json` |
 | `spec-novelist` | Fresh-context spec lived-use lens | Codex router skill or Claude agent fold |
-| `impl-novelist` | Claude lived-use lens; Codex single final technical+narrative verifier | narrative verify report |
+| `impl-novelist` | Claude lived-use lens; Codex single final 4-technical-lens+narrative verifier | narrative verify report |
 
 ### Governance
 

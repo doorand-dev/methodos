@@ -1,6 +1,6 @@
 ---
 name: impl
-description: Implement an approved Codex plan one slice at a time, run each slice's declared local checks, close caller and data-flow impact, and create WHY commits. Trigger when an approved plan has unimplemented slices. Do not wait for plan-verify and do not dispatch per-slice impl-verify. After all slices pass local checks, dispatch the single final impl-novelist verification gate; attempt 1 is full and only failed-review repairs use scoped attempt 2+.
+description: Implement an approved Codex plan one slice at a time, run each slice's declared local RED/GREEN and verification checks, confirm the diff boundary, and create WHY commits. Trigger when an approved plan has unimplemented slices. Skip reviewer checkpoints by default; dispatch one fresh read-only checkpoint only for an explicitly high-risk slice. After all slices pass, dispatch the single final impl-novelist gate; attempt 1 is full and only failed-review repairs use scoped attempt 2+.
 ---
 
 # /impl — slices to one final verified candidate
@@ -42,13 +42,56 @@ description: Implement an approved Codex plan one slice at a time, run each slic
    Touched: <paths>
    ```
 
-7. Continue directly to the next slice. Do not dispatch a fresh reviewer or
-   create `slice-<N>-attempt-<M>.json` between slices.
+7. Classify the completed slice using the checkpoint predicate below. Skip by
+   default. When it matches, close the one checkpoint before a downstream slice
+   consumes the changed foundation.
+8. Continue directly to the next slice after the local contract and any required
+   checkpoint are closed. Do not create Claude `slice-<N>-attempt-<M>.json`.
 
 Large independent slices may use an implementation subagent, but its prompt
 must include the exact slice, touched paths, impact closure, verification
 commands, RED/GREEN requirement, and WHY commit format. Implementation
 delegation is not a verification gate.
+
+## High-risk slice checkpoint
+
+Default to `SKIP`. Require a checkpoint only when the slice changes at least one
+of these observable risk surfaces:
+
+- schema or explicit public contract;
+- approval, authority, permission, secret, or security behavior;
+- persistent artifact, latest pointer, idempotency, or concurrency behavior;
+- migration or external state;
+- order, capital allocation, or financial-execution semantics;
+- a foundation consumed by two or more later planned slices.
+
+For each matching slice:
+
+1. After its WHY commit and local checks, dispatch the fresh read-only
+   `impl-checkpoint-reviewer(gpt-5.6-sol/medium)` with `fork_turns="none"`.
+   Send only the approved slice contract, base/candidate refs, actual diff,
+   risk trigger, affected caller/producer/consumer/failure selectors, and
+   declared commands. Store attempt 1 at
+   `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-1.json`.
+2. Run exactly one full attempt 1 for that slice and approved-plan revision.
+   Never schedule a routine second full checkpoint.
+3. On `BROKEN`, repair the stable findings with a WHY commit. Unless the user
+   explicitly limited this task to one review, dispatch the same profile fresh
+   for attempt 2+ scoped to stable issue IDs, repair paths, affected selectors,
+   and targeted commands. Do not repeat the baseline full review.
+4. When the user said `검토 1회만` or an equivalent limit, skip checkpoint
+   re-review after repair. Pass the prior findings, repair diff, unrerun
+   selectors, and residual risk into the final integrated gate; never describe
+   the checkpoint as independently closed.
+5. If repair changes an approved acceptance/oracle, public contract,
+   authority/data behavior, or the impact graph, stop scoped routing. Close the
+   required decision and plan revision, then start a new checkpoint lineage in
+   which that revised slice may receive one full attempt 1.
+
+Every gating checkpoint finding must backlink one exact approved acceptance
+criterion, user story, or explicit public invariant. Without that backlink it
+is non-gating polish/deferred work. A reviewer may require an observable
+invariant and its minimum proving oracle, but never a particular implementation.
 
 ## Final candidate gate
 
@@ -56,12 +99,14 @@ After every planned slice is committed and local checks pass:
 
 1. Identify the approved plan revision, regression base, final candidate SHA,
    full spec/plan requirements, actual diff, impact graph, declared targeted
-   commands, and one full-regression command when the project declares one.
+   commands, one full-regression command when the project declares one, and all
+   high-risk checkpoint results or explicit one-review-only residual risks.
 2. Dispatch fresh read-only `impl-novelist(gpt-5.6-sol/medium)` attempt 1 full
    with `fork_turns="none"` as the final quality floor. Pass the review packet
    after spawning; never inherit all or recent main-session turns.
-3. The final reviewer independently checks requirements/scope, caller and data
-   impact, code quality, commands/full regression, and every actor/user story.
+3. The final reviewer independently runs the four technical lenses in order:
+   requirements/scope; caller/producer/consumer/failure impact; quality/debt;
+   test oracle/full regression. It then overlays every actor/user story.
 4. `DONE` ends the workflow. Never schedule a routine second review.
 5. `BROKEN` returns stable issues to this skill. Make the smallest repair and a
    WHY commit, then dispatch with `fork_turns="none"` the fresh
@@ -84,6 +129,8 @@ Goal completion requires:
 
 - all planned WHY commits;
 - actual local command outputs for every slice;
+- every matched high-risk slice has one full checkpoint artifact, while ordinary
+  slices have none; one-review-only repairs carry explicit residual risk forward;
 - latest `<verify_root>/narrative-<slug>-final-attempt-<M>.json` status `DONE`;
 - final attempt 1 artifact has every stage PASS, or the latest scoped repair
   artifact has selected stages PASS and justified unaffected stages SKIPPED;
@@ -92,7 +139,8 @@ Goal completion requires:
 
 ## Do not
 
-- wait for or create Codex `plan-verify`/per-slice `impl-verify` artifacts;
+- wait for or create Codex `plan-verify`/routine per-slice `impl-verify` artifacts;
+- broaden the checkpoint predicate because a slice is merely large or complex;
 - treat implementer reports or commit messages as final evidence;
 - modify files outside a slice without updating the approved contract;
 - claim an unrun command, caller, consumer, or user flow was verified;

@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Decompose an approved spec or multi-slice non-trivial Codex task into executable slices, exact files, contracts, decisions, and verification commands. Self-trigger after spec approval or before multi-slice implementation. Skip formal planning for a clear 1-2-file task with no user-visible flow, schema/public API, authority/data, irreversible change, or unresolved WHAT decision. After approval, run deterministic preflight, one conditional high-risk decision review, then continue through implementation to the single final impl-novelist verification gate.
+description: Decompose an approved spec or multi-slice non-trivial Codex task into executable slices, exact files, contracts, decisions, verification commands, and selective high-risk checkpoint annotations. Self-trigger after spec approval or before multi-slice implementation. Skip formal planning for a clear 1-2-file task with no user-visible flow, schema/public API, authority/data, irreversible change, or unresolved WHAT decision. After approval, run deterministic preflight and one conditional decision review, then implement with local checks, checkpoint only explicit high-risk slices, and finish with one integrated impl-novelist gate.
 ---
 
 # /plan — approved intent를 executable slices로 변환
@@ -52,6 +52,8 @@ slices:
     line_budget: <1-200>
     public_contracts: []
     public_callers: []
+    review_checkpoint: skip | required
+    checkpoint_reason: null | <one enumerated risk surface>
     decision_needed: false
     user_facing_scenario: null
     recommended: null
@@ -82,6 +84,13 @@ inline full algorithms or existing files.
    observable user/system outcome and one PASS artifact. Order dependencies and
    surface a genuinely uncertain, expensive assumption as a throwaway P0 spike
    only when it exists.
+
+   Mark `review_checkpoint: required` only for a slice changing schema/public
+   contract; approval/authority/permission/secret/security; persistent artifact,
+   latest pointer, idempotency, or concurrency; migration/external state;
+   order/capital-allocation/financial-execution semantics; or a foundation used
+   by at least two later slices. Mark every other slice `skip`. Size or complexity
+   alone is not a trigger.
 
 4. **Encode decisions.** Ask the user only when a choice changes user-visible
    behavior, is hard to reverse, or affects user assets/authority/data. Present
@@ -128,10 +137,12 @@ inline full algorithms or existing files.
    - ChatGPT Pro or Claude Fable/Opus runs only on an explicit user request.
 
 10. **Continue automatically.** Implement every slice with local checks and WHY
-    commits. Do not run Codex `plan-verify` or per-slice `impl-verify`. When all
-    planned commits and local commands are complete, run the single final
-    `impl-novelist` gate: attempt 1 full; only failed-review repairs use attempt
-    2+ scoped.
+    commits. Do not run Codex `plan-verify` or routine per-slice `impl-verify`.
+    Run one fresh Sol/medium checkpoint only for a slice marked `required` or
+    whose actual diff newly matches the predicate. When all planned commits,
+    local commands, and required checkpoints are complete, run the single final
+    integrated `impl-novelist` gate: attempt 1 full; only failed-review repairs
+    use attempt 2+ scoped.
 
 ## No placeholders
 
