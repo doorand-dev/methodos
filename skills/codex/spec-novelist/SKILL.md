@@ -7,8 +7,10 @@ description: Run one lightweight fresh-context narrative pass for a multi-actor 
 
 Use this skill to make the name `spec-novelist` discoverable in ordinary Codex sessions.
 
-The stable Codex profile is `../../../agents/codex/spec-novelist.toml`. The
-Claude prompt remains cross-runtime source material, not the Codex execution route.
+After installation, load the stable Codex profile from
+`$CODEX_HOME/agents/spec-novelist.toml`. Its Methodos source counterpart is
+`../../../agents/codex/spec-novelist.toml`. The Claude prompt remains
+cross-runtime source material, not the Codex execution route.
 
 ## Procedure
 
