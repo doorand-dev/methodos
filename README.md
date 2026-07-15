@@ -30,7 +30,7 @@ agent runtime. They are profiles, not installer commands.
 | Profile | Start With | Add When |
 |---|---|---|
 | `bootstrap` | `setup-methodos` | First adoption pass for a repository |
-| `core` | Codex: `using-methodos`, `grill-me`, `plan`, `impl`, `decision`, `impl-novelist`; Claude: add `plan-verify`, `impl-verify` | Any non-trivial Methodos workflow |
+| `core` | Codex: `using-methodos`, `grill-me`, `plan`, `impl`, `impl-worker`, `decision`, `impl-novelist`; Claude: add `plan-verify`, `impl-verify` | Any non-trivial Methodos workflow |
 | `core+novelists` | `core` plus `spec-novelist` and runtime reviewer/novelist agents | Multi-actor or multi-flow feature work |
 | `continuity` | `handoff`, `snapshot`, `todo`, `context-novelist` | Long-running work across sessions, compaction, or context surfaces |
 | `learning-loop` | `blame-code`, `finding`, `gc`, `improve-codebase-architecture` | Turning repeated confusion or stale artifacts into structural improvements |

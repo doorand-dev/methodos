@@ -30,7 +30,7 @@ description: |
 |---|---|---|
 | `grill-me` | 신규 기능·비-trivial 작업, *코드 작성 전* | `docs/specs/<slug>.md` (approved) |
 | `plan` | spec 있거나 다슬라이스 비-trivial, *구현 전* | `<plan_root>/<slug>.md` (approved) |
-| `impl` | plan approved, 슬라이스 구현·자율주행 | git commit (`WHY:` prefix) |
+| `impl` | plan approved, 모든 구현은 fresh `impl-worker`(Luna/Max)로 위임하고 부모가 seam 수용 | git commit (`WHY:` prefix) |
 | high-risk slice checkpoint (`impl` 내부) | schema/public contract, authority/security, persistent/latest/idempotency/concurrency, migration/external state, financial execution, 또는 2개 이상 후속 slice 기반일 때만 | `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` |
 | `impl-novelist` (#4) | 모든 구현 commit·로컬 check 후 단 한 번의 fresh 최종 기술+서사 검증 | `<verify_root>/narrative-<slug>-final-attempt-<M>.json` |
 | runtime advisory review (impl 내부) | 사용자가 별도 reviewer runtime 검토를 명시 요청한 경우, *마무리 직전* 1회 | `<verify_root>/<review-runtime>-impl-<slug>.json` |
@@ -52,7 +52,10 @@ description: |
 
 `decision`은 보조가 아니다. 중앙 라우터는 아니지만 Methodos의 core governance다. 반대로 `handoff`/`snapshot`/`todo`는 파이프라인 산출물을 읽고 쓰지 않는 운영층이라 core gate가 아니다.
 
-기본은 **사용자 결정 공간을 보존한 model-driven 자율주행**이다. spec review approval,
+기본은 **사용자 결정 공간을 보존한 model-driven 자율주행**이다. 구현 코드는 부모 세션이
+직접 작성하지 않고 fresh `impl-worker`(gpt-5.6-luna/max)가 작성·검증 보고를 반환한다.
+부모 세션은 사용자 맥락, approved contract, caller/producer/consumer seam을 확인하고
+WHY 커밋을 소유한다. spec review approval,
 M1 결정 리스트와 plan review approval은 사용자가 확인한다. 고위험 plan의 조건부
 decision-reviewer가 사용자 체감 delta를 만들면 그 결정만 다시 받는다. 이후에는
 impl → final impl-novelist까지 이어간다.

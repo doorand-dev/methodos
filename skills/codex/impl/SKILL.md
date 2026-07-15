@@ -1,6 +1,6 @@
 ---
 name: impl
-description: Implement an approved Codex plan one slice at a time, run each slice's declared local RED/GREEN and verification checks, confirm the diff boundary, and create WHY commits. Trigger when an approved plan has unimplemented slices. Skip reviewer checkpoints by default; dispatch one fresh read-only checkpoint only for an explicitly high-risk slice. After all slices pass, dispatch the single final impl-novelist gate; attempt 1 is full and only failed-review repairs use scoped attempt 2+.
+description: Implement an approved Codex plan one slice at a time through a fresh gpt-5.6-luna/max impl-worker, receive its evidence report, perform parent-session seam acceptance, and create WHY commits. Trigger when an approved plan has unimplemented slices. Skip reviewer checkpoints by default; dispatch one fresh read-only checkpoint only for an explicitly high-risk slice. After all slices pass, dispatch the single final impl-novelist gate; attempt 1 is full and only failed-review repairs use scoped attempt 2+.
 ---
 
 # /impl — slices to one final verified candidate
@@ -14,25 +14,49 @@ description: Implement an approved Codex plan one slice at a time, run each slic
 - Do not require a `plan-verify` artifact. Deterministic plan preflight and any
   conditional high-risk `decision-reviewer` must already be closed.
 - A direct 1-2-file task with no formal plan follows the normal implementation
-  path: minimal edit, at least one relevant check, and project-required commit.
-  It does not manufacture Methodos artifacts or subagents.
+  path: dispatch `impl-worker`, make the minimal edit, run at least one
+  relevant check, perform parent seam acceptance, and make the project-required
+  commit. It does not manufacture Methodos review artifacts.
+
+## Implementation worker boundary
+
+Every implementation write, including a direct 1-2-file implementation, MUST
+be performed by a fresh `impl-worker` child with `fork_turns="none"`. The
+`impl-worker` profile is fixed to `gpt-5.6-luna`/`max`; the parent session's
+live permission mode still governs whether the child can write.
+
+The parent sends a self-contained packet containing the approved slice or
+direct-task contract, exact create/modify/test paths, user-facing acceptance
+criteria, caller/producer/consumer/failure selectors, declared commands, and
+the WHY commit requirement. Do not paste the whole parent conversation.
+
+The worker edits only the declared implementation paths, runs the declared
+checks, does not spawn children, does not call reviewers, and does not commit.
+It returns raw JSON `kind="impl-worker-report"` with `IMPLEMENTED` or `BLOCKED`,
+actual touched paths, commands with exit codes and output, acceptance links,
+impact paths, unresolved items, and its actual model/effort.
+
+The worker report is a handoff, not acceptance. After receiving it, the parent
+must inspect the real workspace diff, verify the declared paths and caller /
+producer / consumer seam, run or directly confirm the relevant command output,
+and resolve any scope or user-flow mismatch. Only then does the parent create
+the WHY commit. Do not treat `IMPLEMENTED` as final completion.
 
 ## Implement each slice
 
-1. Paste the complete slice contract into the implementation context. Stay
+1. Paste the complete slice contract into the fresh `impl-worker` packet. Stay
    inside declared create/modify/test paths. Stop on intent overrun or a new
    user-visible, authority/data, public-contract, or irreversible decision.
-2. Before editing, inspect existing owners and all changed public callers. For
-   artifacts and pipelines, close producer → consumer → derived-output paths.
-3. Make the minimum implementation. Do not add unrequested abstractions,
-   configurability, or out-of-scope cleanup.
-4. Run the declared verification command locally. Record actual command, exit,
-   and output. For `unit_test`, observe real RED before implementation and GREEN
-   after it. For deterministic artifacts, exercise the declared integrated
-   selector rather than checking file existence alone.
-5. Check actual touched paths with `git diff --name-only`. Resolve unexpected
-   paths before committing.
-6. Commit the completed slice with only owned paths:
+2. Before dispatch, the parent inspects existing owners and all changed public
+   callers. For artifacts and pipelines, identify producer → consumer →
+   derived-output paths and include them in the packet.
+3. Spawn `impl-worker` and wait for its raw completion report. A `BLOCKED`
+   report stops the slice; an `IMPLEMENTED` report proceeds only to parent seam
+   acceptance.
+4. The parent checks actual touched paths with `git diff --name-only`, confirms
+   the caller/producer/consumer/failure seam, and runs or directly confirms the
+   declared verification command. Resolve unexpected paths before committing.
+5. Commit the completed slice with only owned paths:
 
    ```text
    <한 줄 제목>
@@ -42,16 +66,11 @@ description: Implement an approved Codex plan one slice at a time, run each slic
    Touched: <paths>
    ```
 
-7. Classify the completed slice using the checkpoint predicate below. Skip by
+6. Classify the completed slice using the checkpoint predicate below. Skip by
    default. When it matches, close the one checkpoint before a downstream slice
    consumes the changed foundation.
-8. Continue directly to the next slice after the local contract and any required
+7. Continue directly to the next slice after the local contract and any required
    checkpoint are closed. Do not create Claude `slice-<N>-attempt-<M>.json`.
-
-Large independent slices may use an implementation subagent, but its prompt
-must include the exact slice, touched paths, impact closure, verification
-commands, RED/GREEN requirement, and WHY commit format. Implementation
-delegation is not a verification gate.
 
 ## High-risk slice checkpoint
 
@@ -101,13 +120,16 @@ After every planned slice is committed and local checks pass:
    full spec/plan requirements, actual diff, impact graph, declared targeted
    commands, one full-regression command when the project declares one, and all
    high-risk checkpoint results or explicit one-review-only residual risks.
-2. Dispatch fresh read-only `impl-novelist(gpt-5.6-sol/medium)` attempt 1 full
-   with `fork_turns="none"` as the final quality floor. Pass the review packet
-   after spawning; never inherit all or recent main-session turns.
+2. The parent dispatches fresh read-only `impl-novelist(gpt-5.6-sol/medium)`
+   attempt 1 full with `fork_turns="none"` as the final quality floor. Pass
+   the review packet after spawning; never inherit all or recent main-session
+   turns. The parent may own orchestration and consume the result, but it must
+   not replace this independent final gate with its own self-review.
 3. The final reviewer independently runs the four technical lenses in order:
    requirements/scope; caller/producer/consumer/failure impact; quality/debt;
    test oracle/full regression. It then overlays every actor/user story.
-4. `DONE` ends the workflow. Never schedule a routine second review.
+4. `DONE` ends the workflow only after both parent seam acceptance and the
+   novelist result are closed. Never schedule a routine second review.
 5. `BROKEN` returns stable issues to this skill. Make the smallest repair and a
    WHY commit, then dispatch with `fork_turns="none"` the fresh
    parent-model/effort `impl-novelist-scoped-reviewer` as attempt 2+ with only:

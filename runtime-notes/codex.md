@@ -37,6 +37,7 @@ Codex는 plan 승인 뒤 별도 `plan-verify`를 자동 호출하지 않고, 일
 
 | Gate | Scope | Primary | Model | Effort |
 |---|---|---|---|---|
+| implementation worker | every implementation slice, one-shot | fresh local `impl-worker` subagent | `gpt-5.6-luna` | `max` |
 | spec-novelist (다중 actor/flow만) | one-shot | fresh local `spec-novelist` subagent | parent session 상속 | parent session 상속 |
 | decision-reviewer (고위험 결정만) | one-shot | fresh local `decision-reviewer` subagent | parent session 상속 | parent session 상속 |
 | impl checkpoint (선택된 high-risk slice만) | attempt 1 full once; repair scoped | fresh local `impl-checkpoint-reviewer` subagent | `gpt-5.6-sol` | `medium` |
@@ -59,6 +60,14 @@ custom-agent TOML은 `gpt-5.6-sol`과 `medium`을 선언해 구현 부모 세션
 부족하거나 reviewer를 실행할 수 없으면 verdict를 추측하거나 외부 provider로
 fallback하지 말고 `NEEDS_CONTEXT`로 닫는다. 상속 동작의 upstream 근거는 Codex 공식
 [Subagents 문서](https://learn.chatgpt.com/docs/agent-configuration/subagents.md)다.
+
+구현 worker는 `fork_turns="none"`으로 fresh spawn한다. 부모는 approved slice/direct-task
+contract, exact paths, acceptance criteria, caller/producer/consumer/failure selectors,
+declared commands를 self-contained packet으로 보낸다. Worker는 편집·로컬 검증·raw
+`impl-worker-report` 반환까지만 맡고, child spawn·reviewer 호출·commit은 하지 않는다.
+Worker의 `IMPLEMENTED`는 handoff이지 acceptance가 아니다. 부모가 실제 diff와 seam,
+검증 출력을 확인한 뒤 WHY commit을 만들고, 모든 slice 이후 별도 fresh final reviewer를
+호출한다.
 
 사용자가 외부 Pro/Claude 검토를 명시적으로 요청하면 해당 provider skill/runtime의
 session·model·finality 계약을 point-of-use로 읽고 별도 fresh review로 실행한다. 이
@@ -88,7 +97,8 @@ repair paths, 영향받은 caller/producer/consumer/flow/test selector를 확인
 바뀌면 scoped를 full로 넓히지 않는다. 사용자 결정이 필요하면 먼저 닫고 새 lineage의
 attempt 1 full로 시작한다.
 
-모든 local profile은 `sandbox_mode = "read-only"`를 명시한다. Codex final artifact는
+Reviewer local profile은 `sandbox_mode = "read-only"`를 명시한다. `impl-worker`는 부모의
+live permission mode를 상속하므로 구현 경로에서 write-capable이다. Codex final artifact는
 requirements/scope, impact/quality, fresh commands/full regression, actor/user-story
 narrative를 함께 소유한다. `plan-verify`와 routine per-slice `impl-verify` artifact는
 Codex lifecycle의 완료 조건이 아니다. 선택된 high-risk checkpoint artifact만 예외다.
