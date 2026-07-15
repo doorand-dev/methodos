@@ -44,7 +44,7 @@ description: |
 ## Codex·외부 실행자 위임
 
 데이터형(B)·루프형(C)은 빌더라 Codex 적합(기계적·명확스펙). Codex는 같은 PC에서 직접 돌리므로
-임베드 프롬프트 말고 **이 스킬 경로를 주고 읽게** 한다 — `~/.codex/skills/report-kit/`의
+임베드 프롬프트 말고 **이 스킬 경로를 주고 읽게** 한다 — `~/.agents/skills/report-kit/`의
 `SKILL.md`(규약·아키타입)+`kit.html`(`:root` 팔레트 + 9 컴포넌트 복붙 출처). 서사형(A)은 판단이 커 직접 작성 권장.
 
 ## 방법론은 여기 말고 (경계)

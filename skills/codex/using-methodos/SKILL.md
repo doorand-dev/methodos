@@ -62,9 +62,11 @@ impl → final impl-novelist까지 이어간다.
 
 ## Codex 스킬 루트
 
-Codex에는 성격이 다른 스킬 루트가 둘 있을 수 있다. `~/.agents/skills`는 methodos/agent 하네스 스킬(`grill-me`, `plan`, `impl`)의 런타임 정본이고, `~/.codex/skills`는 Codex 사용자·시스템·보조 스킬(`context-novelist` 등)의 런타임 정본이다. 둘 다 존재하는 것은 정상이다.
-
-단, 같은 `name:`이 두 루트에 동시에 생기면 wrong-reader 위험이다. 그때는 어느 루트가 현재 세션에 노출됐는지 먼저 확인하고, 내용 hash 동기화가 아니라 **행동 계약 drift**를 점검한다.
+직접 설치하는 모든 Codex 사용자 스킬의 런타임 정본은 `~/.agents/skills`다.
+`grill-me`, `plan`, `impl`뿐 아니라 `context-novelist`, `spec-novelist`,
+`impl-novelist` 같은 보조·검증 스킬도 같은 루트에 둔다. `~/.codex/skills`에는
+Codex가 관리하는 시스템 스킬만 남기고 사용자 스킬의 active 또는 `.disabled`
+사본을 두지 않는다.
 
 ## tier = 트리거 *설계 근거* (런타임 라벨 아님, /)
 
