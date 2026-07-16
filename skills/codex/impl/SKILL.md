@@ -1,6 +1,6 @@
 ---
 name: impl
-description: Implement an approved Codex plan one slice at a time through a fresh gpt-5.6-luna/max impl-worker. The worker owns implementation, local verification, WHY commits, selective high-risk checkpoints, and—when it is the assembly owner—the single final impl-novelist gate with repair. The planning/orchestration session owns WHAT, slice boundaries, model route, and candidate ancestry; the upper controller performs seam checks only.
+description: Route every implementation write, including a direct 1-2-file task, through a fresh gpt-5.6-luna/max impl-worker. The worker owns implementation, local verification, WHY commits, selective high-risk checkpoints, and—when it is the assembly owner—the single final impl-novelist gate with repair. The planning/orchestration session owns WHAT, slice boundaries, model route, and candidate ancestry; the upper controller performs seam checks only.
 ---
 
 # /impl — worker-owned implementation to one final verified candidate
