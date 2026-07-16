@@ -289,7 +289,7 @@ self_review:
 
 ### Worker handoff schema (kind: `impl-worker-report`, v1.1)
 
-`impl-worker-report`는 artifact 자체가 아니라, `impl`이 선택한 Luna/medium 또는
+`impl-worker-report`는 artifact 자체가 아니라, `impl`이 선택한 Luna/high 또는
 Luna/max worker가 planning /
 orchestration session에 반환하는 기계적 seam handoff다. Worker가 구현·WHY
 commit·필요한 checkpoint·assembly-owner final review를 닫은 뒤 반환하며, 상위
@@ -334,7 +334,7 @@ ancestry, artifact/hash, dirty/index만 확인한다.
   "unresolved": [],
   "workspace": {"dirty_paths": [], "staged_paths": []},
   "worker_model": "gpt-5.6-luna",
-  "worker_reasoning_effort": "medium | max"
+  "worker_reasoning_effort": "high | max"
 }
 ```
 
@@ -345,10 +345,9 @@ undeclared path, dirty/index residue, or a new user-facing, authority/data,
 public-contract, or irreversible decision.
 
 모델과 provider는 runtime route가 정한다. 직접 실행 predicate와 delegated Luna
-medium/max 선택의 point-of-use 정본은
-`skills/codex/impl/SKILL.md`와
+high/max 선택의 point-of-use 정본은 `skills/codex/impl/SKILL.md` 하나다.
 `agents/codex/impl-checkpoint-reviewer.toml` /
-`agents/codex/impl-novelist.toml`이며 final attempt 1 full은
+`agents/codex/impl-novelist.toml`의 reviewer effort 계약과는 별개이며 final attempt 1 full은
 `gpt-5.6-sol/medium`으로 고정한 fresh local read-only subagent다. Codex high-risk
 slice checkpoint attempt 1도 같은 quality floor를 쓰되 선택된 slice 범위만 본다. failed-review
 repair의 attempt 2+ scoped는 부모 세션의 model/effort를 상속한다.

@@ -1,6 +1,6 @@
 ---
 name: impl
-description: Execute a truly simple, closed implementation directly; otherwise route delegated work to a fresh built-in Luna worker with medium as the default and max only for elevated risk or uncertainty. Direct execution and workers both own local verification and WHY commits. Delegated high-risk checkpoints and assembly-owner final impl-novelist gates remain worker-owned.
+description: Execute a truly simple, closed implementation directly; otherwise route delegated work to a fresh built-in Luna worker with high as the default and max only when failure or rework would be unusually costly. Direct execution and workers both own local verification and WHY commits. Delegated high-risk checkpoints and assembly-owner final impl-novelist gates remain worker-owned.
 ---
 
 # /impl — right-sized implementation to one final verified candidate
@@ -40,11 +40,13 @@ final-review gates are never bypassed.
 ## Delegated execution and effort
 
 When direct self-execution is ineligible, dispatch a fresh built-in
-worker/default subagent with model `gpt-5.6-luna`. Use `medium` by default.
-Use `max` only when the work has multi-slice or cross-module impact, an
-uncertain cause or impact, difficult verification, or any high-risk predicate
-surface. Do not choose effort by line count alone. The selected worker owns
-implementation, local verification, WHY commits, and any required reviewer.
+worker/default subagent with model `gpt-5.6-luna`. Use `high` by default.
+Escalate to `max` when the work has multi-slice or cross-module impact, an
+uncertain cause or impact, difficult verification, any high-risk predicate
+surface, or a failure whose delay or rework cost would be large. Do not choose
+effort by line count alone. Do not use `medium` as a default until comparable
+evidence supports it. The selected worker owns implementation, local
+verification, WHY commits, and any required reviewer.
 
 ## Ownership contract
 
@@ -165,7 +167,7 @@ state of every reviewer it owned:
   "unresolved": [],
   "workspace": {"dirty_paths": [], "staged_paths": []},
   "worker_model": "gpt-5.6-luna",
-  "worker_reasoning_effort": "medium" | "max"
+  "worker_reasoning_effort": "high" | "max"
 }
 ```
 

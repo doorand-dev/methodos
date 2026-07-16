@@ -1,7 +1,7 @@
 ---
 name: using-methodos
 description: |
-  Methodos — this workspace's distributed AI-coding harness (an umbrella name, no central router). Codex directly executes truly simple closed changes; delegated work uses Luna/medium by default and Luna/max only for elevated risk or uncertainty, with worker-owned selective high-risk checkpoints and one assembly-owner final impl-novelist verification gate. This meta-skill explains the framework; it does not route work on the gates' behalf.
+  Methodos — this workspace's distributed AI-coding harness (an umbrella name, no central router). Codex directly executes truly simple closed changes; delegated work uses the Luna high/max route selected by impl, with worker-owned selective high-risk checkpoints and one assembly-owner final impl-novelist verification gate. This meta-skill explains the framework; it does not route work on the gates' behalf.
   Fires: "methodos가 뭐야", "이 하네스/게이트 어떻게 동작", "어떤 게이트 있어", `/using-methodos` explicit call.
   Does not fire: "X 추가해줘", "Y 구현해줘", "Z 만들자" (← the grill-me/plan gates self-trigger *directly*. This skill is not a router — do not call it).
 ---
@@ -30,7 +30,7 @@ description: |
 |---|---|---|
 | `grill-me` | 신규 기능·비-trivial 작업, *코드 작성 전* | `docs/specs/<slug>.md` (approved) |
 | `plan` | spec 있거나 다슬라이스 비-trivial, *구현 전* | `<plan_root>/<slug>.md` (approved) |
-| `impl` | 단순·닫힌 작업은 `impl` predicate로 직접 실행; 그 외 fresh `impl-worker`는 Luna/medium 기본, 고위험·불확실 작업만 Luna/max | WHY commit |
+| `impl` | 단순·닫힌 작업은 `impl` predicate로 직접 실행; 그 외 fresh `impl-worker`의 Luna high/max 선택은 `impl` 정본을 따름 | WHY commit |
 | high-risk slice checkpoint (`impl` 내부) | schema/public contract, authority/security, persistent/latest/idempotency/concurrency, migration/external state, financial execution, 또는 2개 이상 후속 slice 기반일 때만 | `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` |
 | `impl-novelist` (#4) | assembly owner worker가 모든 구현 commit·로컬 check 후 단 한 번 호출하는 fresh 최종 기술+서사 검증 | `<verify_root>/narrative-<slug>-final-attempt-<M>.json` |
 | runtime advisory review (impl 내부) | 사용자가 별도 reviewer runtime 검토를 명시 요청한 경우, *마무리 직전* 1회 | `<verify_root>/<review-runtime>-impl-<slug>.json` |
@@ -54,7 +54,7 @@ description: |
 
 기본은 **사용자 결정 공간을 보존한 model-driven 자율주행**이다. 단순·닫힌 작업은
 `impl`의 유일한 predicate로 부모가 직접 작성·로컬 검증·WHY 커밋을 소유한다. 그 외
-구현은 fresh `impl-worker`가 Luna/medium 기본, 고위험·불확실 작업에서만 Luna/max로
+구현은 fresh `impl-worker`가 Luna high/max 중 `impl`이 선택한 effort로
 작성·검증·WHY 커밋을 소유한다. 이 문서는 그 기준을 복제하지 않는다. 고위험 slice의 Sol/medium checkpoint도 worker가
 호출하고, 전체 구현을 한 worker가 조립하면 그 worker가 fresh final `impl-novelist`까지
 호출한다. 여러 worker 결과를 합치면 assembly owner worker가 한 번만 final을 호출한다.

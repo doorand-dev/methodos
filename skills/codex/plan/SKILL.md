@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Decompose an approved spec or multi-slice non-trivial Codex task into executable slices, exact files, contracts, decisions, verification commands, and selective high-risk checkpoint annotations. Self-trigger after spec approval or before multi-slice implementation. Skip formal planning for a clear 1-2-file task with no user-visible flow, schema/public API, authority/data, irreversible change, or unresolved WHAT decision. After approval, run deterministic preflight and one conditional decision review, then use the `impl` direct predicate or its Luna/medium~max delegated route; delegated workers own local checks, commits, explicit high-risk checkpoints, and the assembly-owner final impl-novelist gate.
+description: Decompose an approved spec or multi-slice non-trivial Codex task into executable slices, exact files, contracts, decisions, verification commands, and selective high-risk checkpoint annotations. Self-trigger after spec approval or before multi-slice implementation. Skip formal planning for a clear 1-2-file task with no user-visible flow, schema/public API, authority/data, irreversible change, or unresolved WHAT decision. After approval, run deterministic preflight and one conditional decision review, then use the `impl` direct predicate or its Luna high/max delegated route; delegated workers own local checks, commits, explicit high-risk checkpoints, and the assembly-owner final impl-novelist gate.
 ---
 
 # /plan — approved intent를 executable slices로 변환
@@ -138,8 +138,8 @@ inline full algorithms or existing files.
    - ChatGPT Pro or Claude Fable/Opus runs only on an explicit user request.
 
 10. **Continue automatically.** Use the `impl` direct predicate for an eligible
-    simple closed slice; otherwise route it to a fresh Luna `impl-worker` with
-    medium as the default and max only under `impl`'s elevated-risk predicate.
+    simple closed slice; otherwise route it to a fresh Luna `impl-worker` using
+    the effort selected by `impl`, the sole detailed routing authority.
     The selected executor owns local checks and WHY commits. Do not run Codex `plan-verify` or
     routine per-slice `impl-verify`. The owning worker runs one fresh Sol/medium
     checkpoint only for a slice marked `required` or whose actual diff newly

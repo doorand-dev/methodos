@@ -28,7 +28,7 @@ Use this stable pick-list:
 | Profile | Contents |
 |---|---|
 | `bootstrap` | `setup-methodos` |
-| `core` | `using-methodos`, `grill-me`, `plan`, `impl`, `impl-worker`, `decision`, `impl-novelist`; `impl` directly executes only its simple closed predicate, otherwise a Luna/medium worker (Luna/max for elevated risk) owns implementation, local checks, WHY commits, and selected reviewers; add the selective checkpoint and final reviewer agents when isolated agents are supported |
+| `core` | `using-methodos`, `grill-me`, `plan`, `impl`, `impl-worker`, `decision`, `impl-novelist`; `impl` directly executes only its simple closed predicate, otherwise a Luna high/max worker selected by `impl` owns implementation, local checks, WHY commits, and selected reviewers; add the selective checkpoint and final reviewer agents when isolated agents are supported |
 | `core+novelists` | `core` plus `spec-novelist`; add the spec and conditional decision reviewer agents when isolated agents are supported |
 | `continuity` | `handoff`, `snapshot`, `todo`, `context-novelist` |
 | `learning-loop` | `blame-code`, `finding`, `gc`, `improve-codebase-architecture` |

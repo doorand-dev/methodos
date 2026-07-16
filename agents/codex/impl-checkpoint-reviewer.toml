@@ -1,5 +1,5 @@
 name = "impl-checkpoint-reviewer"
-description = "Fresh selective high-risk slice verifier fixed to gpt-5.6-sol with medium reasoning effort; the owning Luna worker calls it, repairs stable findings, and requests scoped reverify."
+description = "Fresh selective high-risk slice verifier fixed to gpt-5.6-sol with medium reasoning effort; the owning Luna high/max worker calls it, repairs stable findings, and requests scoped reverify."
 model = "gpt-5.6-sol"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
