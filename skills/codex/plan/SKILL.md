@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Decompose an approved spec or multi-slice non-trivial Codex task into executable slices, exact files, contracts, decisions, verification commands, and selective high-risk checkpoint annotations. Self-trigger after spec approval or before multi-slice implementation. Skip formal planning for a clear 1-2-file task with no user-visible flow, schema/public API, authority/data, irreversible change, or unresolved WHAT decision. After approval, run deterministic preflight and one conditional decision review, then implement with local checks, checkpoint only explicit high-risk slices, and finish with one integrated impl-novelist gate.
+description: Decompose an approved spec or multi-slice non-trivial Codex task into executable slices, exact files, contracts, decisions, verification commands, and selective high-risk checkpoint annotations. Self-trigger after spec approval or before multi-slice implementation. Skip formal planning for a clear 1-2-file task with no user-visible flow, schema/public API, authority/data, irreversible change, or unresolved WHAT decision. After approval, run deterministic preflight and one conditional decision review, then route implementation to Luna/max workers; workers own local checks, commits, explicit high-risk checkpoints, and the assembly-owner final impl-novelist gate.
 ---
 
 # /plan — approved intent를 executable slices로 변환
@@ -136,13 +136,14 @@ inline full algorithms or existing files.
      user decision. Record the new approved revision.
    - ChatGPT Pro or Claude Fable/Opus runs only on an explicit user request.
 
-10. **Continue automatically.** Implement every slice with local checks and WHY
-    commits. Do not run Codex `plan-verify` or routine per-slice `impl-verify`.
-    Run one fresh Sol/medium checkpoint only for a slice marked `required` or
+10. **Continue automatically.** Route every slice to a fresh Luna/max
+    `impl-worker`; that worker owns local checks and WHY commits. Do not run
+    Codex `plan-verify` or routine per-slice `impl-verify`. The owning worker
+    runs one fresh Sol/medium checkpoint only for a slice marked `required` or
     whose actual diff newly matches the predicate. When all planned commits,
-    local commands, and required checkpoints are complete, run the single final
-    integrated `impl-novelist` gate: attempt 1 full; only failed-review repairs
-    use attempt 2+ scoped.
+    local commands, and required checkpoints are complete, the assembly-owner
+    worker runs the single final integrated `impl-novelist` gate: attempt 1 full;
+    only failed-review repairs use scoped attempt 2+.
 
 ## No placeholders
 

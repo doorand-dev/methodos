@@ -29,9 +29,9 @@
 | `<plan_root>/<slug>.md` | `/plan` 스킬 (사용자 결정 공간, 명시 실행) | PRD 상세화 + self-review 3-dim + user 명시 승인 |
 | `<verify_root>/plan-<slug>-cycle-<C>-attempt-<N>.json` | Claude `/plan-verify` realization | Claude plan 격리 검증 끝; Codex는 자동 생성하지 않음 |
 | `<verify_root>/slice-<N>-attempt-<M>.json` | Claude `/impl-verify` realization | Claude slice 검증 끝; Codex는 자동 생성하지 않음 |
-| `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` | Codex `impl-checkpoint-reviewer` | 명시적 high-risk slice만; attempt 1 full 1회, repair만 scoped |
+| `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` | owning Luna/max `impl-worker` via `impl-checkpoint-reviewer` | 명시적 high-risk slice만; attempt 1 full 1회, repair만 scoped |
 | 최종 slice attempt의 `terminal_regression` | Claude goal owner | Claude 최종 candidate regression; Codex는 final artifact가 소유 |
-| `<verify_root>/narrative-<slug>-final-attempt-<M>.json` | `impl-novelist` agent | Claude narrative 또는 Codex 통합 final verification |
+| `<verify_root>/narrative-<slug>-final-attempt-<M>.json` | assembly-owner worker via `impl-novelist` agent | Claude narrative 또는 Codex 통합 final verification |
 | `<verify_root>/<review-runtime>-impl-<slug>.json` | 사용자 명시 요청형 cross-runtime advisory review | final novelist 통과 후 사용자 요청 때만 1회, loop 없음 |
 | `<diagnose_root>/<bug-slug>.md` | 빌트인 `diagnose:` 스킬 | 디버깅 6단계 끝 |
 | `<friction_path>` | `blame-code` 스킬 | 교정·코드귀책 발화 자동 또는 수동 `/blame-code` |
@@ -286,6 +286,62 @@ self_review:
 | `impl-verify` | [impl-verify-reviewer](../agents/claude/impl-verify-reviewer.md) | Claude route | `<verify_root>/slice-<N>-attempt-<M>.json` | Codex automatic lifecycle에서는 미사용 |
 | `impl-checkpoint` | [impl-checkpoint-reviewer](../agents/codex/impl-checkpoint-reviewer.toml) | `gpt-5.6-sol/medium` | `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` | Codex high-risk slice만 선택적 사용 |
 | `impl-narrative-final` | runtime `impl-novelist` | runtime route | `<verify_root>/narrative-<slug>-final-attempt-<M>.json` | Claude narrative; Codex는 technical+actor final verification 통합 |
+
+### Worker handoff schema (kind: `impl-worker-report`, v1.1)
+
+`impl-worker-report`는 artifact 자체가 아니라, Luna/max worker가 planning /
+orchestration session에 반환하는 기계적 seam handoff다. Worker가 구현·WHY
+commit·필요한 checkpoint·assembly-owner final review를 닫은 뒤 반환하며, 상위
+controller는 이 보고를 근거로 semantic review를 반복하지 않고 실제 commit,
+ancestry, artifact/hash, dirty/index만 확인한다.
+
+```json
+{
+  "schema_version": "1.1",
+  "kind": "impl-worker-report",
+  "status": "IMPLEMENTED | BLOCKED",
+  "owner_role": "slice-owner | assembly-owner",
+  "slice_id": "<slice>",
+  "touched_paths": ["<path>"],
+  "commit_sha": "<sha> | null",
+  "parent_sha": "<sha> | null",
+  "checks": [{"command": "<actual>", "exit_code": 0, "output": "<actual>"}],
+  "checkpoint": {
+    "required": false,
+    "status": "SKIPPED",
+    "artifact_path": null,
+    "artifact_sha256": null,
+    "reviewed_candidate_sha": null,
+    "final_candidate_sha": null,
+    "reviewer_model": null,
+    "reviewer_reasoning_effort": null,
+    "reviewer_transport": null
+  },
+  "final_review": {
+    "required": false,
+    "status": "SKIPPED",
+    "artifact_path": null,
+    "artifact_sha256": null,
+    "reviewed_candidate_sha": null,
+    "final_candidate_sha": null,
+    "reviewer_model": null,
+    "reviewer_reasoning_effort": null,
+    "reviewer_transport": null
+  },
+  "acceptance_criteria": ["<exact reference>"],
+  "impact": {"callers": [], "producers": [], "consumers": [], "failures": []},
+  "unresolved": [],
+  "workspace": {"dirty_paths": [], "staged_paths": []},
+  "worker_model": "gpt-5.6-luna",
+  "worker_reasoning_effort": "max"
+}
+```
+
+`IMPLEMENTED` is valid only when every declared check, required reviewer
+terminal, artifact/hash, commit, ancestry, and workspace boundary is closed.
+`BLOCKED` is fail-closed for missing context, a failed command/reviewer, an
+undeclared path, dirty/index residue, or a new user-facing, authority/data,
+public-contract, or irreversible decision.
 
 모델과 provider는 runtime route가 정한다. Codex 기본 route는
 `runtime-notes/codex.md`가 정본이며 final attempt 1 full은
@@ -627,8 +683,8 @@ high-risk slice에만 만든다. 일반 slice에는 만들지 않는다.
 - BROKEN repair는 stable issue, repair path, affected selector와 command만 attempt
   2+ `scoped`로 fresh 재검증한다. unaffected stage는 이유와 함께 SKIPPED한다.
 - 사용자가 해당 작업에서 `검토 1회만`이라고 명시하면 repair 뒤 scoped도 생략한다.
-  controller는 이전 finding, repair diff, 미재검증 selector와 residual risk를 final
-  impl-novelist packet에 넘긴다.
+  owning worker는 이전 finding, repair diff, 미재검증 selector와 residual risk를
+  assembly-owner final impl-novelist packet에 넘긴다.
 - acceptance/oracle, public contract, authority/data behavior, impact graph 변경은
   scoped 대상이 아니다. 필요한 결정과 plan revision을 닫은 새 lineage에서만 새
   attempt 1 full을 허용한다.
@@ -805,7 +861,7 @@ status: reproduced | minimised | fixed | regressed
 - Codex realization: plan-verify와 Claude slice attempt artifact를 요구하지 않음.
   명시적 high-risk slice만 checkpoint attempt 1 full artifact를 요구하며 일반
   slice는 로컬 RED/GREEN·선언 검증·diff 범위 증거만 요구
-- Codex 골 종료: latest narrative-final v1.4 status DONE, 모든 stage PASS,
+- Codex 골 종료: assembly-owner worker가 만든 latest narrative-final v1.4 status DONE, 모든 stage PASS,
   `terminal_regression` 실제 결과 또는 `NOT_DECLARED` 잔여 범위 확인
 - Claude 다파일/다flow 골 종료: latest narrative-final v1.2 status DONE
 - 사용자가 별도 reviewer runtime 검토를 명시 요청한 경우 runtime advisory JSON 존재

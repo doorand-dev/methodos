@@ -28,7 +28,7 @@ Use this stable pick-list:
 | Profile | Contents |
 |---|---|
 | `bootstrap` | `setup-methodos` |
-| `core` | `using-methodos`, `grill-me`, `plan`, `impl`, `impl-worker`, `decision`, `impl-novelist`; add the selective checkpoint and final reviewer agents when isolated agents are supported |
+| `core` | `using-methodos`, `grill-me`, `plan`, `impl`, `impl-worker`, `decision`, `impl-novelist`; the Luna/max worker owns implementation, local checks, WHY commits, and selected reviewers; add the selective checkpoint and final reviewer agents when isolated agents are supported |
 | `core+novelists` | `core` plus `spec-novelist`; add the spec and conditional decision reviewer agents when isolated agents are supported |
 | `continuity` | `handoff`, `snapshot`, `todo`, `context-novelist` |
 | `learning-loop` | `blame-code`, `finding`, `gc`, `improve-codebase-architecture` |
@@ -85,6 +85,7 @@ Runtime roots:
 Runtime notes:
 - Gates self-trigger; there is no central router.
 - `using-methodos` is orientation only.
+- `impl-worker` owns implementation, local verification, WHY commits, and—when assembly owner—the single final `impl-novelist`; the parent performs seam checks only.
 - Keep Methodos artifacts tracked except temporary/cache folders.
 - Hooks are active only if this repo or the user runtime explicitly registers and trusts them.
 ```

@@ -47,7 +47,7 @@ code. Methodos puts durable checkpoints between those steps:
 
 - intent becomes a written spec
 - the spec becomes vertical implementation slices
-- Claude can verify each plan/slice; Codex consolidates fresh verification at the final candidate
+- Claude can verify each plan/slice; Codex workers consolidate fresh verification at the final candidate
 - fresh-context novelist lenses walk lived-use stories before and after implementation
 - completion requires evidence artifacts, not just confident prose
 - runtime guards catch mismatches between agent prose, tool calls, evidence, and context placement
@@ -61,9 +61,9 @@ Idea
   -> grill-me writes docs/specs/<slug>.md
   -> plan writes <plan_root>/<slug>.md
   -> optional high-risk decision-reviewer runs once
-  -> impl commits one slice at a time with WHY: and local RED/GREEN/checks
-  -> explicitly high-risk slices receive one fresh Sol/medium checkpoint
-  -> Codex impl-novelist runs one full final technical+narrative review
+  -> Luna/max impl-worker commits each slice with WHY: and local RED/GREEN/checks
+  -> the owning worker runs one fresh Sol/medium checkpoint for explicitly high-risk slices
+  -> the assembly-owner worker runs one full final Codex impl-novelist review
   -> failed-review repairs alone receive scoped final reverify
 ```
 
@@ -107,10 +107,10 @@ byte-identical across runtimes.
 | `grill-me` | Intent alignment interview before non-trivial work | `docs/specs/<slug>.md` |
 | `plan` | Approved spec to vertical implementation slices | `<plan_root>/<slug>.md` |
 | `plan-verify` | Claude isolated adversarial plan review; not an automatic Codex gate | `<verify_root>/plan-*.json` |
-| `impl` | Slice implementation with local checks, `WHY:` commits, and selective high-risk checkpoints | git commits plus conditional checkpoint artifact |
+| `impl` | Worker-owned slice implementation, local checks, `WHY:` commits, and selective high-risk checkpoints; assembly owner calls final gate | git commits plus conditional checkpoint artifact |
 | `impl-verify` | Claude isolated slice verification; not an automatic Codex gate | `<verify_root>/slice-*.json` |
 | `spec-novelist` | Fresh-context spec lived-use lens | Codex router skill or Claude agent fold |
-| `impl-novelist` | Claude lived-use lens; Codex single final 4-technical-lens+narrative verifier | narrative verify report |
+| `impl-novelist` | Claude lived-use lens; Codex single final 4-technical-lens+narrative verifier called by the assembly owner worker | narrative verify report |
 
 ### Governance
 
