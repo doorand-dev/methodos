@@ -60,9 +60,9 @@ implementation files itself. A seam mismatch routes back to the worker as
 ## Implementation worker boundary
 
 Every implementation write, including a direct 1-2-file implementation, MUST be
-performed by a fresh `impl-worker` child with `fork_turns="none"`. The profile is
-fixed to `gpt-5.6-luna`/`max`; the parent session's live permission mode still
-governs whether the child can write and commit.
+performed by an independent `impl-worker` thread. The profile is fixed to
+`gpt-5.6-luna`/`max`; the session's live permission mode still governs whether
+the thread can write and commit.
 
 The parent sends one self-contained packet containing:
 
