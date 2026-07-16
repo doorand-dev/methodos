@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Decompose an approved spec or multi-slice non-trivial Codex task into executable slices, exact files, contracts, decisions, verification commands, and selective high-risk checkpoint annotations. Self-trigger after spec approval or before multi-slice implementation. Skip formal planning for a clear 1-2-file task with no user-visible flow, schema/public API, authority/data, irreversible change, or unresolved WHAT decision. After approval, run deterministic preflight and one conditional decision review, then use the `impl` direct predicate or its Luna high/max delegated route; delegated workers own local checks, commits, explicit high-risk checkpoints, and the assembly-owner final impl-novelist gate.
+description: Decompose an approved spec or multi-slice non-trivial Codex task into executable slices, exact files, contracts, decisions, verification commands, and selective high-risk checkpoint annotations. Self-trigger after spec approval or before independent-slice, high-risk, or unclear implementation. Skip formal planning for a closed existing-behavior execution packet, including a coherent multi-file packet, when there is no new schema/public API, authority/data, irreversible change, or unresolved WHAT decision. After approval, run deterministic preflight and one conditional decision review, then use the `impl` direct predicate or its Luna high/max delegated route; delegated workers own local checks, commits, explicit high-risk checkpoints, and the assembly-owner final impl-novelist gate.
 ---
 
 # /plan — approved intent를 executable slices로 변환
@@ -10,10 +10,12 @@ description: Decompose an approved spec or multi-slice non-trivial Codex task in
 - Trigger after an approved spec or before multi-slice non-trivial implementation.
 - Explicit triggers: `plan`, `계획 짜`, `PRD 작성`, `기능 분해`, `/plan <slug>`.
 - After a read-only impact scan, skip this skill when the goal/check are clear,
-  only 1-2 files are expected, and there is no user-visible flow, schema/public
-  API, security/authority/data/user-asset, irreversible, or unresolved WHAT
-  decision. Route implementation using the `impl` direct predicate; otherwise
-  use its delegated worker route. Run at least
+  one execution packet closes the exact write/test paths (even when they span
+  multiple files), and there is no new schema/public API,
+  security/authority/data/user-asset, irreversible, independent-slice, or
+  unresolved WHAT decision. An existing user-visible flow may be changed in
+  that packet. Route implementation using the `impl` direct predicate;
+  otherwise use its delegated worker route. Run at least
   one relevant check and make the project-required commit in the same turn.
 - An explicit plan request overrides the direct path.
 

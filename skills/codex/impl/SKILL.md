@@ -7,10 +7,17 @@ description: Execute a truly simple, closed implementation directly; otherwise r
 
 ## Trigger and prerequisites
 
-- Trigger when `plan.status=approved` and a planned slice lacks its commit.
+- Trigger when `plan.status=approved` and a planned slice lacks its commit, or
+  when a read-only scan closes a low-risk existing-behavior change with an
+  execution packet.
 - Also trigger on `구현`, `implement`, `이 슬라이스 만들어`, `/impl <slice>`.
 - Resolve `plan_root` and `verify_root` from the nearest `AGENTS.md` or project
-  convention. Require the approved plan and exact slice contract.
+  convention when the plan/artifact route is used. Planned work requires the
+  approved plan and exact slice contract; a low-risk no-plan change requires a
+  closed execution packet instead.
+- A closed execution packet contains one goal, observable acceptance, exact
+  write/test/artifact paths, the check to run, and stop conditions. It is a
+  lightweight implementation contract, not a spec, formal plan, or ADR.
 - Do not require a `plan-verify` artifact. Deterministic plan preflight and any
   conditional high-risk `decision-reviewer` must already be closed.
 - Before dispatching or editing, choose the direct or delegated path below.
@@ -24,10 +31,15 @@ is true. This is the default for a truly simple, closed task; it is not an
 exception based on line count or estimated duration.
 
 1. The goal and the exact verification are clear, and no WHAT decision remains.
-2. The expected write surface is one or two declared files.
-3. The change has no user-visible flow; schema or public API; security,
-   authentication, authority, permission, secret, data, or user-asset effect;
-   irreversible operation; deployment, migration, or external-state effect.
+2. The expected direct write surface is one or two declared files. A coherent
+   multi-file low-risk packet can use the worker route without creating a
+   formal spec or plan solely because it has multiple files.
+3. The change does not add a new user-facing flow or leave a user-facing WHAT
+   decision open, and has no schema or public API; security, authentication,
+   authority, permission, secret, data, or user-asset effect; irreversible
+   operation; deployment, migration, or external-state effect. An existing
+   user-visible flow may be changed when its acceptance is closed and none of
+   those high-risk surfaces is affected.
 4. The declared paths have no unexplained dirty overlap or concurrent edit.
 
 The parent declares the goal, write paths, and exact check before editing. It
@@ -36,6 +48,11 @@ then creates the required WHY commit. On a failed check, scope expansion,
 uncertainty, or dirty/concurrent overlap, it stops direct execution and routes
 the remaining work to a fresh Luna worker. Required high-risk checkpoints and
 final-review gates are never bypassed.
+
+When the only reason direct execution is ineligible is a coherent multi-file
+surface, use a fresh worker with the same execution packet. Do not manufacture
+spec/plan/ADR ceremony for that reason alone. If the packet is incomplete or a
+high-risk surface appears, enter the corresponding formal gate before editing.
 
 ## Delegated execution and effort
 
@@ -53,11 +70,12 @@ verification, WHY commits, and any required reviewer.
 The planning/orchestration session owns only the decision surface needed to route
 the work:
 
-- WHAT, approved acceptance criteria, and user-facing scope;
+- WHAT, closed acceptance criteria, and user-facing scope;
 - slice boundaries and exact write/test/artifact paths;
 - transport, role/profile, model, and reasoning effort chosen immediately before
   each child call;
-- the base ref, prior worker commit ancestry, and who is the assembly owner.
+- the provenance revision, any candidate regression base, owned commit set, and
+  who is the assembly owner.
 
 For delegated work it does not edit implementation files, create WHY commits,
 perform semantic review, or dispatch the final reviewer on the worker's behalf.
@@ -105,14 +123,18 @@ is not overridden by the caller. The logical `impl-worker` role and
 
 The parent sends one self-contained packet containing:
 
-- the approved WHAT and acceptance criteria;
-- the exact slice or assembly boundary;
-- `base_ref`, prior candidate/worker commit SHAs, and the required ancestry;
+- the closed WHAT and acceptance criteria;
+- the exact slice or execution-packet boundary;
+- `approved_plan_revision` as lineage provenance only when a plan exists;
+- `candidate_diff_base` only when a regression baseline is declared;
+- the explicit `owned_commit_shas` set for any final review; never infer it from
+  the approved revision;
 - `write_paths`, `test_paths`, and `artifact_paths`;
 - caller/producer/consumer/failure selectors;
 - declared local and reviewer commands;
-- `assembly_owner`, `approved_plan.slices.length`, `owner_role`, and
-  `final_review_required` flags; and
+- `assembly_owner`, `owner_role`, and `final_review_required` flags; include
+  `approved_plan.slices.length` and checkpoint fields only on the plan route;
+  a low-risk no-plan packet sets `final_review_required=false`; and
 - the WHY commit format and stop conditions.
 
 The worker may modify and commit only those declared paths. It must not make a
@@ -244,17 +266,23 @@ only these checks:
 
 1. `git show --format=fuller --stat <commit_sha>` confirms the commit exists,
    has the expected parent, and contains the required WHY line.
-2. `git diff --name-only <parent_sha> <commit_sha>` is a subset of the declared
-   implementation/evidence paths; no unexpected path is accepted.
+2. For every `owned_commit_shas` entry, `git diff --name-only <sha>^ <sha>` is a
+   subset of the declared implementation/evidence paths; no unexpected path is
+   accepted. Never substitute the approved revision or a cumulative ancestry
+   range for this per-commit check.
 3. `git status --short`, `git diff --name-only`, and
    `git diff --cached --name-only` show no worker residue beyond explicitly
    declared next-stage artifacts. The controller does not stage or clean it.
 4. Every required checkpoint/final artifact exists, parses, has the expected
    terminal status, records actual reviewer model/effort/transport, and has the
    expected hash when the packet declares one.
-5. `candidate_sha`, `parent_candidate_sha`, worker commit SHAs, and the approved
-   plan revision form the required ancestry. Only then route the next slice or
-   declare the candidate ready.
+5. `candidate_sha`, `parent_candidate_sha`, and every `owned_commit_shas` entry
+   are checked as separate facts. For scope, union each owned commit's
+   `<sha>^..<sha>` patch; never use a first-owned..last-owned range. The
+   `approved_plan_revision` is provenance only. A descendant check may be
+   recorded mechanically, but a non-overlapping external commit between owned
+   commits is not a failure. An external commit that overlaps a declared path
+   or contract is `BLOCKED`.
 
 Do not reopen semantic review from these checks. If any mechanical check fails,
 route the exact mismatch back to the owning worker and keep the candidate
@@ -288,7 +316,8 @@ packet. If any condition is false, the checkpoint remains required.
 
 The worker-owned candidate is complete only when:
 
-- every planned worker slice has its WHY commit;
+- every planned worker slice has its WHY commit, or the no-plan packet has its
+  declared WHY commit;
 - every required checkpoint has one full attempt 1 artifact, with only stable
   repair reverify artifacts after a failure, or the exact single-slice
   exception has a `SKIPPED` checkpoint report and its context in the final
@@ -297,6 +326,10 @@ The worker-owned candidate is complete only when:
   status `DONE`, all stages PASS, and actual terminal regression output or
   `NOT_DECLARED` residual scope; and
 - the upper controller's mechanical seam checks pass.
+
+For a low-risk no-plan execution packet with `final_review_required=false`, the
+WHY commit, declared local check, real evidence, and clean workspace boundary
+close the work; no narrative artifact is manufactured.
 
 `DONE` ends the workflow. Never create a routine second final full review.
 

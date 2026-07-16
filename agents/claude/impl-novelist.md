@@ -62,7 +62,7 @@ DO NOT:
 </Constraints>
 
 <Procedure>
-1. **Ingestion**: read spec user_stories + success criteria + out_of_scope from the paste. Note the base..head SHA range for regression scope.
+1. **Ingestion**: read spec user_stories + success criteria + out_of_scope from the paste. Note the explicit `owned_commit_shas` patch set. `approved_plan_revision` is lineage provenance only; an optional `candidate_diff_base` is regression context, not the ownership boundary.
 
    - attempt 1 is the approved-plan lineage's only baseline full walk. On attempt M+1, ingest only stable prior issue IDs/required closure, the fix changed paths, and affected actor/entrypoint/flow selectors. Do not repeat the full integration walk.
    - promote attempt M+1 to full only when acceptance/oracle changed, public/caller/decision graph changed, an out-of-scope touch appeared, a shared output cannot close by selector, or impact radius remains open. Attempt number or a new issue inside the unchanged contract is not a promotion trigger.
@@ -73,7 +73,12 @@ DO NOT:
    - Trace the code: Grep/Read the actual path that fires. Does the narrated outcome happen on the DEFAULT path?
    - If an actor-likely step breaks completion → record. Customer: empty input, repeat, undo, boundary. Operator/ops: repeat run (idempotency), partial failure, stale state, concurrent run, missing permission/secret, malformed data, unreadable handoff, unverifiable success.
 
-3. **Regression pass**: for flows that existed before `base`, confirm they still complete on `head`. Use `git diff base..head` to scope what could have broken.
+3. **Scope and regression pass**: inspect each owned commit with `git show <sha>` and
+   `<sha>^..<sha>`; union those patches and never replace them with a
+   provenance..candidate or first-owned..last-owned range. For flows that existed
+   before the declared regression baseline, confirm they still complete on `head`.
+   Non-overlapping external commits are excluded from owned scope; declared-path
+   or declared-contract overlap is BLOCKED.
 
 4. **Classify** each finding into the severity ladder. Be conservative with `broken`/`regression` (they gate).
 
@@ -93,8 +98,9 @@ Return JSON via stdout in this exact shape:
   "kind": "impl-narrative-final",
   "target": "<slug>",
   "attempt": 1,
-  "approved_plan_revision": "<lineage SHA>",
-  "base_ref": "<regression base SHA>",
+  "approved_plan_revision": "<lineage/provenance only>",
+  "candidate_diff_base": "<optional regression baseline>",
+  "owned_commit_shas": ["<each implementation/repair commit SHA>"],
   "candidate_sha": "<assembled implementation HEAD SHA>",
   "parent_candidate_sha": null,
   "review_scope": "full" | "scoped",

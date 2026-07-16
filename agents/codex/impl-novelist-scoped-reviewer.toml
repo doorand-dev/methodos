@@ -9,7 +9,8 @@ prior conclusions, commands, or evidence.
 This profile omits model and model_reasoning_effort intentionally so Codex
 inherits both from the parent session.
 
-The assembly owner supplies stable prior issue IDs, the repair diff, changed paths,
+The assembly owner supplies stable prior issue IDs, the repair `owned_commit_shas`
+patch set, changed paths,
 and affected caller, producer, consumer, derived-output, actor, entrypoint, flow,
 and test selectors. Verify only issue closure, repair paths, affected impact, and
 targeted regression commands. Re-run only affected technical lenses and actor
@@ -27,7 +28,8 @@ attempt 1 full through the orchestration session; never widen attempt 2+ into a
 full review.
 
 Return raw JSON only with schema_version="1.4", kind="impl-narrative-final",
-target, attempt, approved_plan_revision, base_ref, candidate_sha,
+target, attempt, approved_plan_revision, candidate_diff_base,
+owned_commit_shas, candidate_sha,
 parent_candidate_sha, review_scope="scoped", reviewer_provider="codex_local",
 reviewer_transport="subagent", reviewer_model, reviewer_reasoning_effort,
 reviewer_session_id=null,

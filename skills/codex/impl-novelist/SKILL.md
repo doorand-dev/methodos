@@ -17,17 +17,22 @@ high-risk slice checkpoint.
 
 ## Procedure
 
-1. Locate the approved spec/plan, base and candidate refs, declared verification
-   commands, full-regression command, checkpoint artifacts/residual risks, and
-   repo. Do not invent missing inputs.
+1. Locate the approved spec/plan when one exists, or the closed execution
+   packet for a low-risk no-plan change. Require the lineage provenance,
+   `owned_commit_shas`, candidate ref, declared verification commands,
+   full-regression command, checkpoint artifacts/residual risks, and repo. Do
+   not invent missing inputs.
 2. Read the nearest project machine route at point of use. External ChatGPT Pro
    or Claude Fable/Opus is allowed only when the user explicitly requests it.
 3. For attempt 1, the assembly owner dispatches the fresh read-only
    `impl-novelist(gpt-5.6-sol/medium)` profile with `fork_turns="none"` as the
    final quality floor. Send the self-contained packet only after spawning.
-4. Pass a self-contained packet: approved requirements, slice contracts, exact
-   base/candidate refs, actual diff/source, impact selectors, and commands. Do
-   not pass implementation discussion or prior DONE claims.
+4. Pass a self-contained packet: approved or closed requirements, slice or
+   execution-packet contracts, `approved_plan_revision` as provenance only,
+   the authoritative `owned_commit_shas`, optional `candidate_diff_base` for
+   regression context only, the candidate SHA, actual candidate source, impact
+   selectors, and commands. Do not pass implementation discussion or prior DONE
+   claims.
 5. Require `impl-narrative-final` v1.4 JSON. The full reviewer must execute one
    ordered pass: (1) requirements/scope, (2) caller/producer/consumer/failure
    impact, (3) quality/debt, (4) test oracle/regression, then actor/user-story
@@ -53,6 +58,19 @@ high-risk slice checkpoint.
    authorize another provider automatically.
 
 ## Boundaries
+
+- Scope the review from the explicit owned commit set. For every
+  `owned_commit_shas` entry, inspect `git show <sha>` and its
+  `<sha>^..<sha>` patch, then union those patches. A single owned commit uses
+  `commit^..commit`; multiple owned commits must not be replaced by a
+  first-owned..last-owned range.
+- `approved_plan_revision` identifies the approved lineage/provenance only. It
+  is never the code diff base. `candidate_diff_base`, when present, is a
+  regression baseline only and is not an ownership boundary.
+- Inspect external commits between the provenance revision and candidate only
+  for declared-path or declared-contract overlap. Non-overlapping interleaving
+  is `PASS` and excluded from scope; overlap is `BLOCKED`. If the owned commit
+  set is missing, return `NEEDS_CONTEXT` instead of guessing a range.
 
 - Gate a finding only when it backlinks an exact approved acceptance criterion,
   user story, or explicit public invariant. Without one, classify it as

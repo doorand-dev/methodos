@@ -163,7 +163,7 @@ source_spec:                       # D21 — spec 입력 추적, drift 감지
 amendment:
   baseline_status: null | DONE
   scope: []                        # DONE baseline 보정 시 바뀐 slice ID만
-approved_plan_revision: <git SHA>  # D21 — 사용자 마지막 승인 SHA (M2 diff 기준점)
+approved_plan_revision: <git SHA>  # D21 — 사용자 마지막 승인 SHA (lineage/provenance; code diff base 아님)
 verify_cycle: 1                    # Claude realization only; Codex는 생략
 verify_attempt: 0                  # Claude realization only; Codex는 생략
 escalation_reason: null            # Claude realization only; Codex는 생략
@@ -213,7 +213,7 @@ self_review:
 - `spec_ref` (D19): `docs/specs/<slug>.md` 존재해야 함. D16 skip 케이스만 null 허용
 - `source_spec.sha` (D21): spec git blob SHA — drift 감지. spec 변경되면 plan 재합성 필요
 - `amendment`: behavior-preserving 내부 보정의 scope를 표시한다. 사용자 체감 계약이 바뀌면 승인 revision을 갱신한다.
-- `approved_plan_revision` (D21): 사용자 명시 승인 commit SHA. final review lineage 기준점
+- `approved_plan_revision` (D21): 사용자 명시 승인 commit SHA. final review lineage/provenance 기준점이며 code diff base가 아니다.
 - `verify_cycle`/`verify_attempt`/`escalation_reason`: Claude plan-verify realization만 사용. Codex plan은 생성하지 않는다.
 - `slices[].files`: Create/Modify/Test 분리 — sp `writing-plans` 차용. 모든 배열 명시 (빈 배열 OK, 빠지면 X)
 - `slices[].verification.type`: 6종 중 하나(unit_test/command/fixture/artifact/visual/custom). 구현자와 final reviewer가 같은 실행 계약을 사용한다.
@@ -723,8 +723,9 @@ high-risk slice에만 만든다. 일반 slice에는 만들지 않는다.
   "kind": "impl-narrative-final",
   "target": "<slug>",
   "attempt": 1,
-  "approved_plan_revision": "<lineage를 식별하는 사용자 승인 SHA>",
-  "base_ref": "<regression base SHA>",
+  "approved_plan_revision": "<lineage/provenance only; not a code diff base>",
+  "candidate_diff_base": "<optional regression baseline; not an ownership boundary>",
+  "owned_commit_shas": ["<each implementation/repair commit SHA>"],
   "candidate_sha": "<assembled implementation HEAD SHA>",
   "parent_candidate_sha": null,
   "review_scope": "full | scoped",
@@ -775,6 +776,18 @@ high-risk slice에만 만든다. 일반 slice에는 만들지 않는다.
 }
 ```
 
+- Codex v1.4 final review scope is the union of each `owned_commit_shas`
+  per-commit patch (`git show <sha>` / `<sha>^..<sha>`). A single owned commit
+  is reviewed as `commit^..commit`; multiple owned commits must not be replaced
+  by a first-owned..last-owned range.
+- `approved_plan_revision` identifies the approved lineage/provenance only. It
+  is never used as the code diff base. `candidate_diff_base`, when present, is
+  a regression baseline only and is not an ownership boundary.
+- External commits between the provenance revision and candidate are allowed
+  when their changed paths and declared contracts do not overlap the owned
+  scope. Such non-overlapping interleaving is `PASS`; declared-path or
+  declared-contract overlap is `BLOCKED`. A missing `owned_commit_shas` set is
+  `NEEDS_CONTEXT`, not permission to guess a range.
 - 같은 `approved_plan_revision`과 BROKEN fix의 `parent_candidate_sha → candidate_sha` chain만 같은 lineage다. 새 approved revision/user-decision cycle은 attempt 1의 새 lineage다.
 - attempt 1은 모든 actor/user_story와 regression 범위를 걷는 `review_scope=full` baseline이다. attempt M+1은 stable prior issue, fix changed paths, 영향받은 actor/entrypoint/flow selector만 fresh scoped reverify한다.
 - Claude v1.2의 full escalation은 Claude realization이 정한다. Codex v1.4는 attempt

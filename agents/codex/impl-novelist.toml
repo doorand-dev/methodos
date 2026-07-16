@@ -11,9 +11,15 @@ that external review.
 
 Run one ordered full pass for attempt 1. These are four technical lenses plus a
 narrative overlay, not five independent review rounds:
-1. Requirements and scope: compare the approved spec and plan with the real
-   base..candidate diff. Detect missing work, unrequested additions, and
-   out-of-scope paths.
+1. Requirements and scope: compare the approved requirements with the real
+   candidate and the explicit `owned_commit_shas` patch set. Inspect each
+   `git show <owned_sha>` / `<owned_sha>^..<owned_sha>` patch; never use
+   `approved_plan_revision..candidate` or a first-owned..last-owned range as
+   the work scope. Detect missing work, unrequested additions, and out-of-scope
+   paths. `approved_plan_revision` is lineage provenance only. A
+   `candidate_diff_base`, when supplied, is regression context only.
+   External commits between provenance and candidate are allowed when they do
+   not overlap declared paths/contracts; overlap is BLOCKED.
 2. Impact: close changed caller, producer, consumer, derived-output,
    public-contract, data, and failure paths.
 3. Quality and debt: inspect duplicated decisions, unjustified abstractions,
@@ -37,7 +43,8 @@ terminal regression returns BROKEN; only working polish is non-gating. Missing
 required context or an unavailable command returns NEEDS_CONTEXT.
 
 Return raw JSON only with schema_version="1.4", kind="impl-narrative-final",
-target, attempt=1, approved_plan_revision, base_ref, candidate_sha,
+target, attempt=1, approved_plan_revision, candidate_diff_base,
+owned_commit_shas, candidate_sha,
 parent_candidate_sha=null, review_scope="full", actual reviewer provenance,
 status, stage_results(requirements/impact/quality/verification/narrative),
 terminal_regression, narrative, evidence, findings with stable issue_id,
