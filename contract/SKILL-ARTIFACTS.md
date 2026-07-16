@@ -29,7 +29,7 @@
 | `<plan_root>/<slug>.md` | `/plan` 스킬 (사용자 결정 공간, 명시 실행) | PRD 상세화 + self-review 3-dim + user 명시 승인 |
 | `<verify_root>/plan-<slug>-cycle-<C>-attempt-<N>.json` | Claude `/plan-verify` realization | Claude plan 격리 검증 끝; Codex는 자동 생성하지 않음 |
 | `<verify_root>/slice-<N>-attempt-<M>.json` | Claude `/impl-verify` realization | Claude slice 검증 끝; Codex는 자동 생성하지 않음 |
-| `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` | owning Luna `impl-worker` via `impl-checkpoint-reviewer` | 명시적 high-risk slice만; effort는 `impl`이 선택, attempt 1 full 1회, repair만 scoped |
+| `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` | owning Luna `impl-worker` via `impl-checkpoint-reviewer` | 명시적 high-risk slice만; effort는 `impl`이 선택, attempt 1 full 1회, repair만 scoped. 단일 slice assembly owner의 final review가 필수이면 checkpoint는 `SKIPPED`로 기록하고 selector/invariant를 final packet으로 전달 |
 | 최종 slice attempt의 `terminal_regression` | Claude goal owner | Claude 최종 candidate regression; Codex는 final artifact가 소유 |
 | `<verify_root>/narrative-<slug>-final-attempt-<M>.json` | assembly-owner worker via `impl-novelist` agent | Claude narrative 또는 Codex 통합 final verification |
 | `<verify_root>/<review-runtime>-impl-<slug>.json` | 사용자 명시 요청형 cross-runtime advisory review | final novelist 통과 후 사용자 요청 때만 1회, loop 없음 |
@@ -224,6 +224,13 @@ self_review:
   order/capital-allocation/financial execution, 또는 2개 이상 후속 slice의 기반만
   `required`. 크기·복잡도만으로 발동하지 않는다. 구형 approved plan에 이 필드가
   없으면 impl이 실제 diff로 같은 predicate를 적용한다.
+- high-risk checkpoint의 유일한 단일 slice 생략 조건은
+  `approved_plan.slices.length == 1 AND owner_role == assembly-owner AND
+  final_review_required == true`다. 이 경우 checkpoint artifact는 만들지 않고
+  worker report에 `SKIPPED`와 skip reason, trigger reason, linked acceptance
+  criterion/invariant, impact selectors, targeted commands, residual risk를
+  기록해 final packet으로 전달한다. 조건 중 하나라도 거짓이면 checkpoint를
+  요구한다.
 - `slices[].checkpoint_reason`: `required`일 때 위 enum 중 하나, `skip`일 때 null.
 - `slices[].decision_needed` (D17): true 시 user_facing_scenario + recommended + options 모두 필수. 판정 기준: 사용자 체감 분기 / 비가역 / 사용자 자산 영향 중 *하나 이상*
 - `self_review`: 3 필드 모두 명시. 빈 array면 OK (gap 없음), 채워졌으면 fix 후 *재self-review* 까지 status=draft. **빈 채로 status=approved 금지** ([2J] Evidence-grade)
@@ -310,6 +317,12 @@ ancestry, artifact/hash, dirty/index만 확인한다.
   "checkpoint": {
     "required": false,
     "status": "SKIPPED",
+    "skip_reason": null,
+    "trigger_reason": null,
+    "linked_acceptance_criterion_or_invariant": null,
+    "impact_selectors": {"callers": [], "producers": [], "consumers": [], "failures": []},
+    "targeted_commands": [],
+    "residual_risk": null,
     "artifact_path": null,
     "artifact_sha256": null,
     "reviewed_candidate_sha": null,
@@ -340,6 +353,11 @@ ancestry, artifact/hash, dirty/index만 확인한다.
 
 `IMPLEMENTED` is valid only when every declared check, required reviewer
 terminal, artifact/hash, commit, ancestry, and workspace boundary is closed.
+For the exact single-slice exception, `checkpoint.status=SKIPPED` is valid only
+when the final review is required, the worker is the assembly owner, the
+approved plan has exactly one slice, and all checkpoint context fields are
+present in the final review packet. Otherwise a required checkpoint artifact is
+mandatory.
 `BLOCKED` is fail-closed for missing context, a failed command/reviewer, an
 undeclared path, dirty/index residue, or a new user-facing, authority/data,
 public-contract, or irreversible decision.

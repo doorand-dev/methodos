@@ -143,10 +143,16 @@ inline full algorithms or existing files.
     The selected executor owns local checks and WHY commits. Do not run Codex `plan-verify` or
     routine per-slice `impl-verify`. The owning worker runs one fresh Sol/medium
     checkpoint only for a slice marked `required` or whose actual diff newly
-    matches the predicate. When all planned commits, local commands, and
-    required checkpoints are complete, the assembly-owner worker runs the
-    single final integrated `impl-novelist` gate: attempt 1 full; only
-    failed-review repairs use scoped attempt 2+.
+    matches the predicate, except for the exact conjunction
+    `approved_plan.slices.length == 1 AND owner_role == assembly-owner AND
+    final_review_required == true`. That exception records the checkpoint as
+    `SKIPPED` and carries its trigger reason, linked acceptance criterion or
+    invariant, caller / producer / consumer / failure selectors, targeted
+    commands, and residual risk into the final packet. If any condition is
+    false, retain the multi-slice checkpoint protection. When all planned
+    commits, local commands, and required checkpoints are complete, the
+    assembly-owner worker runs the single final integrated `impl-novelist`
+    gate: attempt 1 full; only failed-review repairs use scoped attempt 2+.
 
 ## No placeholders
 

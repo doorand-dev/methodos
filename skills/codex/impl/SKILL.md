@@ -111,7 +111,8 @@ The parent sends one self-contained packet containing:
 - `write_paths`, `test_paths`, and `artifact_paths`;
 - caller/producer/consumer/failure selectors;
 - declared local and reviewer commands;
-- `assembly_owner` and `final_review_required` flags; and
+- `assembly_owner`, `approved_plan.slices.length`, `owner_role`, and
+  `final_review_required` flags; and
 - the WHY commit format and stop conditions.
 
 The worker may modify and commit only those declared paths. It must not make a
@@ -143,6 +144,12 @@ state of every reviewer it owned:
   "checkpoint": {
     "required": false,
     "status": "SKIPPED",
+    "skip_reason": null,
+    "trigger_reason": null,
+    "linked_acceptance_criterion_or_invariant": null,
+    "impact_selectors": {"callers": [], "producers": [], "consumers": [], "failures": []},
+    "targeted_commands": [],
+    "residual_risk": null,
     "artifact_path": null,
     "artifact_sha256": null,
     "reviewed_candidate_sha": null,
@@ -172,9 +179,13 @@ state of every reviewer it owned:
 ```
 
 `checkpoint` and `final_review` must record the actual artifact path, reviewer
-status, reviewed candidate SHA, and final candidate SHA when required. A
-`BLOCKED` report may leave the commit and reviewer fields null, but it must
-state the exact missing decision, failed command, or scope mismatch.
+status, reviewed candidate SHA, and final candidate SHA when required. For the
+single-slice exception, `checkpoint` must also record the skip reason and the
+trigger reason, linked acceptance criterion or invariant, caller / producer /
+consumer / failure selectors, targeted commands, and residual risk that the
+final packet receives. A `BLOCKED` report may leave the commit and reviewer
+fields null, but it must state the exact missing decision, failed command, or
+scope mismatch.
 
 ## Worker lifecycle
 
@@ -198,7 +209,15 @@ state the exact missing decision, failed command, or scope mismatch.
 4. Apply the high-risk checkpoint predicate below. For a matching slice, spawn
    a fresh read-only `impl-checkpoint-reviewer(gpt-5.6-sol/medium)` with
    `fork_turns="none"`, persist its raw JSON at the declared artifact path, and
-   close attempt 1 before routing downstream work. On `BROKEN`, the worker
+   close attempt 1 before routing downstream work. The only duplicate-review
+   exception is the exact conjunction `approved_plan.slices.length == 1 AND
+   owner_role == assembly-owner AND final_review_required == true`: do not call
+   the checkpoint, record `checkpoint.status = SKIPPED` with
+   `skip_reason = "single_slice_final_review_overlap"`, and pass
+   `trigger_reason`, `linked_acceptance_criterion_or_invariant`, caller /
+   producer / consumer / failure `impact_selectors`, `targeted_commands`, and
+   `residual_risk` into the final review packet. If any condition is false, keep
+   the multi-slice checkpoint protection unchanged. On `BROKEN`, the worker
    repairs only stable findings, creates a WHY repair commit, and runs the same
    profile scoped to those findings. Never schedule a routine second full pass.
    If the repair changes acceptance/oracle, a public contract, authority/data
@@ -207,7 +226,9 @@ state the exact missing decision, failed command, or scope mismatch.
    wait until all declared worker inputs and local checks are assembled. Spawn a
    fresh read-only `impl-novelist(gpt-5.6-sol/medium)` with
    `fork_turns="none"`, persist the raw v1.4 artifact, and close the one full
-   final attempt. On `BROKEN`, repair only stable findings in the worker-owned
+   final attempt. When the exact single-slice exception applies, include the
+   recorded checkpoint skip context and residual risk in this packet; the final
+   review remains required. On `BROKEN`, repair only stable findings in the worker-owned
    checkout, create a WHY repair commit, then spawn the fresh
    `impl-novelist-scoped-reviewer` for attempt 2+ with only the repair scope.
    Do not run another full final review. If the repair changes approved
@@ -256,13 +277,22 @@ one exact approved acceptance criterion, user story, or explicit public
 invariant. Without that backlink it is non-gating `polish` or
 `deferred_decision`.
 
+For a high-risk slice, the only checkpoint omission is the exact conjunction
+`approved_plan.slices.length == 1 AND owner_role == assembly-owner AND
+final_review_required == true`. The worker records `SKIPPED` and forwards the
+trigger reason, linked acceptance criterion or invariant, caller / producer /
+consumer / failure selectors, targeted commands, and residual risk to the final
+packet. If any condition is false, the checkpoint remains required.
+
 ## Final candidate completion
 
 The worker-owned candidate is complete only when:
 
 - every planned worker slice has its WHY commit;
 - every required checkpoint has one full attempt 1 artifact, with only stable
-  repair reverify artifacts after a failure;
+  repair reverify artifacts after a failure, or the exact single-slice
+  exception has a `SKIPPED` checkpoint report and its context in the final
+  packet;
 - the assembly owner has one final `impl-novelist` attempt 1 artifact with
   status `DONE`, all stages PASS, and actual terminal regression output or
   `NOT_DECLARED` residual scope; and
