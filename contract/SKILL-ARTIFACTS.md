@@ -343,8 +343,10 @@ terminal, artifact/hash, commit, ancestry, and workspace boundary is closed.
 undeclared path, dirty/index residue, or a new user-facing, authority/data,
 public-contract, or irreversible decision.
 
-모델과 provider는 runtime route가 정한다. Codex 기본 route는
-`runtime-notes/codex.md`가 정본이며 final attempt 1 full은
+모델과 provider는 runtime route가 정한다. Codex 기본 route의 point-of-use 정본은
+`skills/codex/impl/SKILL.md`와
+`agents/codex/impl-checkpoint-reviewer.toml` /
+`agents/codex/impl-novelist.toml`이며 final attempt 1 full은
 `gpt-5.6-sol/medium`으로 고정한 fresh local read-only subagent다. Codex high-risk
 slice checkpoint attempt 1도 같은 quality floor를 쓰되 선택된 slice 범위만 본다. failed-review
 repair의 attempt 2+ scoped는 부모 세션의 model/effort를 상속한다.

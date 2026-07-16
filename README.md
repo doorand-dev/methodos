@@ -171,7 +171,6 @@ agents/claude/         Claude reviewer and novelist agent definitions
 hooks/common/          Reference hook scripts usable across runtimes
 hooks/claude/          Claude-only hook scripts
 hooks/codex/           Codex-only hook scripts and hooks.example.json
-runtime-notes/codex.md Codex runtime notes
 ```
 
 ## Adoption

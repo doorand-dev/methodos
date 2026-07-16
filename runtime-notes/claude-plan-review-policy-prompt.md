@@ -12,7 +12,7 @@ Claude Code 쪽 Methodos 정본에 아래 정책을 반영하라. Codex 쪽 파�
 - `agents/claude/plan-verify-reviewer.md`
 - `agents/claude/impl-verify-reviewer.md`
 - `contract/SKILL-ARTIFACTS.md`
-- Codex 참고(동일 topology 아님): `hooks/common/plan_preflight.py`, `hooks/common/test_plan_preflight.py`, `skills/codex/plan/SKILL.md`, `agents/codex/decision-reviewer.toml`, `runtime-notes/codex.md`. Codex는 automatic plan-verify를 제거했으므로 preflight와 decision predicate만 참고한다.
+- Codex 참고(동일 topology 아님): `hooks/common/plan_preflight.py`, `hooks/common/test_plan_preflight.py`, `skills/codex/plan/SKILL.md`, `agents/codex/decision-reviewer.toml`, `skills/codex/impl/SKILL.md`. Codex는 automatic plan-verify를 제거했으므로 preflight와 decision predicate만 참고한다.
 
 ## 금지 경계
 
