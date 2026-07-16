@@ -1,6 +1,6 @@
 ---
 name: impl
-description: Route every implementation write, including a direct 1-2-file task, through a fresh gpt-5.6-luna/max impl-worker. The worker owns implementation, local verification, WHY commits, selective high-risk checkpoints, and—when it is the assembly owner—the single final impl-novelist gate with repair. The planning/orchestration session owns WHAT, slice boundaries, model route, and candidate ancestry; the upper controller performs seam checks only.
+description: Route every implementation write, including a direct 1-2-file task, through a fresh built-in worker/default subagent explicitly set to gpt-5.6-luna/max. The worker owns implementation, local verification, WHY commits, selective high-risk checkpoints, and—when it is the assembly owner—the single final impl-novelist gate with repair. The planning/orchestration session owns WHAT, slice boundaries, model route, and candidate ancestry; the upper controller performs seam checks only.
 ---
 
 # /impl — worker-owned implementation to one final verified candidate
@@ -14,8 +14,9 @@ description: Route every implementation write, including a direct 1-2-file task,
 - Do not require a `plan-verify` artifact. Deterministic plan preflight and any
   conditional high-risk `decision-reviewer` must already be closed.
 - A direct 1-2-file task with no formal plan follows the same worker write path:
-  dispatch a fresh `impl-worker`, run its declared check, and perform parent
-  seam acceptance. It does not manufacture Methodos review artifacts unless the
+  invoke a fresh built-in worker/default subagent with model `gpt-5.6-luna` and
+  reasoning effort `max`, run its declared check, and perform parent seam
+  acceptance. It does not manufacture Methodos review artifacts unless the
   packet marks `final_review_required=true`.
 
 ## Ownership contract
@@ -25,7 +26,8 @@ the work:
 
 - WHAT, approved acceptance criteria, and user-facing scope;
 - slice boundaries and exact write/test/artifact paths;
-- model route (`impl-worker` = `gpt-5.6-luna`/`max`);
+- transport, role/profile, model, and reasoning effort chosen immediately before
+  each child call;
 - the base ref, prior worker commit ancestry, and who is the assembly owner.
 
 It does not edit implementation files, create WHY commits, perform semantic
@@ -59,10 +61,17 @@ implementation files itself. A seam mismatch routes back to the worker as
 
 ## Implementation worker boundary
 
-Every implementation write, including a direct 1-2-file implementation, MUST be
-performed by an independent `impl-worker` thread. The profile is fixed to
-`gpt-5.6-luna`/`max`; the session's live permission mode still governs whether
-the thread can write and commit.
+Immediately before each child call, choose transport, role/profile, model, and
+reasoning effort consciously. One-shot isolated work defaults to a built-in
+subagent; an independent thread takes precedence only when the nearest project
+`AGENTS.md` explicitly requires long-running autonomy or orchestration. General
+subagents specify model and reasoning effort, unless parent inheritance is
+intentional or a selected TOML role owns that contract. Invoke implementation
+workers as built-in worker/default subagents with `gpt-5.6-luna`/`max`; keep the
+parent turn open until a general subagent result is retrieved. Long-lived thread
+termination/reporting belongs to the project contract, and a TOML role contract
+is not overridden by the caller. The logical `impl-worker` role and
+`impl-worker-report` name may remain, but no custom TOML profile is used.
 
 The parent sends one self-contained packet containing:
 
