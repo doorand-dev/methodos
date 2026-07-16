@@ -29,7 +29,7 @@
 | `<plan_root>/<slug>.md` | `/plan` 스킬 (사용자 결정 공간, 명시 실행) | PRD 상세화 + self-review 3-dim + user 명시 승인 |
 | `<verify_root>/plan-<slug>-cycle-<C>-attempt-<N>.json` | Claude `/plan-verify` realization | Claude plan 격리 검증 끝; Codex는 자동 생성하지 않음 |
 | `<verify_root>/slice-<N>-attempt-<M>.json` | Claude `/impl-verify` realization | Claude slice 검증 끝; Codex는 자동 생성하지 않음 |
-| `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` | owning Luna/max `impl-worker` via `impl-checkpoint-reviewer` | 명시적 high-risk slice만; attempt 1 full 1회, repair만 scoped |
+| `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` | owning Luna `impl-worker` via `impl-checkpoint-reviewer` | 명시적 high-risk slice만; effort는 `impl`이 선택, attempt 1 full 1회, repair만 scoped |
 | 최종 slice attempt의 `terminal_regression` | Claude goal owner | Claude 최종 candidate regression; Codex는 final artifact가 소유 |
 | `<verify_root>/narrative-<slug>-final-attempt-<M>.json` | assembly-owner worker via `impl-novelist` agent | Claude narrative 또는 Codex 통합 final verification |
 | `<verify_root>/<review-runtime>-impl-<slug>.json` | 사용자 명시 요청형 cross-runtime advisory review | final novelist 통과 후 사용자 요청 때만 1회, loop 없음 |
@@ -284,12 +284,13 @@ self_review:
 | `plan-decision-review` | [decision-reviewer](../agents/claude/decision-reviewer.md) | opus | `<verify_root>/plan-<slug>-decision-attempt-N.json` | mine [0]~[3J] 적대적 자문 |
 | `plan-verify` | [plan-verify-reviewer](../agents/claude/plan-verify-reviewer.md) | Claude route | `<verify_root>/plan-<slug>-cycle-<C>-attempt-<N>.json` | Codex automatic lifecycle에서는 미사용 |
 | `impl-verify` | [impl-verify-reviewer](../agents/claude/impl-verify-reviewer.md) | Claude route | `<verify_root>/slice-<N>-attempt-<M>.json` | Codex automatic lifecycle에서는 미사용 |
-| `impl-checkpoint` | [impl-checkpoint-reviewer](../agents/codex/impl-checkpoint-reviewer.toml) | `gpt-5.6-sol/medium` | `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` | Codex high-risk slice만 선택적 사용 |
+| `impl-checkpoint` | [impl-checkpoint-reviewer](../agents/codex/impl-checkpoint-reviewer.toml) | `gpt-5.6-sol/medium` | `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` | Codex high-risk slice만 선택적 사용; owning Luna worker effort는 `impl`이 선택 |
 | `impl-narrative-final` | runtime `impl-novelist` | runtime route | `<verify_root>/narrative-<slug>-final-attempt-<M>.json` | Claude narrative; Codex는 technical+actor final verification 통합 |
 
 ### Worker handoff schema (kind: `impl-worker-report`, v1.1)
 
-`impl-worker-report`는 artifact 자체가 아니라, Luna/max worker가 planning /
+`impl-worker-report`는 artifact 자체가 아니라, `impl`이 선택한 Luna/medium 또는
+Luna/max worker가 planning /
 orchestration session에 반환하는 기계적 seam handoff다. Worker가 구현·WHY
 commit·필요한 checkpoint·assembly-owner final review를 닫은 뒤 반환하며, 상위
 controller는 이 보고를 근거로 semantic review를 반복하지 않고 실제 commit,
@@ -333,7 +334,7 @@ ancestry, artifact/hash, dirty/index만 확인한다.
   "unresolved": [],
   "workspace": {"dirty_paths": [], "staged_paths": []},
   "worker_model": "gpt-5.6-luna",
-  "worker_reasoning_effort": "max"
+  "worker_reasoning_effort": "medium | max"
 }
 ```
 
@@ -343,7 +344,8 @@ terminal, artifact/hash, commit, ancestry, and workspace boundary is closed.
 undeclared path, dirty/index residue, or a new user-facing, authority/data,
 public-contract, or irreversible decision.
 
-모델과 provider는 runtime route가 정한다. Codex 기본 route의 point-of-use 정본은
+모델과 provider는 runtime route가 정한다. 직접 실행 predicate와 delegated Luna
+medium/max 선택의 point-of-use 정본은
 `skills/codex/impl/SKILL.md`와
 `agents/codex/impl-checkpoint-reviewer.toml` /
 `agents/codex/impl-novelist.toml`이며 final attempt 1 full은

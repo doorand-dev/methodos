@@ -1,9 +1,9 @@
 ---
 name: impl
-description: Route every implementation write, including a direct 1-2-file task, through a fresh built-in worker/default subagent explicitly set to gpt-5.6-luna/max. The worker owns implementation, local verification, WHY commits, selective high-risk checkpoints, and—when it is the assembly owner—the single final impl-novelist gate with repair. The planning/orchestration session owns WHAT, slice boundaries, model route, and candidate ancestry; the upper controller performs seam checks only.
+description: Execute a truly simple, closed implementation directly; otherwise route delegated work to a fresh built-in Luna worker with medium as the default and max only for elevated risk or uncertainty. Direct execution and workers both own local verification and WHY commits. Delegated high-risk checkpoints and assembly-owner final impl-novelist gates remain worker-owned.
 ---
 
-# /impl — worker-owned implementation to one final verified candidate
+# /impl — right-sized implementation to one final verified candidate
 
 ## Trigger and prerequisites
 
@@ -13,11 +13,38 @@ description: Route every implementation write, including a direct 1-2-file task,
   convention. Require the approved plan and exact slice contract.
 - Do not require a `plan-verify` artifact. Deterministic plan preflight and any
   conditional high-risk `decision-reviewer` must already be closed.
-- A direct 1-2-file task with no formal plan follows the same worker write path:
-  invoke a fresh built-in worker/default subagent with model `gpt-5.6-luna` and
-  reasoning effort `max`, run its declared check, and perform parent seam
-  acceptance. It does not manufacture Methodos review artifacts unless the
-  packet marks `final_review_required=true`.
+- Before dispatching or editing, choose the direct or delegated path below.
+  An explicit user-selected executor or effort wins. The parent may state a
+  materially faster eligible alternative, but does not silently substitute it.
+
+## Direct self-execution
+
+The parent directly performs the minimum change when **every** condition below
+is true. This is the default for a truly simple, closed task; it is not an
+exception based on line count or estimated duration.
+
+1. The goal and the exact verification are clear, and no WHAT decision remains.
+2. The expected write surface is one or two declared files.
+3. The change has no user-visible flow; schema or public API; security,
+   authentication, authority, permission, secret, data, or user-asset effect;
+   irreversible operation; deployment, migration, or external-state effect.
+4. The declared paths have no unexplained dirty overlap or concurrent edit.
+
+The parent declares the goal, write paths, and exact check before editing. It
+edits only those paths, runs the declared check and records its real output,
+then creates the required WHY commit. On a failed check, scope expansion,
+uncertainty, or dirty/concurrent overlap, it stops direct execution and routes
+the remaining work to a fresh Luna worker. Required high-risk checkpoints and
+final-review gates are never bypassed.
+
+## Delegated execution and effort
+
+When direct self-execution is ineligible, dispatch a fresh built-in
+worker/default subagent with model `gpt-5.6-luna`. Use `medium` by default.
+Use `max` only when the work has multi-slice or cross-module impact, an
+uncertain cause or impact, difficult verification, or any high-risk predicate
+surface. Do not choose effort by line count alone. The selected worker owns
+implementation, local verification, WHY commits, and any required reviewer.
 
 ## Ownership contract
 
@@ -30,8 +57,9 @@ the work:
   each child call;
 - the base ref, prior worker commit ancestry, and who is the assembly owner.
 
-It does not edit implementation files, create WHY commits, perform semantic
-review, or dispatch the final reviewer on the worker's behalf.
+For delegated work it does not edit implementation files, create WHY commits,
+perform semantic review, or dispatch the final reviewer on the worker's behalf.
+For direct self-execution it owns the declared minimum change and its check.
 
 The fresh `impl-worker` owns the implementation lifecycle in the target checkout:
 
@@ -52,7 +80,7 @@ results is the only assembly owner and the only worker that calls the final full
 `impl-novelist` for that candidate. There is exactly one final full attempt for
 the approved lineage.
 
-The upper Sol/controller owns mechanical seam acceptance only. It verifies the
+The upper Sol/controller owns mechanical seam acceptance for delegated work. It verifies the
 reported commit boundary, ancestry, reviewer terminal status, artifact paths and
 hashes, dirty/index state, and the next routing decision. It must not repeat the
 worker's requirements, impact, quality, or narrative review and must not repair
@@ -67,8 +95,8 @@ subagent; an independent thread takes precedence only when the nearest project
 `AGENTS.md` explicitly requires long-running autonomy or orchestration. General
 subagents specify model and reasoning effort, unless parent inheritance is
 intentional or a selected TOML role owns that contract. Invoke implementation
-workers as built-in worker/default subagents with `gpt-5.6-luna`/`max`; keep the
-parent turn open until a general subagent result is retrieved. Long-lived thread
+workers as built-in worker/default subagents with `gpt-5.6-luna` and the effort
+selected by `Delegated execution and effort`; keep the parent turn open until a general subagent result is retrieved. Long-lived thread
 termination/reporting belongs to the project contract, and a TOML role contract
 is not overridden by the caller. The logical `impl-worker` role and
 `impl-worker-report` name may remain, but no custom TOML profile is used.
@@ -137,7 +165,7 @@ state of every reviewer it owned:
   "unresolved": [],
   "workspace": {"dirty_paths": [], "staged_paths": []},
   "worker_model": "gpt-5.6-luna",
-  "worker_reasoning_effort": "max"
+  "worker_reasoning_effort": "medium" | "max"
 }
 ```
 
@@ -242,7 +270,8 @@ The worker-owned candidate is complete only when:
 
 ## Do not
 
-- let the parent write implementation files or create WHY commits;
+- let the parent write implementation files or create WHY commits outside the
+  `Direct self-execution` predicate;
 - let the parent perform semantic implementation review after worker review;
 - let a non-assembly worker call the final full reviewer;
 - wait for or create Codex `plan-verify`/routine per-slice `impl-verify` artifacts;

@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Decompose an approved spec or multi-slice non-trivial Codex task into executable slices, exact files, contracts, decisions, verification commands, and selective high-risk checkpoint annotations. Self-trigger after spec approval or before multi-slice implementation. Skip formal planning for a clear 1-2-file task with no user-visible flow, schema/public API, authority/data, irreversible change, or unresolved WHAT decision. After approval, run deterministic preflight and one conditional decision review, then route implementation to Luna/max workers; workers own local checks, commits, explicit high-risk checkpoints, and the assembly-owner final impl-novelist gate.
+description: Decompose an approved spec or multi-slice non-trivial Codex task into executable slices, exact files, contracts, decisions, verification commands, and selective high-risk checkpoint annotations. Self-trigger after spec approval or before multi-slice implementation. Skip formal planning for a clear 1-2-file task with no user-visible flow, schema/public API, authority/data, irreversible change, or unresolved WHAT decision. After approval, run deterministic preflight and one conditional decision review, then use the `impl` direct predicate or its Luna/medium~max delegated route; delegated workers own local checks, commits, explicit high-risk checkpoints, and the assembly-owner final impl-novelist gate.
 ---
 
 # /plan — approved intent를 executable slices로 변환
@@ -12,8 +12,9 @@ description: Decompose an approved spec or multi-slice non-trivial Codex task in
 - After a read-only impact scan, skip this skill when the goal/check are clear,
   only 1-2 files are expected, and there is no user-visible flow, schema/public
   API, security/authority/data/user-asset, irreversible, or unresolved WHAT
-  decision. Implement, run at least one relevant check, and make the
-  project-required commit in the same turn.
+  decision. Route implementation using the `impl` direct predicate; otherwise
+  use its delegated worker route. Run at least
+  one relevant check and make the project-required commit in the same turn.
 - An explicit plan request overrides the direct path.
 
 ## Artifact
@@ -136,14 +137,16 @@ inline full algorithms or existing files.
      user decision. Record the new approved revision.
    - ChatGPT Pro or Claude Fable/Opus runs only on an explicit user request.
 
-10. **Continue automatically.** Route every slice to a fresh Luna/max
-    `impl-worker`; that worker owns local checks and WHY commits. Do not run
-    Codex `plan-verify` or routine per-slice `impl-verify`. The owning worker
-    runs one fresh Sol/medium checkpoint only for a slice marked `required` or
-    whose actual diff newly matches the predicate. When all planned commits,
-    local commands, and required checkpoints are complete, the assembly-owner
-    worker runs the single final integrated `impl-novelist` gate: attempt 1 full;
-    only failed-review repairs use scoped attempt 2+.
+10. **Continue automatically.** Use the `impl` direct predicate for an eligible
+    simple closed slice; otherwise route it to a fresh Luna `impl-worker` with
+    medium as the default and max only under `impl`'s elevated-risk predicate.
+    The selected executor owns local checks and WHY commits. Do not run Codex `plan-verify` or
+    routine per-slice `impl-verify`. The owning worker runs one fresh Sol/medium
+    checkpoint only for a slice marked `required` or whose actual diff newly
+    matches the predicate. When all planned commits, local commands, and
+    required checkpoints are complete, the assembly-owner worker runs the
+    single final integrated `impl-novelist` gate: attempt 1 full; only
+    failed-review repairs use scoped attempt 2+.
 
 ## No placeholders
 
