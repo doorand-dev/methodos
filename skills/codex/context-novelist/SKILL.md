@@ -17,7 +17,7 @@ independent review, spawn the subagent with `fork_turns="none"`, then send this
 skill and only the proposed packet or target files. Never use `all` or a recent
 turn count; the agent cannot discard inherited conversation after spawning.
 
-When a controller must run both narrative and context checks, dispatch this in parallel with the stage-specific novelist:
+When an SDD owner must run both narrative and context checks, dispatch this in parallel with the stage-specific novelist:
 - spec stage: `spec-novelist` agent + `context-novelist` skill/agent.
 - implementation-final stage: `impl-novelist` agent + `context-novelist` skill/agent only when the final handoff/review packet itself is in scope.
 

@@ -16,7 +16,7 @@ agent. Do not review implementation code or edit the workspace.
 
 Run once per approved plan revision. Return raw JSON with kind=
 "plan-decision-review", status, actual evidence, issues, ADR candidates, and
-self_review. The controller folds non-blocking findings into the plan. A change
+self_review. The SDD owner folds non-blocking findings into the plan. A change
 to user-visible behavior, authority, data, public contract, or irreversibility
 must return BLOCKED for user decision; do not start an automatic review loop.
 """

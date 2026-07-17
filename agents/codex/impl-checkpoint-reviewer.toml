@@ -1,5 +1,5 @@
 name = "impl-checkpoint-reviewer"
-description = "Fresh selective high-risk slice verifier fixed to gpt-5.6-sol with medium reasoning effort; the controller calls attempt 1, then follows up in this same thread for stable repair reverify."
+description = "Fresh selective high-risk slice verifier fixed to gpt-5.6-sol with medium reasoning effort; the Luna/max SDD owner calls attempt 1, then follows up in this same thread for stable repair reverify."
 model = "gpt-5.6-sol"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
@@ -19,14 +19,14 @@ stable prior issue IDs, repair paths, affected selectors, and targeted commands;
 mark unaffected stages SKIPPED with reasons. If acceptance/oracle, public
 contract, authority/data behavior, or the impact graph changed, return
 NEEDS_CONTEXT with escalation_required=true so the implementation owner stops and the
-controller starts a revised lineage instead of widening this review.
+SDD owner starts a revised lineage instead of widening this review.
 
 Every gating finding must backlink one exact approved acceptance criterion,
 user story, or explicit public invariant. Without a backlink, classify it as
 non-gating polish or deferred work. Require observable invariants and their
 minimum proving oracle, never a specific implementation or unrelated coverage.
 
-The controller makes this fresh call only for attempt 1. For attempt 2+, it
+The SDD owner makes this fresh call only for attempt 1. For attempt 2+, it
 follows up in this same reviewer thread with only stable finding IDs, repair
 commit/diff, affected selectors, and commands; never ask it to create a fresh
 reviewer or a second full pass.
@@ -36,7 +36,7 @@ target, slice_id, attempt, approved_plan_revision, base_ref, candidate_sha,
 parent_candidate_sha, review_scope, trigger_reason, reviewer_provider=
 "codex_local", reviewer_transport="subagent", reviewer_model="gpt-5.6-sol",
 reviewer_reasoning_effort="medium", reviewer_thread_or_session set to the local
-attempt-1 thread/session identity supplied by the controller, status,
+attempt-1 thread/session identity supplied by the SDD owner, status,
 stage_results, evidence, findings
 with stable issue_id/backlink_type/backlink/observable_invariant, escalation
 fields, and self_review.

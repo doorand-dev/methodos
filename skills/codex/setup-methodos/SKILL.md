@@ -28,7 +28,7 @@ Use this stable pick-list:
 | Profile | Contents |
 |---|---|
 | `bootstrap` | `setup-methodos` |
-| `core` | `using-methodos`, `grill-me`, `plan`, `impl`, `impl-worker`, `decision`, `impl-novelist`; `impl` directly executes only its simple closed predicate, otherwise each slice has one Luna/high implementation owner (max only on evidence); the controller calls selective checkpoint and final reviewer agents when isolated agents are supported |
+| `core` | `using-methodos`, `grill-me`, `plan`, `impl`, `decision`, `impl-novelist`; `impl` directly executes only its simple closed predicate; otherwise one `luna-max-sdd-owner` owns discovery through terminal assembly and dispatches one Luna/high implementation owner per slice (max only on evidence) plus selective checkpoint/final reviewers |
 | `core+novelists` | `core` plus `spec-novelist`; add the spec and conditional decision reviewer agents when isolated agents are supported |
 | `continuity` | `handoff`, `snapshot`, `todo`, `context-novelist` |
 | `learning-loop` | `blame-code`, `finding`, `gc`, `improve-codebase-architecture` |
@@ -58,7 +58,12 @@ Ask or infer from repo files, but do not silently invent when the answer changes
 
 4. Agents:
    - Claude agent prompts live under `agents/claude/`.
-   - Codex subagent wiring is runtime-local. If no native subagent role exists, record degraded mode instead of claiming a fresh reviewer gate was satisfied.
+   - Codex subagent wiring is runtime-local. Install `luna-max-sdd-owner`,
+     `luna-high-worker`, `luna-max-worker`, `impl-checkpoint-reviewer`, and
+     `impl-novelist` together for the core profile.
+   - The SDD owner needs nested agent depth 2 so it can dispatch implementation
+     and reviewer children. If that capability is unavailable, record degraded
+     mode instead of claiming implementation or review gates were satisfied.
 
 5. Hooks:
    - Hook scripts are inactive until registered and trusted.
@@ -85,7 +90,7 @@ Runtime roots:
 Runtime notes:
 - Gates self-trigger; there is no central router.
 - `using-methodos` is orientation only.
-- `impl` directly executes only its simple closed predicate. Otherwise one `impl-worker` owns each slice's implementation, local verification, and WHY commit; the controller owns checkpoint/final reviewer calls and same-thread scoped repair follow-up. Effort selection and the direct predicate live only in `impl`.
+- `impl` directly executes only its simple closed predicate. Otherwise one `luna-max-sdd-owner` owns discovery through terminal assembly, dispatches one implementation owner per slice, calls checkpoint/final reviewers, and routes same-thread scoped repair follow-up. The root orchestrator owns inventory, overlap, ordering, HITL, and integration/merge state only. Effort selection and the direct predicate live only in `impl`.
 - Keep Methodos artifacts tracked except temporary/cache folders.
 - Hooks are active only if this repo or the user runtime explicitly registers and trusts them.
 ```

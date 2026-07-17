@@ -29,9 +29,9 @@
 | `<plan_root>/<slug>.md` | `/plan` 스킬 (사용자 결정 공간, 명시 실행) | PRD 상세화 + self-review 3-dim + user 명시 승인 |
 | `<verify_root>/plan-<slug>-cycle-<C>-attempt-<N>.json` | Claude `/plan-verify` realization | Claude plan 격리 검증 끝; Codex는 자동 생성하지 않음 |
 | `<verify_root>/slice-<N>-attempt-<M>.json` | Claude `/impl-verify` realization | Claude slice 검증 끝; Codex는 자동 생성하지 않음 |
-| `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` | controller via `impl-checkpoint-reviewer` | 명시적 high-risk slice만; attempt 1 fresh full 1회. BROKEN repair는 같은 slice owner가 하고 controller가 같은 reviewer thread/session에 scoped follow-up |
+| `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` | SDD owner via `impl-checkpoint-reviewer` | 명시적 high-risk slice만; attempt 1 fresh full 1회. BROKEN repair는 같은 slice owner가 하고 SDD owner가 같은 reviewer thread/session에 scoped follow-up |
 | 최종 slice attempt의 `terminal_regression` | Claude goal owner | Claude 최종 candidate regression; Codex는 final artifact가 소유 |
-| `<verify_root>/narrative-<slug>-final-attempt-<M>.json` | controller via `impl-novelist` agent | Claude narrative 또는 Codex 통합 final verification |
+| `<verify_root>/narrative-<slug>-final-attempt-<M>.json` | SDD owner via `impl-novelist` agent | Claude narrative 또는 Codex 통합 final verification |
 | `<verify_root>/<review-runtime>-impl-<slug>.json` | 사용자 명시 요청형 cross-runtime advisory review | final novelist 통과 후 사용자 요청 때만 1회, loop 없음 |
 | `<diagnose_root>/<bug-slug>.md` | 빌트인 `diagnose:` 스킬 | 디버깅 6단계 끝 |
 | `<friction_path>` | `blame-code` 스킬 | 교정·코드귀책 발화 자동 또는 수동 `/blame-code` |
@@ -47,7 +47,7 @@
 
 ## JSON Schema — plan-decision-review
 
-`<verify_root>/plan-<slug>-decision-attempt-N.json` — `decision-reviewer` agent가 stdout으로 반환하면 controller가 저장.
+`<verify_root>/plan-<slug>-decision-attempt-N.json` — `decision-reviewer` agent가 stdout으로 반환하면 Codex SDD owner 또는 Claude goal owner가 저장.
 
 ```json
 {
@@ -224,8 +224,8 @@ self_review:
   order/capital-allocation/financial execution, 또는 2개 이상 후속 slice의 기반만
   `required`. 크기·복잡도만으로 발동하지 않는다. 구형 approved plan에 이 필드가
   없으면 impl이 실제 diff로 같은 predicate를 적용한다.
-- `review_checkpoint: required`이면 slice 수와 assembly owner 여부와 무관하게
-  controller가 fresh checkpoint attempt 1을 실행한다. Required checkpoint를 final
+- `review_checkpoint: required`이면 slice 수와 assembly 상태와 무관하게
+  SDD owner가 fresh checkpoint attempt 1을 실행한다. Required checkpoint를 final
   review로 대체하거나 생략하지 않는다.
 - `slices[].checkpoint_reason`: `required`일 때 위 enum 중 하나, `skip`일 때 null.
 - `slices[].decision_needed` (D17): true 시 user_facing_scenario + recommended + options 모두 필수. 판정 기준: 사용자 체감 분기 / 비가역 / 사용자 자산 영향 중 *하나 이상*
@@ -287,14 +287,14 @@ self_review:
 | `plan-decision-review` | [decision-reviewer](../agents/claude/decision-reviewer.md) | opus | `<verify_root>/plan-<slug>-decision-attempt-N.json` | mine [0]~[3J] 적대적 자문 |
 | `plan-verify` | [plan-verify-reviewer](../agents/claude/plan-verify-reviewer.md) | Claude route | `<verify_root>/plan-<slug>-cycle-<C>-attempt-<N>.json` | Codex automatic lifecycle에서는 미사용 |
 | `impl-verify` | [impl-verify-reviewer](../agents/claude/impl-verify-reviewer.md) | Claude route | `<verify_root>/slice-<N>-attempt-<M>.json` | Codex automatic lifecycle에서는 미사용 |
-| `impl-checkpoint` | [impl-checkpoint-reviewer](../agents/codex/impl-checkpoint-reviewer.toml) | `gpt-5.6-sol/medium` | `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` | Codex high-risk slice만 controller가 선택적으로 호출 |
+| `impl-checkpoint` | [impl-checkpoint-reviewer](../agents/codex/impl-checkpoint-reviewer.toml) | `gpt-5.6-sol/medium` | `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` | Codex high-risk slice만 SDD owner가 선택적으로 호출 |
 | `impl-narrative-final` | runtime `impl-novelist` | runtime route | `<verify_root>/narrative-<slug>-final-attempt-<M>.json` | Claude narrative; Codex는 technical+actor final verification 통합 |
 
 ### Worker handoff schema (kind: `impl-worker-report`, v1.2)
 
 `impl-worker-report`는 artifact 자체가 아니라, `impl`이 선택한 Luna/high 또는
-증거 기반 Luna/max implementation owner가 controller에 반환하는 기계적 seam
-handoff다. Owner는 한 slice의 구현·WHY commit·로컬 검증에서 종료한다. Controller가
+증거 기반 Luna/max implementation owner가 SDD owner에 반환하는 기계적 seam
+handoff다. Owner는 한 slice의 구현·WHY commit·로컬 검증에서 종료한다. SDD owner가
 이 보고를 기계적으로 확인한 뒤 필요한 checkpoint/final reviewer를 직접 호출하며,
 semantic review를 반복하지 않는다.
 
@@ -303,7 +303,7 @@ semantic review를 반복하지 않는다.
   "schema_version": "1.2",
   "kind": "impl-worker-report",
   "status": "IMPLEMENTED | BLOCKED",
-  "owner_role": "slice-owner | assembly-owner",
+  "owner_role": "slice-owner",
   "owner_thread_or_session": "<attempt-1 implementation owner identity>",
   "slice_id": "<slice>",
   "touched_paths": ["<path>"],
@@ -351,7 +351,7 @@ semantic review를 반복하지 않는다.
 
 `IMPLEMENTED` is valid when the owner has closed every declared local check,
 commit, ancestry, and workspace boundary. It reports reviewer fields as
-`NOT_REQUESTED` until the controller routes review. After controller review,
+`NOT_REQUESTED` until the SDD owner routes review. After SDD-owner review,
 the routing record must contain artifact/hash, terminal status, and reviewer
 thread/session identity. A required checkpoint artifact is mandatory; there is
 no single-slice omission.
@@ -366,10 +366,41 @@ public-contract, or irreversible decision.
 high/max 선택의 point-of-use 정본은 `skills/codex/impl/SKILL.md` 하나다.
 `agents/codex/impl-checkpoint-reviewer.toml` /
 `agents/codex/impl-novelist.toml`의 reviewer effort 계약과는 별개이며 final attempt 1 full은
-controller가 `gpt-5.6-sol/medium`으로 고정해 fresh local read-only subagent로 호출한다.
+SDD owner가 `gpt-5.6-sol/medium`으로 고정해 fresh local read-only subagent로 호출한다.
 Codex high-risk checkpoint attempt 1도 같은 quality floor를 쓰되 선택된 slice 범위만 본다.
 failed-review repair의 attempt 2+ scoped는 attempt 1 reviewer의 같은 thread/session에
-controller가 follow-up 한다; 별도 profile이나 fresh reviewer가 아니다.
+SDD owner가 follow-up 한다; 별도 profile이나 fresh reviewer가 아니다.
+
+### SDD terminal seam (kind: `sdd-terminal-report`, v1.0)
+
+`luna-max-sdd-owner`는 discovery·requirements/spec·plan·slice dispatch·assembly와
+review routing을 닫은 뒤 root/project orchestrator에 아래 terminal packet 하나를
+반환한다. 이는 production implementation report가 아니다. Root는 inventory,
+overlap, ordering, HITL, integration/merge state만 확인하며 task-local semantic review를
+반복하지 않는다.
+
+```json
+{
+  "schema_version": "1.0",
+  "kind": "sdd-terminal-report",
+  "status": "DONE | BLOCKED | NEEDS_HITL | INFRA_ERROR",
+  "sdd_owner_role": "luna-max-sdd-owner",
+  "sdd_owner_thread_or_session": "<identity>",
+  "approved_spec_revision": "<sha|null>",
+  "approved_plan_revision": "<sha|null>",
+  "owned_commit_shas": ["<slice/repair sha>"],
+  "checkpoint_artifacts": [{"path": "<path>", "sha256": "<hash>", "status": "<terminal>"}],
+  "final_artifact": {"path": "<path>", "sha256": "<hash>", "status": "<terminal>"},
+  "unresolved_hitl": [],
+  "workspace": {"dirty_paths": [], "staged_paths": []},
+  "integration": {"base_ref": "<ref>", "candidate_sha": "<sha>", "instructions": "<exact>"}
+}
+```
+
+`INFRA_ERROR`는 reviewer/worker transport 또는 nested-agent capability 실패이며 code
+failure와 분리한다. `NEEDS_HITL`은 SDD owner가 결정을 추정하지 않고 root가 사용자에게
+surface해야 하는 상태다. Root가 integration을 완료하기 전까지 `DONE`은 구현 lineage와
+검증 terminal만 뜻하며 merge/deploy 완료를 뜻하지 않는다.
 프로젝트 machine route가 있으면 dispatch 직전 point-of-use로 다시 읽되, 외부
 ChatGPT Pro 또는 Claude Fable/Opus는 현재 사용자가 그 검토에 명시적으로 요청했을
 때만 쓴다. 이전 reviewer의 값은 상속하지 않는다.
@@ -693,12 +724,12 @@ high-risk slice에만 만든다. 일반 slice에는 만들지 않는다.
 
 - attempt 1은 선택된 slice와 approved-plan revision마다 `full` 정확히 1회다.
   routine second full은 금지한다.
-- BROKEN repair는 같은 slice owner가 수행한다. controller는 stable issue ID, repair
+- BROKEN repair는 같은 slice owner가 수행한다. SDD owner는 stable issue ID, repair
   commit/diff, affected selector와 command만 attempt 1 reviewer의 같은 thread/session에
   attempt 2+ `scoped` follow-up 한다. fresh 재검증 profile은 만들지 않는다. unaffected
   stage는 이유와 함께 SKIPPED한다.
 - 사용자가 해당 작업에서 `검토 1회만`이라고 명시하면 repair 뒤 scoped도 생략한다.
-  controller는 이전 finding, repair diff, 미재검증 selector와 residual risk를 기록한다.
+  SDD owner는 이전 finding, repair diff, 미재검증 selector와 residual risk를 기록한다.
 - acceptance/oracle, public contract, authority/data behavior, impact graph 변경은
   scoped 대상이 아니다. 필요한 결정과 plan revision을 닫은 새 lineage에서만 새
   attempt 1 full을 허용한다.
@@ -787,7 +818,7 @@ high-risk slice에만 만든다. 일반 slice에는 만들지 않는다.
 - Claude v1.2의 full escalation은 Claude realization이 정한다. Codex v1.4는 attempt
   2+를 full로 승격하지 않는다. 요구사항, acceptance/oracle, public contract,
   authority/data behavior, impact graph가 바뀌면 새 lineage attempt 1 full로 시작한다.
-- Codex 기본 final full route는 controller가 `gpt-5.6-sol/medium`으로 고정해 호출하는
+- Codex 기본 final full route는 SDD owner가 `gpt-5.6-sol/medium`으로 고정해 호출하는
   fresh local subagent다. attempt 2+ scoped는 같은 reviewer thread/session follow-up이다.
   local reviewer를 실행할 수 없으면 자동 외부 fallback 없이 `NEEDS_CONTEXT`다. 외부
   provider는 사용자 명시 요청 때만 쓴다.
@@ -888,7 +919,7 @@ status: reproduced | minimised | fixed | regressed
 - Codex realization: plan-verify와 Claude slice attempt artifact를 요구하지 않음.
   명시적 high-risk slice만 checkpoint attempt 1 full artifact를 요구하며 일반
   slice는 로컬 RED/GREEN·선언 검증·diff 범위 증거만 요구
-- Codex 골 종료: controller가 관리한 latest narrative-final v1.4 status DONE, 모든 stage PASS,
+- Codex 골 종료: SDD owner가 관리한 latest narrative-final v1.4 status DONE, 모든 stage PASS,
   `terminal_regression` 실제 결과 또는 `NOT_DECLARED` 잔여 범위 확인
 - Claude 다파일/다flow 골 종료: latest narrative-final v1.2 status DONE
 - 사용자가 별도 reviewer runtime 검토를 명시 요청한 경우 runtime advisory JSON 존재

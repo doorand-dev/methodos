@@ -193,14 +193,14 @@ class ImplNovelistScopeTests(unittest.TestCase):
         self.assertNotIn("git diff --name-only <parent_sha> <commit_sha>", impl)
         self.assertIn("existing", using.lower())
         self.assertIn("user-visible flow", using.lower())
-        self.assertIn("controller", using)
+        self.assertIn("SDD owner", using)
         self.assertIn("existing", grill.lower())
         self.assertIn("user-visible flow", grill.lower())
         self.assertIn("execution packet", plan.lower())
         self.assertIn("Hard to reverse", decision)
         self.assertIn("WHY", decision)
 
-    def test_controller_owns_reviewer_dispatch_and_scoped_reuses_thread(self) -> None:
+    def test_sdd_owner_owns_reviewer_dispatch_and_scoped_reuses_thread(self) -> None:
         impl = (ROOT / "skills/codex/impl/SKILL.md").read_text(encoding="utf-8")
         novelist = (ROOT / "skills/codex/impl-novelist/SKILL.md").read_text(encoding="utf-8")
         checkpoint = (ROOT / "agents/codex/impl-checkpoint-reviewer.toml").read_text(
@@ -210,12 +210,13 @@ class ImplNovelistScopeTests(unittest.TestCase):
         contract = (ROOT / "contract/SKILL-ARTIFACTS.md").read_text(encoding="utf-8")
 
         self.assertIn("It makes no reviewer call.", impl)
-        self.assertIn("controller itself makes a fresh read-only", impl)
+        self.assertIn("SDD owner makes a fresh read-only", impl)
         self.assertIn("reviewer thread/session", impl)
         self.assertIn("same thread/session", novelist)
-        self.assertIn("controller calls attempt 1", checkpoint)
+        self.assertIn("SDD owner calls attempt 1", checkpoint)
         self.assertIn("same reviewer thread", final)
         self.assertIn("reviewer_thread_or_session", contract)
+        self.assertIn('"kind": "sdd-terminal-report"', contract)
         self.assertNotIn("impl-novelist-scoped-reviewer", impl + novelist + contract)
         self.assertFalse((ROOT / "agents/codex/impl-novelist-scoped-reviewer.toml").exists())
 
@@ -227,13 +228,22 @@ class ImplNovelistScopeTests(unittest.TestCase):
         maximum = tomllib.loads(
             (ROOT / "agents/codex/luna-max-worker.toml").read_text(encoding="utf-8")
         )
+        sdd_owner = tomllib.loads(
+            (ROOT / "agents/codex/luna-max-sdd-owner.toml").read_text(encoding="utf-8")
+        )
 
-        self.assertIn("custom `luna-high-worker`", impl)
+        self.assertIn("fresh custom", impl)
+        self.assertIn("`luna-high-worker`", impl)
         self.assertIn("`luna-max-worker`", impl)
         self.assertEqual(high["model"], "gpt-5.6-luna")
         self.assertEqual(high["model_reasoning_effort"], "high")
         self.assertEqual(maximum["model"], "gpt-5.6-luna")
         self.assertEqual(maximum["model_reasoning_effort"], "max")
+        self.assertEqual(sdd_owner["model"], "gpt-5.6-luna")
+        self.assertEqual(sdd_owner["model_reasoning_effort"], "max")
+        self.assertEqual(sdd_owner["agents"]["max_depth"], 2)
+        self.assertIn("do not write production implementation", sdd_owner["developer_instructions"])
+        self.assertIn("root/project orchestrator owns only", sdd_owner["developer_instructions"])
 
     def test_local_reviewer_profiles_encode_baseline_and_same_thread_followup(self) -> None:
         checkpoint_profile = tomllib.loads(
