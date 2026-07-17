@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Decompose an approved spec or multi-slice non-trivial Codex task into executable slices, exact files, contracts, decisions, verification commands, and selective high-risk checkpoint annotations. Self-trigger after spec approval or before independent-slice, high-risk, or unclear implementation. Skip formal planning for a closed existing-behavior execution packet, including a coherent multi-file packet, when there is no new schema/public API, authority/data, irreversible change, or unresolved WHAT decision. After approval, run deterministic preflight and one conditional decision review, then use the `impl` direct predicate or its Luna high/max delegated route; delegated workers own local checks, commits, explicit high-risk checkpoints, and the assembly-owner final impl-novelist gate.
+description: Decompose an approved spec or multi-slice non-trivial Codex task into executable slices, exact files, contracts, decisions, verification commands, and selective high-risk checkpoint annotations. Self-trigger after spec approval or before independent-slice, high-risk, or unclear implementation. Skip formal planning for a closed existing-behavior execution packet, including a coherent multi-file packet, when there is no new schema/public API, authority/data, irreversible change, or unresolved WHAT decision. After approval, run deterministic preflight and one conditional decision review, then use the `impl` direct predicate or its Luna/high delegated route; one implementation owner owns each slice while the controller owns required reviewer dispatch.
 ---
 
 # /plan — approved intent를 executable slices로 변환
@@ -142,19 +142,16 @@ inline full algorithms or existing files.
 10. **Continue automatically.** Use the `impl` direct predicate for an eligible
     simple closed slice; otherwise route it to a fresh Luna `impl-worker` using
     the effort selected by `impl`, the sole detailed routing authority.
-    The selected executor owns local checks and WHY commits. Do not run Codex `plan-verify` or
-    routine per-slice `impl-verify`. The owning worker runs one fresh Sol/medium
-    checkpoint only for a slice marked `required` or whose actual diff newly
-    matches the predicate, except for the exact conjunction
-    `approved_plan.slices.length == 1 AND owner_role == assembly-owner AND
-    final_review_required == true`. That exception records the checkpoint as
-    `SKIPPED` and carries its trigger reason, linked acceptance criterion or
-    invariant, caller / producer / consumer / failure selectors, targeted
-    commands, and residual risk into the final packet. If any condition is
-    false, retain the multi-slice checkpoint protection. When all planned
-    commits, local commands, and required checkpoints are complete, the
-    assembly-owner worker runs the single final integrated `impl-novelist`
-    gate: attempt 1 full; only failed-review repairs use scoped attempt 2+.
+    The selected executor owns local checks and WHY commits, then returns its
+    report. Do not run Codex `plan-verify` or routine per-slice `impl-verify`.
+    The controller, not the owner, fresh-calls Sol/medium checkpoint review
+    only for a required slice or a diff newly matching that predicate, and
+    fresh-calls the single final `impl-novelist` only after assembly. A BROKEN
+    repair returns to the same slice or assembly owner; attempt 2+ is a scoped
+    follow-up in attempt 1's same reviewer thread/session, carrying only
+    finding IDs, repair commit/diff, and affected selectors. Never use a fresh
+    scoped-reviewer profile or repeat a full pass. `impl` is the sole detailed
+    authority for this routing and for Luna/high-to-max escalation.
 
 ## No placeholders
 

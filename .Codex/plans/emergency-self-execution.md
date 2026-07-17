@@ -2,6 +2,7 @@
 slug: emergency-self-execution
 created_at: 2026-07-16
 status: approved
+superseded_in_part_by: codex-slice-owner-controller-review
 spec_ref: docs/specs/emergency-self-execution.md
 source_spec:
   path: docs/specs/emergency-self-execution.md
@@ -51,6 +52,9 @@ self_review:
 
 ## Slice 1
 
-`impl`에 직접 실행 predicate, Luna high/max 선택 기준, 사용자 지정 실행 주체 우선, 직접 실행의 commit·검증·중단 조건을 둔다. Luna/medium은 비교 실측 전 기본 경로에서 제외한다. 다른 세 스킬과 contract는 `impl`을 유일한 기준 정본으로 참조하거나 선택 effort 범위를 반영한다. 활성 설치본은 정본 전체 디렉터리를 동기화하며, 각 파일 집합과 SHA-256을 비교한다.
+> Codex의 기존 effort 승격 및 reviewer 호출 경계는
+> `.Codex/plans/codex-slice-owner-controller-review.md`가 대체한다.
+
+`impl`에 직접 실행 predicate, Luna high/max 선택 기준, 사용자 지정 실행 주체 우선, 직접 실행의 commit·검증·중단 조건을 둔다. Luna/medium은 비교 실측 전 기본 경로에서 제외한다. 다중 slice·교차 모듈·파일 수·plan 존재는 max 근거가 아니며, 분해 뒤 단일 slice에 남는 고비용 불확실성 또는 high의 실증 실패만 승격 근거다. 다른 세 스킬과 contract는 `impl`을 유일한 기준 정본으로 참조하거나 선택 effort 범위를 반영한다. 활성 설치본은 정본 전체 디렉터리를 동기화하며, 각 파일 집합과 SHA-256을 비교한다.
 
 PASS: 네 source/active skill 디렉터리와 checkpoint agent 쌍이 정확히 일치하고, 직접 실행·Luna high/max 기준은 `impl` 한 곳에만 상세 정의되며, 모든 설명·contract가 그 기준을 참조하거나 정확한 effort 범위를 반영한다.

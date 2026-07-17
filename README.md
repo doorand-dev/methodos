@@ -61,10 +61,10 @@ Idea
   -> grill-me writes docs/specs/<slug>.md
   -> plan writes <plan_root>/<slug>.md
   -> optional high-risk decision-reviewer runs once
-  -> Luna/max impl-worker commits each slice with WHY: and local RED/GREEN/checks
-  -> the owning worker runs one fresh Sol/medium checkpoint for explicitly high-risk slices
-  -> the assembly-owner worker runs one full final Codex impl-novelist review
-  -> failed-review repairs alone receive scoped final reverify
+  -> one Luna/high impl-worker owns each slice's WHY: commit and local RED/GREEN/checks
+  -> controller fresh-calls Sol/medium checkpoint for explicitly high-risk slices
+  -> controller fresh-calls one full final Codex impl-novelist review after assembly
+  -> the same owner repairs; controller follows up in the same reviewer thread for scoped reverify
 ```
 
 The shared contract for these artifacts lives in
@@ -107,10 +107,10 @@ byte-identical across runtimes.
 | `grill-me` | Intent alignment interview before non-trivial work | `docs/specs/<slug>.md` |
 | `plan` | Approved spec to vertical implementation slices | `<plan_root>/<slug>.md` |
 | `plan-verify` | Claude isolated adversarial plan review; not an automatic Codex gate | `<verify_root>/plan-*.json` |
-| `impl` | Worker-owned slice implementation, local checks, `WHY:` commits, and selective high-risk checkpoints; assembly owner calls final gate | git commits plus conditional checkpoint artifact |
+| `impl` | One owner per slice for implementation, local checks, and `WHY:` commits; controller-owned selective checkpoint/final reviewer routing | git commits plus conditional checkpoint artifact |
 | `impl-verify` | Claude isolated slice verification; not an automatic Codex gate | `<verify_root>/slice-*.json` |
 | `spec-novelist` | Fresh-context spec lived-use lens | Codex router skill or Claude agent fold |
-| `impl-novelist` | Claude lived-use lens; Codex single final 4-technical-lens+narrative verifier called by the assembly owner worker | narrative verify report |
+| `impl-novelist` | Claude lived-use lens; Codex single final 4-technical-lens+narrative verifier called by the controller | narrative verify report |
 
 ### Governance
 

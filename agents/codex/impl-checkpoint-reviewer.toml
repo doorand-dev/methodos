@@ -1,5 +1,5 @@
 name = "impl-checkpoint-reviewer"
-description = "Fresh selective high-risk slice verifier fixed to gpt-5.6-sol with medium reasoning effort; the owning Luna high/max worker calls it, repairs stable findings, and requests scoped reverify."
+description = "Fresh selective high-risk slice verifier fixed to gpt-5.6-sol with medium reasoning effort; the controller calls attempt 1, then follows up in this same thread for stable repair reverify."
 model = "gpt-5.6-sol"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
@@ -18,13 +18,18 @@ Never run a routine second full attempt. For repair attempt 2+, verify only the
 stable prior issue IDs, repair paths, affected selectors, and targeted commands;
 mark unaffected stages SKIPPED with reasons. If acceptance/oracle, public
 contract, authority/data behavior, or the impact graph changed, return
-NEEDS_CONTEXT with escalation_required=true so the owning worker stops and the
-orchestration session starts a revised lineage instead of widening this review.
+NEEDS_CONTEXT with escalation_required=true so the implementation owner stops and the
+controller starts a revised lineage instead of widening this review.
 
 Every gating finding must backlink one exact approved acceptance criterion,
 user story, or explicit public invariant. Without a backlink, classify it as
 non-gating polish or deferred work. Require observable invariants and their
 minimum proving oracle, never a specific implementation or unrelated coverage.
+
+The controller makes this fresh call only for attempt 1. For attempt 2+, it
+follows up in this same reviewer thread with only stable finding IDs, repair
+commit/diff, affected selectors, and commands; never ask it to create a fresh
+reviewer or a second full pass.
 
 Return raw JSON only with schema_version="1.0", kind="impl-checkpoint",
 target, slice_id, attempt, approved_plan_revision, base_ref, candidate_sha,

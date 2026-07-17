@@ -2,6 +2,7 @@
 slug: emergency-self-execution
 created_at: 2026-07-16
 status: approved
+superseded_in_part_by: codex-slice-owner-controller-review
 review:
   by: user
   at: 2026-07-16T00:00:00+09:00
@@ -32,13 +33,16 @@ testing_priority: ["정본과 활성 설치본의 file-set 및 SHA-256 일치", 
 
 # Emergency Self-Execution Spec
 
+> Codex의 기존 effort 승격 및 reviewer 호출 경계는
+> `codex-slice-owner-controller-review`가 대체한다. 직접 실행 predicate는 유지한다.
+
 ## Problem
 
 단순하고 닫힌 수정까지 강제 위임하면 agent/thread 생성 비용이 실제 위험보다 커진다. 반대로 위임 작업의 기본을 실측 없는 Luna/medium으로 낮추거나 모든 위임을 max로 고정해도 각각 재작업 위험과 추론 비용을 과대 부담한다.
 
 ## Solution
 
-`impl`에 직접 실행 적격성 및 Luna high/max 선택 기준을 둔다. 직접 실행은 명확한 1~2파일 저위험 수정에 기본 적용한다. 위임이 필요한 일반 작업은 동일 slice 실측이 있는 Luna/high를 기본으로 하고, 시간·재작업 비용이 큰 고위험·불확실·다슬라이스 작업만 Luna/max로 올린다. Luna/medium은 비교 실측이 생기기 전 기본 경로로 사용하지 않는다. 나머지 스킬과 contract는 이 정본을 참조하거나 effort 범위를 정확히 반영한다.
+`impl`에 직접 실행 적격성 및 Luna high/max 선택 기준을 둔다. 직접 실행은 명확한 1~2파일 저위험 수정에 기본 적용한다. 위임이 필요한 일반 작업은 Luna/high를 기본으로 하고, 분해 뒤에도 한 slice에 남는 고비용·고복구비 원인·영향·검증 불확실성 또는 high의 실증 실패가 있을 때만 Luna/max로 올린다. Luna/medium은 비교 실측이 생기기 전 기본 경로로 사용하지 않는다. 나머지 스킬과 contract는 이 정본을 참조하거나 effort 범위를 정확히 반영한다.
 
 ## Out of Scope
 

@@ -192,12 +192,39 @@ class ImplNovelistScopeTests(unittest.TestCase):
         self.assertNotIn("git diff --name-only <parent_sha> <commit_sha>", impl)
         self.assertIn("existing", using.lower())
         self.assertIn("user-visible flow", using.lower())
-        self.assertIn("final_review_required=true", using)
+        self.assertIn("controller", using)
         self.assertIn("existing", grill.lower())
         self.assertIn("user-visible flow", grill.lower())
         self.assertIn("execution packet", plan.lower())
         self.assertIn("Hard to reverse", decision)
         self.assertIn("WHY", decision)
+
+    def test_controller_owns_reviewer_dispatch_and_scoped_reuses_thread(self) -> None:
+        impl = (ROOT / "skills/codex/impl/SKILL.md").read_text(encoding="utf-8")
+        novelist = (ROOT / "skills/codex/impl-novelist/SKILL.md").read_text(encoding="utf-8")
+        checkpoint = (ROOT / "agents/codex/impl-checkpoint-reviewer.toml").read_text(
+            encoding="utf-8"
+        )
+        final = (ROOT / "agents/codex/impl-novelist.toml").read_text(encoding="utf-8")
+        contract = (ROOT / "contract/SKILL-ARTIFACTS.md").read_text(encoding="utf-8")
+
+        self.assertIn("It makes no reviewer call.", impl)
+        self.assertIn("controller itself makes a fresh read-only", impl)
+        self.assertIn("reviewer thread/session", impl)
+        self.assertIn("same thread/session", novelist)
+        self.assertIn("controller calls attempt 1", checkpoint)
+        self.assertIn("same reviewer thread", final)
+        self.assertIn("reviewer_thread_or_session", contract)
+        self.assertNotIn("impl-novelist-scoped-reviewer", impl + novelist + contract)
+        self.assertFalse((ROOT / "agents/codex/impl-novelist-scoped-reviewer.toml").exists())
+
+    def test_luna_high_default_has_evidence_only_max_escalation(self) -> None:
+        impl = (ROOT / "skills/codex/impl/SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("`high` by default", impl)
+        self.assertIn("demonstrably failed to converge", impl)
+        self.assertIn("Multi-slice work, cross-module reach, file", impl)
+        self.assertNotIn("multi-slice or cross-module impact", impl)
 
     def test_high_risk_and_evidence_requirements_remain(self) -> None:
         impl = (ROOT / "skills/codex/impl/SKILL.md").read_text(encoding="utf-8")
@@ -208,7 +235,7 @@ class ImplNovelistScopeTests(unittest.TestCase):
             "authority, permission, secret, or security",
             "migration or external state",
             "fresh evidence",
-            "terminal regression",
+            "terminal_regression",
         ):
             self.assertIn(marker, impl + contract)
 

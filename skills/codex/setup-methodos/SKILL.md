@@ -28,7 +28,7 @@ Use this stable pick-list:
 | Profile | Contents |
 |---|---|
 | `bootstrap` | `setup-methodos` |
-| `core` | `using-methodos`, `grill-me`, `plan`, `impl`, `impl-worker`, `decision`, `impl-novelist`; `impl` directly executes only its simple closed predicate, otherwise a Luna high/max worker selected by `impl` owns implementation, local checks, WHY commits, and selected reviewers; add the selective checkpoint and final reviewer agents when isolated agents are supported |
+| `core` | `using-methodos`, `grill-me`, `plan`, `impl`, `impl-worker`, `decision`, `impl-novelist`; `impl` directly executes only its simple closed predicate, otherwise each slice has one Luna/high implementation owner (max only on evidence); the controller calls selective checkpoint and final reviewer agents when isolated agents are supported |
 | `core+novelists` | `core` plus `spec-novelist`; add the spec and conditional decision reviewer agents when isolated agents are supported |
 | `continuity` | `handoff`, `snapshot`, `todo`, `context-novelist` |
 | `learning-loop` | `blame-code`, `finding`, `gc`, `improve-codebase-architecture` |
@@ -85,7 +85,7 @@ Runtime roots:
 Runtime notes:
 - Gates self-trigger; there is no central router.
 - `using-methodos` is orientation only.
-- `impl` directly executes only its simple closed predicate. Otherwise `impl-worker` owns implementation, local verification, WHY commits, and—when assembly owner—the single final `impl-novelist`; effort selection and the direct predicate live only in `impl`.
+- `impl` directly executes only its simple closed predicate. Otherwise one `impl-worker` owns each slice's implementation, local verification, and WHY commit; the controller owns checkpoint/final reviewer calls and same-thread scoped repair follow-up. Effort selection and the direct predicate live only in `impl`.
 - Keep Methodos artifacts tracked except temporary/cache folders.
 - Hooks are active only if this repo or the user runtime explicitly registers and trusts them.
 ```

@@ -1,347 +1,132 @@
 ---
 name: impl
-description: Execute a truly simple, closed implementation directly; otherwise route delegated work to a fresh built-in Luna worker with high as the default and max only when failure or rework would be unusually costly. Direct execution and workers both own local verification and WHY commits. Delegated high-risk checkpoints and assembly-owner final impl-novelist gates remain worker-owned.
+description: Execute a truly simple, closed change directly; otherwise give each declared slice to one fresh Luna implementation owner. Luna/high is the delegated default. The controller, never an implementation owner, dispatches the selective checkpoint and final reviewer and routes same-thread scoped repair review.
 ---
 
-# /impl — right-sized implementation to one final verified candidate
+# /impl — one slice, one implementation owner
 
-## Trigger and prerequisites
+## Trigger and route
 
-- Trigger when `plan.status=approved` and a planned slice lacks its commit, or
-  when a read-only scan closes a low-risk existing-behavior change with an
-  execution packet.
-- Also trigger on `구현`, `implement`, `이 슬라이스 만들어`, `/impl <slice>`.
-- Resolve `plan_root` and `verify_root` from the nearest `AGENTS.md` or project
-  convention when the plan/artifact route is used. Planned work requires the
-  approved plan and exact slice contract; a low-risk no-plan change requires a
-  closed execution packet instead.
-- A closed execution packet contains one goal, observable acceptance, exact
-  write/test/artifact paths, the check to run, and stop conditions. It is a
-  lightweight implementation contract, not a spec, formal plan, or ADR.
-- Do not require a `plan-verify` artifact. Deterministic plan preflight and any
-  conditional high-risk `decision-reviewer` must already be closed.
-- Before dispatching or editing, choose the direct or delegated path below.
-  An explicit user-selected executor or effort wins. The parent may state a
-  materially faster eligible alternative, but does not silently substitute it.
+- Trigger for an approved plan slice or a closed execution packet. A packet has
+  one goal, observable acceptance, exact write/test/artifact paths, a command,
+  and stop conditions.
+- A parent directly performs the minimum edit only when the goal/check are
+  closed, the surface is one or two declared files, it has no new user-facing
+  WHAT, schema/public API, authority/data/security, irreversible, deployment,
+  migration, or external-state effect, and no unexplained dirty overlap.
+- Otherwise dispatch one fresh built-in `impl-worker` for the declared slice.
+  The user-selected executor wins. One-shot work uses a built-in subagent unless
+  the nearest project instruction requires another transport.
 
-## Direct self-execution
+## Delegated effort
 
-The parent directly performs the minimum change when **every** condition below
-is true. This is the default for a truly simple, closed task; it is not an
-exception based on line count or estimated duration.
+Use `gpt-5.6-luna` with `high` by default. Escalate one slice to `max` only
+when, after decomposition, that slice retains high-cost and hard-to-recover
+uncertainty in cause, impact, or verification, or comparable Luna/high work has
+demonstrably failed to converge. Multi-slice work, cross-module reach, file
+count, or the existence of a plan is not a max condition. Do not make `medium`
+the default without comparative evidence.
 
-1. The goal and the exact verification are clear, and no WHAT decision remains.
-2. The expected direct write surface is one or two declared files. A coherent
-   multi-file low-risk packet can use the worker route without creating a
-   formal spec or plan solely because it has multiple files.
-3. The change does not add a new user-facing flow or leave a user-facing WHAT
-   decision open, and has no schema or public API; security, authentication,
-   authority, permission, secret, data, or user-asset effect; irreversible
-   operation; deployment, migration, or external-state effect. An existing
-   user-visible flow may be changed when its acceptance is closed and none of
-   those high-risk surfaces is affected.
-4. The declared paths have no unexplained dirty overlap or concurrent edit.
+## Ownership boundary
 
-The parent declares the goal, write paths, and exact check before editing. It
-edits only those paths, runs the declared check and records its real output,
-then creates the required WHY commit. On a failed check, scope expansion,
-uncertainty, or dirty/concurrent overlap, it stops direct execution and routes
-the remaining work to a fresh Luna worker. Required high-risk checkpoints and
-final-review gates are never bypassed.
+The implementation owner owns exactly one slice: declared-path implementation,
+RED/GREEN and local verification, its WHY commit, and an `impl-worker-report`.
+It makes no reviewer call. It stops with `BLOCKED` if the packet lacks a
+decision or editing would exceed the declared boundary.
 
-When the only reason direct execution is ineligible is a coherent multi-file
-surface, use a fresh worker with the same execution packet. Do not manufacture
-spec/plan/ADR ceremony for that reason alone. If the packet is incomplete or a
-high-risk surface appears, enter the corresponding formal gate before editing.
+The controller owns transport and mechanical routing only. It chooses the
+implementation owner immediately before dispatch, checks reported commits,
+artifact paths/hashes, reviewer terminal status, ancestry, dirty/index state,
+and selects the next route. It never edits implementation files, makes a WHY
+commit, or repeats semantic review.
 
-## Delegated execution and effort
+After a committed report, the controller itself makes a fresh read-only
+`impl-checkpoint-reviewer(gpt-5.6-sol/medium)` call for a required high-risk
+slice. When the assembled candidate requires final review, it itself makes one
+fresh read-only `impl-novelist(gpt-5.6-sol/medium)` call. The controller stores
+each raw artifact and records its reviewer thread/session identity for repair.
 
-When direct self-execution is ineligible, dispatch a fresh built-in
-worker/default subagent with model `gpt-5.6-luna`. Use `high` by default.
-Escalate to `max` when the work has multi-slice or cross-module impact, an
-uncertain cause or impact, difficult verification, any high-risk predicate
-surface, or a failure whose delay or rework cost would be large. Do not choose
-effort by line count alone. Do not use `medium` as a default until comparable
-evidence supports it. The selected worker owns implementation, local
-verification, WHY commits, and any required reviewer.
+## Implementation owner packet and lifecycle
 
-## Ownership contract
+The controller sends one self-contained packet with: closed acceptance;
+`slice_id`; `owner_role=slice-owner`; declared write/test/artifact paths;
+callers/producers/consumers/failures; commands; provenance when a plan exists;
+and the WHY format. It may declare `assembly_owner=true` only for a final
+assembly implementation task, but that does not transfer reviewer dispatch.
 
-The planning/orchestration session owns only the decision surface needed to route
-the work:
+The owner must:
 
-- WHAT, closed acceptance criteria, and user-facing scope;
-- slice boundaries and exact write/test/artifact paths;
-- transport, role/profile, model, and reasoning effort chosen immediately before
-  each child call;
-- the provenance revision, any candidate regression base, owned commit set, and
-  who is the assembly owner.
+1. Read relevant declared callers, producers, consumers, derived outputs, and
+   failure paths.
+2. Implement only declared paths, run declared RED/GREEN and local commands,
+   and create one WHY commit before reporting.
+3. Return only raw `impl-worker-report`; it must report no checkpoint/final
+   reviewer as owner-run. The report is a seam handoff, not semantic approval.
 
-For delegated work it does not edit implementation files, create WHY commits,
-perform semantic review, or dispatch the final reviewer on the worker's behalf.
-For direct self-execution it owns the declared minimum change and its check.
+```text
+<one-line title>
 
-The fresh `impl-worker` owns the implementation lifecycle in the target checkout:
-
-1. implement only the declared slice or assembly task;
-2. run declared local verification;
-3. create the WHY commit with only declared implementation and evidence paths;
-4. when the slice is high-risk, call the fixed Sol/medium checkpoint, repair
-   stable findings, and run only the scoped reverify required by that checkpoint;
-5. when marked `assembly_owner=true` and `final_review_required=true`, call the
-   fresh final `impl-novelist`, repair stable findings, and run only scoped final
-   reverify; and
-6. return a raw `impl-worker-report` containing commit, reviewer, artifact, and
-   ancestry evidence.
-
-If one worker performs the whole implementation, that worker is the assembly
-owner. If several workers contribute, the worker that merges or assembles their
-results is the only assembly owner and the only worker that calls the final full
-`impl-novelist` for that candidate. There is exactly one final full attempt for
-the approved lineage.
-
-The upper Sol/controller owns mechanical seam acceptance for delegated work. It verifies the
-reported commit boundary, ancestry, reviewer terminal status, artifact paths and
-hashes, dirty/index state, and the next routing decision. It must not repeat the
-worker's requirements, impact, quality, or narrative review and must not repair
-implementation files itself. A seam mismatch routes back to the worker as
-`BLOCKED`.
-
-## Implementation worker boundary
-
-Immediately before each child call, choose transport, role/profile, model, and
-reasoning effort consciously. One-shot isolated work defaults to a built-in
-subagent; an independent thread takes precedence only when the nearest project
-`AGENTS.md` explicitly requires long-running autonomy or orchestration. General
-subagents specify model and reasoning effort, unless parent inheritance is
-intentional or a selected TOML role owns that contract. Invoke implementation
-workers as built-in worker/default subagents with `gpt-5.6-luna` and the effort
-selected by `Delegated execution and effort`; keep the parent turn open until a general subagent result is retrieved. Long-lived thread
-termination/reporting belongs to the project contract, and a TOML role contract
-is not overridden by the caller. The logical `impl-worker` role and
-`impl-worker-report` name may remain, but no custom TOML profile is used.
-
-The parent sends one self-contained packet containing:
-
-- the closed WHAT and acceptance criteria;
-- the exact slice or execution-packet boundary;
-- `approved_plan_revision` as lineage provenance only when a plan exists;
-- `candidate_diff_base` only when a regression baseline is declared;
-- the explicit `owned_commit_shas` set for any final review; never infer it from
-  the approved revision;
-- `write_paths`, `test_paths`, and `artifact_paths`;
-- caller/producer/consumer/failure selectors;
-- declared local and reviewer commands;
-- `assembly_owner`, `owner_role`, and `final_review_required` flags; include
-  `approved_plan.slices.length` and checkpoint fields only on the plan route;
-  a low-risk no-plan packet sets `final_review_required=false`; and
-- the WHY commit format and stop conditions.
-
-The worker may modify and commit only those declared paths. It must not make a
-new user-facing, authority/data, public-contract, or irreversible decision. It
-must stop with `BLOCKED` and return the decision gap when the packet is
-insufficient.
-
-The worker's report is a handoff for mechanical seam acceptance, not a license
-for the parent to repeat semantic review. The parent checks the real commit and
-workspace state against this report before routing the next slice.
-
-## Worker report
-
-The worker returns ONLY raw JSON. The report must include the actual model and
-effort, commit ancestry, touched paths, fresh command output, and the terminal
-state of every reviewer it owned:
-
-```json
-{
-  "schema_version": "1.1",
-  "kind": "impl-worker-report",
-  "status": "IMPLEMENTED" | "BLOCKED",
-  "owner_role": "slice-owner" | "assembly-owner",
-  "slice_id": "...",
-  "touched_paths": ["..."],
-  "commit_sha": "..." | null,
-  "parent_sha": "..." | null,
-  "checks": [{"command": "...", "exit_code": 0, "output": "..."}],
-  "checkpoint": {
-    "required": false,
-    "status": "SKIPPED",
-    "skip_reason": null,
-    "trigger_reason": null,
-    "linked_acceptance_criterion_or_invariant": null,
-    "impact_selectors": {"callers": [], "producers": [], "consumers": [], "failures": []},
-    "targeted_commands": [],
-    "residual_risk": null,
-    "artifact_path": null,
-    "artifact_sha256": null,
-    "reviewed_candidate_sha": null,
-    "final_candidate_sha": null,
-    "reviewer_model": null,
-    "reviewer_reasoning_effort": null,
-    "reviewer_transport": null
-  },
-  "final_review": {
-    "required": false,
-    "status": "SKIPPED",
-    "artifact_path": null,
-    "artifact_sha256": null,
-    "reviewed_candidate_sha": null,
-    "final_candidate_sha": null,
-    "reviewer_model": null,
-    "reviewer_reasoning_effort": null,
-    "reviewer_transport": null
-  },
-  "acceptance_criteria": ["..."],
-  "impact": {"callers": ["..."], "producers": ["..."], "consumers": ["..."], "failures": ["..."]},
-  "unresolved": [],
-  "workspace": {"dirty_paths": [], "staged_paths": []},
-  "worker_model": "gpt-5.6-luna",
-  "worker_reasoning_effort": "high" | "max"
-}
+WHY: <decision> | 비용(지금/부채): Xm/Ym | Reeval: <condition>
+Slice: <id>
+Touched: <paths>
 ```
 
-`checkpoint` and `final_review` must record the actual artifact path, reviewer
-status, reviewed candidate SHA, and final candidate SHA when required. For the
-single-slice exception, `checkpoint` must also record the skip reason and the
-trigger reason, linked acceptance criterion or invariant, caller / producer /
-consumer / failure selectors, targeted commands, and residual risk that the
-final packet receives. A `BLOCKED` report may leave the commit and reviewer
-fields null, but it must state the exact missing decision, failed command, or
-scope mismatch.
+## Controller review and repair loop
 
-## Worker lifecycle
+Default to no checkpoint. Require it only for a schema or explicit public contract;
+authority, permission, secret, or security; persistent/latest/idempotency/
+concurrency; migration or external state; financial execution; or a foundation
+consumed by two or more later planned slices. Size and complexity alone never
+trigger it. Each gating finding back-links one approved acceptance criterion,
+user story, or explicit public invariant.
 
-1. Read the approved packet, existing owners, and the relevant caller,
-   producer, consumer, derived-output, and failure paths.
-2. Edit only the declared implementation paths and run every declared local
-   RED/GREEN and verification command.
-3. Create the implementation WHY commit before any optional reviewer:
+For an attempt-1 `BROKEN`, the controller sends stable finding IDs, exact repair
+scope, and declared affected selectors to the same slice owner. That owner makes
+the smallest repair in its declared boundary, runs local checks, creates a WHY
+repair commit, and returns a new report. The controller follows up in the same
+attempt-1 reviewer thread/session with only finding IDs, repair commit/diff,
+and affected caller/producer/consumer/failure selectors. This is attempt 2+
+`scoped`; never create a dedicated repair-review profile or routine second full
+pass.
 
-   ```text
-   <한 줄 제목>
+If repair changes acceptance/oracle, public contract, authority/data behavior,
+or the impact graph, the owner returns `BLOCKED`; the controller requests a new
+approved lineage rather than widening scoped review. A user-requested single
+review skips attempt 2+ and records the residual risk.
 
-   WHY: <결정> | 비용(지금/부채): Xm/Ym | Reeval: <조건>
-   Slice: <id>
-   Touched: <paths>
-   ```
+The final full reviewer runs once only after the controller has mechanically
+accepted all required slice reports and the assembly candidate. Its BROKEN
+repair belongs to the same assembly owner; its scoped re-review is a follow-up
+to that final reviewer's original thread/session under the same packet limits.
 
-   An assembly owner uses `Role: assembly-owner` and lists the input worker
-   commits in the body. Evidence artifacts use the same WHY format when they
-   require a separate commit.
-4. Apply the high-risk checkpoint predicate below. For a matching slice, spawn
-   a fresh read-only `impl-checkpoint-reviewer(gpt-5.6-sol/medium)` with
-   `fork_turns="none"`, persist its raw JSON at the declared artifact path, and
-   close attempt 1 before routing downstream work. The only duplicate-review
-   exception is the exact conjunction `approved_plan.slices.length == 1 AND
-   owner_role == assembly-owner AND final_review_required == true`: do not call
-   the checkpoint, record `checkpoint.status = SKIPPED` with
-   `skip_reason = "single_slice_final_review_overlap"`, and pass
-   `trigger_reason`, `linked_acceptance_criterion_or_invariant`, caller /
-   producer / consumer / failure `impact_selectors`, `targeted_commands`, and
-   `residual_risk` into the final review packet. If any condition is false, keep
-   the multi-slice checkpoint protection unchanged. On `BROKEN`, the worker
-   repairs only stable findings, creates a WHY repair commit, and runs the same
-   profile scoped to those findings. Never schedule a routine second full pass.
-   If the repair changes acceptance/oracle, a public contract, authority/data
-   behavior, or the impact graph, stop with `BLOCKED` for a new plan lineage.
-5. When the packet marks the worker as assembly owner and final review required,
-   wait until all declared worker inputs and local checks are assembled. Spawn a
-   fresh read-only `impl-novelist(gpt-5.6-sol/medium)` with
-   `fork_turns="none"`, persist the raw v1.4 artifact, and close the one full
-   final attempt. When the exact single-slice exception applies, include the
-   recorded checkpoint skip context and residual risk in this packet; the final
-   review remains required. On `BROKEN`, repair only stable findings in the worker-owned
-   checkout, create a WHY repair commit, then spawn the fresh
-   `impl-novelist-scoped-reviewer` for attempt 2+ with only the repair scope.
-   Do not run another full final review. If the repair changes approved
-   requirements, acceptance/oracle, public contract, authority/data behavior,
-   or the impact graph, stop with `BLOCKED` and request a new approved lineage.
-6. Return the raw report only after the final worker-owned commit, reviewer
-   artifact, and workspace state are observable.
+## Report and seam acceptance
 
-## Upper controller seam acceptance
+`impl-worker-report` v1.2 contains the actual owner model/effort, `slice_id`,
+`owner_role`, touched paths, commit and parent SHA, real command output,
+acceptance criteria, impact selectors, unresolved decisions, and workspace
+dirty/index state. `checkpoint` and `final_review` are controller-owned routing
+records: before review they are `NOT_REQUESTED`; after review they contain the
+artifact, hash, reviewer thread/session identity, terminal status, reviewed and
+final candidate SHA. The owner must never claim to have invoked either reviewer.
 
-After receiving the worker report, the planning/orchestration session performs
-only these checks:
+For each reported owned commit the controller runs `git show` and
+`git diff --name-only <sha>^ <sha>`, checks it is within the declared scope,
+and checks the real workspace. It validates each required artifact and its
+actual terminal provenance. For several commits, union individual patches;
+never substitute a cumulative range. `approved_plan_revision` is provenance,
+not a diff base. A mechanical mismatch routes back to the same owner as
+`BLOCKED`; it is not a controller repair or semantic re-review.
 
-1. `git show --format=fuller --stat <commit_sha>` confirms the commit exists,
-   has the expected parent, and contains the required WHY line.
-2. For every `owned_commit_shas` entry, `git diff --name-only <sha>^ <sha>` is a
-   subset of the declared implementation/evidence paths; no unexpected path is
-   accepted. Never substitute the approved revision or a cumulative ancestry
-   range for this per-commit check.
-3. `git status --short`, `git diff --name-only`, and
-   `git diff --cached --name-only` show no worker residue beyond explicitly
-   declared next-stage artifacts. The controller does not stage or clean it.
-4. Every required checkpoint/final artifact exists, parses, has the expected
-   terminal status, records actual reviewer model/effort/transport, and has the
-   expected hash when the packet declares one.
-5. `candidate_sha`, `parent_candidate_sha`, and every `owned_commit_shas` entry
-   are checked as separate facts. For scope, union each owned commit's
-   `<sha>^..<sha>` patch; never use a first-owned..last-owned range. The
-   `approved_plan_revision` is provenance only. A descendant check may be
-   recorded mechanically, but a non-overlapping external commit between owned
-   commits is not a failure. An external commit that overlaps a declared path
-   or contract is `BLOCKED`.
+## Completion and prohibitions
 
-Do not reopen semantic review from these checks. If any mechanical check fails,
-route the exact mismatch back to the owning worker and keep the candidate
-closed.
+Complete only after every owner has a WHY commit and local evidence, every
+required controller-owned attempt-1 review is terminal, every BROKEN repair
+has either same-thread scoped closure or a new approved lineage, and the
+controller's mechanical checks pass. A low-risk no-plan packet closes after its
+WHY commit, declared check, real evidence, and clean boundary.
 
-## High-risk slice checkpoint predicate
-
-Default to `SKIP`. Require a checkpoint only when the slice changes at least one
-of these observable risk surfaces:
-
-- schema or explicit public contract;
-- approval, authority, permission, secret, or security behavior;
-- persistent artifact, latest pointer, idempotency, or concurrency behavior;
-- migration or external state;
-- order, capital allocation, or financial-execution semantics; or
-- a foundation consumed by two or more later planned slices.
-
-Size or complexity alone never triggers it. Every gating finding must backlink
-one exact approved acceptance criterion, user story, or explicit public
-invariant. Without that backlink it is non-gating `polish` or
-`deferred_decision`.
-
-For a high-risk slice, the only checkpoint omission is the exact conjunction
-`approved_plan.slices.length == 1 AND owner_role == assembly-owner AND
-final_review_required == true`. The worker records `SKIPPED` and forwards the
-trigger reason, linked acceptance criterion or invariant, caller / producer /
-consumer / failure selectors, targeted commands, and residual risk to the final
-packet. If any condition is false, the checkpoint remains required.
-
-## Final candidate completion
-
-The worker-owned candidate is complete only when:
-
-- every planned worker slice has its WHY commit, or the no-plan packet has its
-  declared WHY commit;
-- every required checkpoint has one full attempt 1 artifact, with only stable
-  repair reverify artifacts after a failure, or the exact single-slice
-  exception has a `SKIPPED` checkpoint report and its context in the final
-  packet;
-- the assembly owner has one final `impl-novelist` attempt 1 artifact with
-  status `DONE`, all stages PASS, and actual terminal regression output or
-  `NOT_DECLARED` residual scope; and
-- the upper controller's mechanical seam checks pass.
-
-For a low-risk no-plan execution packet with `final_review_required=false`, the
-WHY commit, declared local check, real evidence, and clean workspace boundary
-close the work; no narrative artifact is manufactured.
-
-`DONE` ends the workflow. Never create a routine second final full review.
-
-## Do not
-
-- let the parent write implementation files or create WHY commits outside the
-  `Direct self-execution` predicate;
-- let the parent perform semantic implementation review after worker review;
-- let a non-assembly worker call the final full reviewer;
-- wait for or create Codex `plan-verify`/routine per-slice `impl-verify` artifacts;
-- broaden the checkpoint predicate because a slice is merely large or complex;
-- treat a worker report as a substitute for checking the real commit, artifact,
-  ancestry, or dirty/index state;
-- modify files outside the worker packet; or
-- ask “진행할까요?” between approved slices.
+- Do not let an implementation owner spawn or call any checkpoint or final reviewer.
+- Do not let a controller edit implementation or perform semantic review.
+- Do not create or use a separate final scoped-review profile.
+- Do not infer max from multi-slice, cross-module, file count, or plan presence.
+- Do not ask “진행할까요?” between approved routes.
