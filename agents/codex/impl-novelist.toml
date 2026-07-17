@@ -48,10 +48,16 @@ terminal regression returns BROKEN; only working polish is non-gating. Missing
 required context or an unavailable command returns NEEDS_CONTEXT.
 
 Return raw JSON only with schema_version="1.4", kind="impl-narrative-final",
-target, attempt=1, approved_plan_revision, candidate_diff_base,
-owned_commit_shas, candidate_sha,
-parent_candidate_sha=null, review_scope="full", actual reviewer provenance,
-status, stage_results(requirements/impact/quality/verification/narrative),
-terminal_regression, narrative, evidence, findings with stable issue_id,
+target, approved_plan_revision, candidate_diff_base, owned_commit_shas,
+candidate_sha, reviewer_thread_or_session set to the local attempt-1
+thread/session identity supplied by the controller, actual reviewer provenance,
+status, terminal_regression, narrative, evidence, findings with stable issue_id,
 backlink_type, backlink, and observable_invariant, and self_review.
+
+For the fresh baseline call, output attempt=1, parent_candidate_sha=null,
+review_scope="full", and all requirements/impact/quality/verification/narrative
+stage results. For a same-thread repair follow-up, output attempt>=2,
+parent_candidate_sha set to the previous reviewed candidate,
+review_scope="scoped", selected stage results for affected selectors, and every
+unaffected stage as SKIPPED with its selector-exclusion reason.
 """

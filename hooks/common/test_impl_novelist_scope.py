@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import subprocess
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -217,6 +218,39 @@ class ImplNovelistScopeTests(unittest.TestCase):
         self.assertIn("reviewer_thread_or_session", contract)
         self.assertNotIn("impl-novelist-scoped-reviewer", impl + novelist + contract)
         self.assertFalse((ROOT / "agents/codex/impl-novelist-scoped-reviewer.toml").exists())
+
+    def test_local_reviewer_profiles_encode_baseline_and_same_thread_followup(self) -> None:
+        checkpoint_profile = tomllib.loads(
+            (ROOT / "agents/codex/impl-checkpoint-reviewer.toml").read_text(encoding="utf-8")
+        )["developer_instructions"]
+        final_profile = tomllib.loads(
+            (ROOT / "agents/codex/impl-novelist.toml").read_text(encoding="utf-8")
+        )["developer_instructions"]
+        contract = (ROOT / "contract/SKILL-ARTIFACTS.md").read_text(encoding="utf-8")
+
+        for marker in (
+            "attempt=1",
+            "parent_candidate_sha=null",
+            'review_scope="full"',
+            "attempt>=2",
+            "parent_candidate_sha set to the previous reviewed candidate",
+            'review_scope="scoped"',
+            "unaffected stage as SKIPPED",
+        ):
+            self.assertIn(marker, final_profile)
+
+        self.assertIn("reviewer_thread_or_session", checkpoint_profile)
+        self.assertIn("reviewer_thread_or_session", final_profile)
+        self.assertIn("impl-worker-report`, v1.2", contract)
+
+        checkpoint_schema = contract.split("### impl-checkpoint schema", 1)[1].split(
+            "### impl-narrative-final schema", 1
+        )[0]
+        final_schema = contract.split("### impl-narrative-final schema", 1)[1].split(
+            "**Evidence 작성 정본 룰", 1
+        )[0]
+        self.assertIn('"reviewer_thread_or_session"', checkpoint_schema)
+        self.assertIn('"reviewer_thread_or_session"', final_schema)
 
     def test_luna_high_default_has_evidence_only_max_escalation(self) -> None:
         impl = (ROOT / "skills/codex/impl/SKILL.md").read_text(encoding="utf-8")

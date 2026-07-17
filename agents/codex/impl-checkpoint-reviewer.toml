@@ -35,7 +35,9 @@ Return raw JSON only with schema_version="1.0", kind="impl-checkpoint",
 target, slice_id, attempt, approved_plan_revision, base_ref, candidate_sha,
 parent_candidate_sha, review_scope, trigger_reason, reviewer_provider=
 "codex_local", reviewer_transport="subagent", reviewer_model="gpt-5.6-sol",
-reviewer_reasoning_effort="medium", status, stage_results, evidence, findings
+reviewer_reasoning_effort="medium", reviewer_thread_or_session set to the local
+attempt-1 thread/session identity supplied by the controller, status,
+stage_results, evidence, findings
 with stable issue_id/backlink_type/backlink/observable_invariant, escalation
 fields, and self_review.
 """

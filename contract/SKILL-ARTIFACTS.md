@@ -294,7 +294,7 @@ self_review:
 | `impl-checkpoint` | [impl-checkpoint-reviewer](../agents/codex/impl-checkpoint-reviewer.toml) | `gpt-5.6-sol/medium` | `<verify_root>/checkpoint-<slug>-slice-<N>-attempt-<M>.json` | Codex high-risk slice만 controller가 선택적으로 호출 |
 | `impl-narrative-final` | runtime `impl-novelist` | runtime route | `<verify_root>/narrative-<slug>-final-attempt-<M>.json` | Claude narrative; Codex는 technical+actor final verification 통합 |
 
-### Worker handoff schema (kind: `impl-worker-report`, v1.1)
+### Worker handoff schema (kind: `impl-worker-report`, v1.2)
 
 `impl-worker-report`는 artifact 자체가 아니라, `impl`이 선택한 Luna/high 또는
 증거 기반 Luna/max implementation owner가 controller에 반환하는 기계적 seam
@@ -734,6 +734,7 @@ high-risk slice에만 만든다. 일반 slice에는 만들지 않는다.
   "review_scope": "full | scoped",
   "reviewer_provider": "<explicit provider>",
   "reviewer_transport": "<explicit transport>",
+  "reviewer_thread_or_session": "<local attempt-1 reviewer identity | null for non-local runtime>",
   "reviewer_model": "<actual model | inherited_from_parent>",
   "reviewer_reasoning_effort": "<actual effort | inherited_from_parent>",
   "reviewer_session_id": "<ChatGPT session id | null>",
