@@ -14,13 +14,16 @@ description: Execute a truly simple, closed change directly; otherwise give each
   closed, the surface is one or two declared files, it has no new user-facing
   WHAT, schema/public API, authority/data/security, irreversible, deployment,
   migration, or external-state effect, and no unexplained dirty overlap.
-- Otherwise dispatch one fresh built-in `impl-worker` for the declared slice.
+- Otherwise dispatch one fresh custom `luna-high-worker` for the declared slice.
   The user-selected executor wins. One-shot work uses a built-in subagent unless
   the nearest project instruction requires another transport.
 
 ## Delegated effort
 
-Use `gpt-5.6-luna` with `high` by default. Escalate one slice to `max` only
+Use `luna-high-worker` with Luna `high` by default. Its agent profile fixes
+`gpt-5.6-luna` with `high`; do not
+depend on a direct model override being exposed by the spawn transport. Escalate
+one slice to `luna-max-worker`, which fixes Luna `max`, only
 when, after decomposition, that slice retains high-cost and hard-to-recover
 uncertainty in cause, impact, or verification, or comparable Luna/high work has
 demonstrably failed to converge. Multi-slice work, cross-module reach, file

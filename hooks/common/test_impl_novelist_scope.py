@@ -219,6 +219,22 @@ class ImplNovelistScopeTests(unittest.TestCase):
         self.assertNotIn("impl-novelist-scoped-reviewer", impl + novelist + contract)
         self.assertFalse((ROOT / "agents/codex/impl-novelist-scoped-reviewer.toml").exists())
 
+    def test_impl_routes_delegated_slices_through_luna_agent_profiles(self) -> None:
+        impl = (ROOT / "skills/codex/impl/SKILL.md").read_text(encoding="utf-8")
+        high = tomllib.loads(
+            (ROOT / "agents/codex/luna-high-worker.toml").read_text(encoding="utf-8")
+        )
+        maximum = tomllib.loads(
+            (ROOT / "agents/codex/luna-max-worker.toml").read_text(encoding="utf-8")
+        )
+
+        self.assertIn("custom `luna-high-worker`", impl)
+        self.assertIn("`luna-max-worker`", impl)
+        self.assertEqual(high["model"], "gpt-5.6-luna")
+        self.assertEqual(high["model_reasoning_effort"], "high")
+        self.assertEqual(maximum["model"], "gpt-5.6-luna")
+        self.assertEqual(maximum["model_reasoning_effort"], "max")
+
     def test_local_reviewer_profiles_encode_baseline_and_same_thread_followup(self) -> None:
         checkpoint_profile = tomllib.loads(
             (ROOT / "agents/codex/impl-checkpoint-reviewer.toml").read_text(encoding="utf-8")
