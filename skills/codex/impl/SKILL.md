@@ -49,7 +49,8 @@ each raw artifact and records its reviewer thread/session identity for repair.
 ## Implementation owner packet and lifecycle
 
 The controller sends one self-contained packet with: closed acceptance;
-`slice_id`; `owner_role=slice-owner`; declared write/test/artifact paths;
+`slice_id`; `owner_role=slice-owner`; `owner_thread_or_session` fixed to the
+attempt-1 implementation owner identity; declared write/test/artifact paths;
 callers/producers/consumers/failures; commands; provenance when a plan exists;
 and the WHY format. It may declare `assembly_owner=true` only for a final
 assembly implementation task, but that does not transfer reviewer dispatch.
@@ -102,7 +103,7 @@ to that final reviewer's original thread/session under the same packet limits.
 ## Report and seam acceptance
 
 `impl-worker-report` v1.2 contains the actual owner model/effort, `slice_id`,
-`owner_role`, touched paths, commit and parent SHA, real command output,
+`owner_role`, `owner_thread_or_session`, touched paths, commit and parent SHA, real command output,
 acceptance criteria, impact selectors, unresolved decisions, and workspace
 dirty/index state. `checkpoint` and `final_review` are controller-owned routing
 records: before review they are `NOT_REQUESTED`; after review they contain the
@@ -111,7 +112,9 @@ final candidate SHA. The owner must never claim to have invoked either reviewer.
 
 For each reported owned commit the controller runs `git show` and
 `git diff --name-only <sha>^ <sha>`, checks it is within the declared scope,
-and checks the real workspace. It validates each required artifact and its
+and checks the real workspace. For every repair it requires
+`owner_thread_or_session` to equal the attempt-1 implementation report; a
+different or missing identity is `BLOCKED`. It validates each required artifact and its
 actual terminal provenance. For several commits, union individual patches;
 never substitute a cumulative range. `approved_plan_revision` is provenance,
 not a diff base. A mechanical mismatch routes back to the same owner as

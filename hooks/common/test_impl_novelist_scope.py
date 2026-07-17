@@ -252,6 +252,31 @@ class ImplNovelistScopeTests(unittest.TestCase):
         self.assertIn('"reviewer_thread_or_session"', checkpoint_schema)
         self.assertIn('"reviewer_thread_or_session"', final_schema)
 
+    def test_required_checkpoint_and_owner_identity_have_no_legacy_codex_route(self) -> None:
+        contract = (ROOT / "contract/SKILL-ARTIFACTS.md").read_text(encoding="utf-8")
+        impl = (ROOT / "skills/codex/impl/SKILL.md").read_text(encoding="utf-8")
+
+        self.assertNotIn("final_review_required", contract)
+        self.assertNotIn("approved_plan.slices.length == 1", contract)
+        self.assertIn("Required checkpoint를 final\n  review로 대체하거나 생략하지 않는다.", contract)
+
+        impl_verify_schema = contract.split("### impl-verify schema", 1)[1].split(
+            "### impl-checkpoint schema", 1
+        )[0]
+        self.assertIn("아래 lineage, model/effort 상속", impl_verify_schema)
+        self.assertIn("`impl-verify` realization에만 적용", impl_verify_schema)
+        self.assertNotIn("Codex 기본 final full route", impl_verify_schema)
+        self.assertNotIn("Codex attempt 2+", impl_verify_schema)
+        self.assertIn("같은 reviewer thread/session follow-up", contract)
+
+        worker_schema = contract.split("### Worker handoff schema", 1)[1].split(
+            "### Runtime impl advisory schema", 1
+        )[0]
+        self.assertIn('"owner_thread_or_session"', worker_schema)
+        self.assertIn("same `owner_thread_or_session` value", worker_schema)
+        self.assertIn("owner_thread_or_session", impl)
+        self.assertIn("equal the attempt-1 implementation report", impl)
+
     def test_luna_high_default_has_evidence_only_max_escalation(self) -> None:
         impl = (ROOT / "skills/codex/impl/SKILL.md").read_text(encoding="utf-8")
 
