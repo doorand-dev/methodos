@@ -513,16 +513,6 @@ reviewer runtime의 advisory review를 명시적으로 요청했을 때만 1회 
 - scoped reviewer가 위 predicate로 `NEEDS_CONTEXT`를 반환한 응답은 routing
   envelope이며 terminal attempt artifact로 저장하지 않는다. 같은 attempt/candidate/
   parent의 full 결과 하나만 저장한다. 다른 `NEEDS_CONTEXT`는 terminal이다.
-- Codex 기본 final full route는 `gpt-5.6-sol/medium`으로 고정한 fresh local
-  subagent다. attempt 2+ scoped는 부모 session model/effort를 상속한다. local
-  reviewer를 실행할 수 없으면 자동 외부 fallback 없이 `NEEDS_CONTEXT`다. 외부
-  provider는 사용자 명시 요청 때만 쓴다.
-- `reviewer_provider`/`reviewer_transport`/`reviewer_model`/
-  `reviewer_reasoning_effort`는 실제 dispatch 값이다. local final full은
-  `gpt-5.6-sol`/`medium`을 기록한다. runtime이 상속된 실제 값을 노출하지 않는
-  scoped route는 두 값에 `inherited_from_parent`를 기록할 수 있다. 이는
-  unknown/default가 아니라 custom-agent 설정 생략에 따른 명시적 provenance다.
-
 ### impl-verify schema (kind: "impl-verify") — class-aware Stage 1/2 (v1.4)
 
 ```json

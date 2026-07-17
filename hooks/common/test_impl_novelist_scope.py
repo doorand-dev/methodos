@@ -268,6 +268,17 @@ class ImplNovelistScopeTests(unittest.TestCase):
         self.assertNotIn("Codex 기본 final full route", impl_verify_schema)
         self.assertNotIn("Codex attempt 2+", impl_verify_schema)
         self.assertIn("같은 reviewer thread/session follow-up", contract)
+        self.assertNotIn("attempt 2+ scoped는 부모 session model/effort를 상속", contract)
+        codex_attempt2_bullets = [
+            bullet
+            for bullet in contract.split("\n- ")
+            if "Codex" in bullet and "attempt 2+" in bullet
+        ]
+        self.assertTrue(codex_attempt2_bullets)
+        for bullet in codex_attempt2_bullets:
+            self.assertNotIn("부모 session", bullet)
+            self.assertNotIn("inherited_from_parent", bullet)
+        self.assertIn("inherited_from_parent", contract)
 
         worker_schema = contract.split("### Worker handoff schema", 1)[1].split(
             "### Runtime impl advisory schema", 1
