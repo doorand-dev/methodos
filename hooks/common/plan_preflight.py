@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 from collections import Counter
 from pathlib import Path
 
 
 PLACEHOLDER = re.compile(r"\b(TBD|TODO|implement later|fill in details|add appropriate|similar to slice)\b", re.I)
+SHA = re.compile(r"^[0-9a-f]{40}$")
 POSIX_COMMAND = re.compile(r"\b(test\s+-[efdr]|grep\s|bash\s|sh\s+-c)\b|\$[A-Za-z_][A-Za-z0-9_]*")
 
 
@@ -55,6 +57,23 @@ def check(text: str, repo: Path | None = None) -> list[str]:
         errors.append("slug must be kebab-case")
     if not re.search(r"(?m)^status:\s*approved\s*$", data):
         errors.append("status must be approved before reviewer dispatch")
+
+    sha_match = re.search(r"(?m)^\s+sha:\s*([^\s#]+)", data)
+    if not sha_match or not SHA.fullmatch(sha_match.group(1)):
+        errors.append("source_spec.sha must be a 40-hex git blob SHA")
+    elif repo is not None:
+        source_path = re.search(r"(?m)^\s+path:\s*([^\s#]+)", data)
+        if not source_path or not (repo / source_path.group(1)).is_file():
+            errors.append("source_spec.path must exist under --repo")
+        else:
+            actual = subprocess.run(
+                ["git", "-C", str(repo), "hash-object", source_path.group(1)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            if actual.returncode or actual.stdout.strip() != sha_match.group(1):
+                errors.append("source_spec.sha does not match the current source spec blob")
 
     blocks = slice_blocks(data)
     if not blocks:
