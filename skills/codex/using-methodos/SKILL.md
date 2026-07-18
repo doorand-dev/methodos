@@ -22,13 +22,16 @@ packet이 닫히지 않으면 `/plan`으로 구조화한 뒤 `/impl`에서 slice
 
 ## 게이트 선택
 
+보통 단일 actor/flow spec은 현재 세션이 짧게 actor walk를 수행한다. 여러 actor나
+여러 flow가 있을 때만 fresh `spec-novelist` agent로 라우팅한다.
+
 | 게이트 | 발동 조건 | 핵심 산출 |
 |---|---|---|
 | `grill-me` | 새 capability, 새 user-visible flow, 미결정 WHAT | 승인된 spec |
 | `plan` | 승인 spec, 독립 slice, 고위험 또는 불명확한 변경 | exact paths와 commands가 있는 plan |
 | `impl` | 승인 plan slice 또는 닫힌 execution packet | 구현, 테스트, changed-path 확인 |
 | `decision-reviewer` | 고위험 또는 복수 사용자 결정 | 선택지와 잔여 위험 |
-| `spec-novelist` | 여러 actor/flow의 spec | 현재 세션의 actor walk; 독립 관점이 유효할 때만 fresh reader |
+| `spec-novelist` | 여러 actor/flow의 spec | fresh reader의 actor·flow 누락 점검 |
 
 Checkpoint review는 schema/public contract, permission/security, user data,
 persistent/latest/idempotency/concurrency, migration/external state, financial

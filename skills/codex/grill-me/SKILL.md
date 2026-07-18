@@ -14,9 +14,9 @@ without it.
    difference between the options; do not make the user choose implementation
    details that the codebase already settles.
 3. Stop when the goal, out-of-scope boundary, affected flow, and acceptance
-   checks are explicit. For a multi-actor or multi-flow feature, perform the
-   short `spec-novelist` walk locally. Use a fresh reader only when independent
-   context materially helps or the user requests it.
+   checks are explicit. The current session performs a short actor/flow walk for
+   an ordinary spec. Route a spec with multiple actors or multiple flows to one
+   fresh `spec-novelist` reader.
 4. Save a spec only when the user needs a durable planning document. User
    approval is required before implementation when the flow, public contract,
    permissions/data, or irreversible operation changes.
