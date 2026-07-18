@@ -1,174 +1,68 @@
 ---
 name: plan
-description: Decompose an approved spec or multi-slice non-trivial Codex task into executable slices, exact files, contracts, decisions, verification commands, and selective high-risk checkpoint annotations. Self-trigger after spec approval or before independent-slice, high-risk, or unclear implementation. Skip formal planning for a closed existing-behavior execution packet, including a coherent multi-file packet, when there is no new schema/public API, authority/data, irreversible change, or unresolved WHAT decision. For non-trivial work, one Luna/max SDD owner carries discovery through terminal assembly, dispatching one implementation owner per slice and all required reviewers.
+description: Turn an approved spec or rough non-trivial goal into executable slices with exact paths, contracts, decisions, and verification commands.
 ---
 
-# /plan — approved intent를 executable slices로 변환
+# /plan — executable slice plan
 
-## Trigger and direct path
+## Trigger
 
-- Trigger after an approved spec or before multi-slice non-trivial implementation.
-- Explicit triggers: `plan`, `계획 짜`, `PRD 작성`, `기능 분해`, `/plan <slug>`.
-- After a read-only impact scan, skip this skill when the goal/check are clear,
-  one execution packet closes the exact write/test paths (even when they span
-  multiple files), and there is no new schema/public API,
-  security/authority/data/user-asset, irreversible, independent-slice, or
-  unresolved WHAT decision. An existing user-visible flow may be changed in
-  that packet. Route implementation using the `impl` direct predicate;
-  otherwise use its delegated worker route. Run at least
-  one relevant check and make the project-required commit in the same turn.
-- An explicit plan request overrides the direct path.
+Use after an approved spec, or before implementation when the work has an
+independent slice, a high-risk boundary, or an unresolved WHAT. Skip formal
+planning for a closed existing-behavior packet whose paths and checks are clear,
+even when it spans several files.
 
-## Artifact
+## Plan structure
 
-Write `<plan_root>/<slug>.md`. The nearest `AGENTS.md` or project convention
-owns `plan_root`; use `.Codex/plans` only when none exists. Make the plan
-self-contained because implementation and final verification receive pasted
-contracts, not the planner's session history.
+Record one goal, architecture boundaries, and a dependency-ordered list of
+slices. Each slice must name exact `create`, `modify`, and `test` paths, the
+relevant callers/producers/consumers, the observable acceptance condition, and
+one or more verification commands with expected exit/output. Keep signatures,
+schemas, and short test skeletons inline when they encode a cross-slice
+contract. Do not prescribe an algorithm that belongs in `/impl`.
 
 ```yaml
----
 slug: <kebab-case>
-created_at: YYYY-MM-DD
 status: draft | approved
-spec_ref: docs/specs/<slug>.md | null
-source_spec:
-  path: docs/specs/<slug>.md | null
-  approved_at: YYYY-MM-DDTHH:MM:SS+09:00 | null
-  sha: <git blob SHA | null>
-approved_plan_revision: <git SHA after explicit approval>
-goal: <one measurable sentence>
-architecture: <2-3 sentences>
-tech_stack: [<item>, ...]
+goal: <observable goal>
 slices:
   - id: 1
-    title: <one observable unit>
+    title: <slice>
     files:
-      create: [<exact path>, ...]
-      modify: [<exact path>, ...]
-      test: [<exact path>, ...]
+      create: []
+      modify: [<exact/path>]
+      test: [<exact/path>]
+    acceptance: <observable condition>
     verification:
-      type: unit_test | command | fixture | artifact | visual | custom
-      command: <executable command when applicable>
-      expected_exit_code: 0
-    estimated_minutes: <2-30>
-    line_budget: <1-200>
+      - command: <shell command>
+        expected_exit_code: 0
     public_contracts: []
-    public_callers: []
-    review_checkpoint: skip | required
-    checkpoint_reason: null | <one enumerated risk surface>
     decision_needed: false
-    user_facing_scenario: null
-    recommended: null
     options: []
-self_review:
-  coverage_gaps: []
-  placeholders_found: []
-  type_inconsistencies: []
----
 ```
 
-Each slice body includes exact files, decision-encoding signatures/schemas,
-steps, the command, and an independently observable PASS condition. Do not
-inline full algorithms or existing files.
+The plan is approved only when every changed path has an owner slice, every
+acceptance has a proving command, and no placeholder or unresolved WHAT remains.
+`public_contracts` and `public_callers` are required when a public symbol or
+artifact changes; discover callers with `git grep` rather than guessing.
 
-## Procedure
+## Risk and decisions
 
-1. **Ingest approved intent.** Read the approved spec when present. Carry
-   `user_stories`, success criteria, out-of-scope, edge cases, and modules into
-   slice contracts. If the spec requires `spec-novelist` and it has not run,
-   run that one lightweight pass and fold it before planning.
+Surface user-facing flow choices, irreversible operations, user data,
+permissions, database/schema, public contracts, external state, concurrency,
+and migrations as explicit decisions. Internal HOW choices remain with the
+implementer. Add a spike only for a concrete uncertainty whose failure would be
+costly; routine work does not need one.
 
-2. **Map files and real contracts.** Inspect existing owners, callers, schemas,
-   and reused contracts before naming files or signatures. Record public caller
-   inventory from `rg`/AST instead of guessing.
+## Verification and handoff
 
-3. **Create thin vertical slices.** Each slice must deliver one independently
-   observable user/system outcome and one PASS artifact. Order dependencies and
-   surface a genuinely uncertain, expensive assumption as a throwaway P0 spike
-   only when it exists.
+Use the smallest relevant oracle: unit test, command, fixture comparison,
+artifact existence, visual check, or custom command. The implementer runs these
+commands and confirms the exact changed paths are within the slice. A checkpoint
+or final review is conditional on the risk predicates in `/impl`; the plan does
+not require a reviewer or unverifiable transport metadata as a gate.
 
-   Mark `review_checkpoint: required` only for a slice changing schema/public
-   contract; approval/authority/permission/secret/security; persistent artifact,
-   latest pointer, idempotency, or concurrency; migration/external state;
-   order/capital-allocation/financial-execution semantics; or a foundation used
-   by at least two later slices. Mark every other slice `skip`. Size or complexity
-   alone is not a trigger.
-
-4. **Encode decisions.** Ask the user only when a choice changes user-visible
-   behavior, is hard to reverse, or affects user assets/authority/data. Present
-   all such choices in one M1 list with a recommendation and 2-3 consequences
-   in plain language. Choose internal HOW decisions with the `decision` lens.
-
-5. **Declare executable verification.** Use exactly one primary type per slice:
-
-   | type | required contract |
-   |---|---|
-   | `unit_test` | command + expected exit; implementation records real RED and GREEN |
-   | `command` | command + expected exit/output |
-   | `fixture` | reproducible comparison command |
-   | `artifact` | path + existence/match rule |
-   | `visual` | observable screenshot/preview criterion |
-   | `custom` | command when possible + explicit interpretation |
-
-6. **Self-review once and fix.** Map every requirement to a slice, grep
-   placeholders, and compare signatures across slices. Fill all three
-   `self_review` arrays; fix non-empty findings before approval.
-
-7. **Get one explicit plan approval.** Change `status: draft` to `approved` and
-   record `approved_plan_revision`. Do not insert additional technical approval
-   stops.
-
-8. **Run deterministic preflight.** Execute:
-
-   `py -3 <methodos_root>/hooks/common/plan_preflight.py <plan> --repo <project_root>`
-
-   Fix mechanical failures and rerun. A preflight failure does not create a
-   semantic review attempt.
-
-9. **Run one conditional decision review.** Dispatch fresh read-only
-   `decision-reviewer` only when the approved plan changes security, authority,
-   public contracts, user assets/data, irreversible behavior, cross-slice
-   ownership, or has at least two user-facing decisions. It inherits the parent
-   model and reasoning effort. Do not call it for behavior-preserving structure
-   work or ordinary plans.
-
-   - Fold non-blocking findings once; never start a reviewer loop.
-   - If folding changes user-visible behavior, authority/data, public contract,
-     or irreversibility, show only that scenario delta and obtain the necessary
-     user decision. Record the new approved revision.
-   - ChatGPT Pro or Claude Fable/Opus runs only on an explicit user request.
-
-10. **Continue automatically.** Use the `impl` direct predicate for an eligible
-    simple closed slice. Otherwise the active `luna-max-sdd-owner` routes each
-    slice to a fresh Luna implementation owner using the effort selected by
-    `impl`, the sole detailed implementation routing authority.
-    The selected executor owns local checks and WHY commits, then returns its
-    report. Do not run Codex `plan-verify` or routine per-slice `impl-verify`.
-    The SDD owner, not the implementation owner, fresh-calls Sol/medium checkpoint review
-    only for a required slice or a diff newly matching that predicate, and
-    fresh-calls the single final `impl-novelist` only after assembly. A BROKEN
-    repair returns to the same original slice owner(s); attempt 2+ is a scoped
-    follow-up by the SDD owner in attempt 1's same reviewer thread/session, carrying only
-    finding IDs, repair commit/diff, and affected selectors. Never use a fresh
-    scoped-reviewer profile or repeat a full pass. `impl` is the sole detailed
-    authority for this routing and for Luna/high-to-max escalation.
-
-## No placeholders
-
-Reject `TBD`, `TODO`, `implement later`, vague error handling, unnamed tests,
-`similar to slice N`, undefined symbols, or slices without exact files and a
-reproducible PASS condition.
-
-## Stop conditions
-
-Stop only for a new unresolved WHAT decision, authority/data/user-asset impact,
-public-contract change, or irreversible operation. Otherwise continue through
-implementation and final verification without asking "진행할까요?".
-
-## Reeval
-
-- If the conditional decision reviewer misses two consequential choices, widen
-  its predicate rather than restoring a general plan reviewer.
-- If final verification repeatedly finds fictional reused contracts, promote
-  that check into `plan_preflight.py` instead of reintroducing `plan-verify`.
+Before implementation, obtain user approval for any external work or changes to
+user data, permissions, database/schema, public contracts, concurrency,
+migrations, or other external state. Otherwise proceed once `status: approved`
+and the packet is closed.

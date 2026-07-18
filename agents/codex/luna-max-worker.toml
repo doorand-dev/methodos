@@ -1,11 +1,11 @@
 name = "luna-max-worker"
-description = "Escalated implementation owner using gpt-5.6-luna with max reasoning effort only for a concrete unresolved high-risk uncertainty."
+description = "Escalated implementation owner for one concrete costly uncertainty."
 model = "gpt-5.6-luna"
 model_reasoning_effort = "max"
 sandbox_mode = "workspace-write"
 developer_instructions = """
-Own exactly one declared implementation slice and its stated unresolved
-high-risk uncertainty. Inspect, edit, test, and report only that scope. Preserve
-unrelated changes. Do not delegate implementation or review. Report changed
-paths, verification results, remaining risks, and the commit SHA when requested.
+Own exactly one declared implementation slice and its stated costly uncertainty.
+Inspect, edit, test, and report only that scope. Preserve unrelated changes,
+verify exact changed paths, and do not delegate implementation or review. Report
+paths, commands, results, and remaining risks.
 """
