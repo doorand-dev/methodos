@@ -11,28 +11,23 @@ from pathlib import Path
 SCRIPT = Path(__file__).with_name("plan_preflight.py")
 
 
-def run_preflight(plan: str) -> subprocess.CompletedProcess[str]:
+def run_preflight(plan: str, repo: Path | None = None) -> subprocess.CompletedProcess[str]:
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / "plan.md"
         path.write_text(textwrap.dedent(plan).lstrip(), encoding="utf-8")
-        return subprocess.run(
-            [sys.executable, str(SCRIPT), str(path)],
-            text=True,
-            capture_output=True,
-            check=False,
-        )
+        command = [sys.executable, str(SCRIPT), str(path)]
+        if repo is not None:
+            command.extend(["--repo", str(repo)])
+        return subprocess.run(command, text=True, capture_output=True, check=False)
 
 
 class PlanPreflightTests(unittest.TestCase):
-    def test_rejects_mechanical_defects_before_semantic_review(self) -> None:
+    def test_rejects_mechanical_defects_without_sha_requirements(self) -> None:
         result = run_preflight(
             """
             ---
             slug: repair-plan
             status: approved
-            source_spec:
-              path: docs/specs/repair-plan.md
-              sha: deadbeef
             slices:
               - id: 1
                 line_budget: 10
@@ -65,23 +60,17 @@ class PlanPreflightTests(unittest.TestCase):
         self.assertIn("path owned by multiple slices: src/public.py", result.stdout)
         self.assertIn("POSIX shell syntax", result.stdout)
         self.assertIn("placeholder", result.stdout)
-        self.assertIn("source_spec.sha must be a 40-hex git blob SHA", result.stdout)
         self.assertIn("public_contracts requires public_callers inventory", result.stdout)
+        self.assertNotIn("source_spec.sha", result.stdout)
 
-    def test_accepts_a_small_scoped_delta(self) -> None:
+    def test_accepts_a_sha_less_scoped_plan(self) -> None:
         result = run_preflight(
             """
             ---
             slug: repair-plan
             status: approved
-            source_spec:
-              path: docs/specs/repair-plan.md
-              sha: 0123456789abcdef0123456789abcdef01234567
-            amendment:
-              baseline_status: DONE
-              scope: [2]
             slices:
-              - id: 2
+              - id: 1
                 line_budget: 80
                 files:
                   modify: [src/repair.py]
@@ -93,54 +82,37 @@ class PlanPreflightTests(unittest.TestCase):
                 public_callers: []
             ---
 
-            ### Slice 2: repair
+            ### Slice 1: repair
             """
         )
 
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn("PASS", result.stdout)
 
-    def test_rejects_source_spec_sha_drift_when_repo_is_given(self) -> None:
+    def test_rejects_declared_path_outside_repo(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            spec = root / "docs/specs/repair-plan.md"
-            spec.parent.mkdir(parents=True)
-            spec.write_text("approved source", encoding="utf-8")
-            subprocess.run(["git", "init", "-q", str(root)], check=True)
-            plan = root / "plan.md"
-            plan.write_text(
-                textwrap.dedent(
-                    """
-                    ---
-                    slug: repair-plan
-                    status: approved
-                    source_spec:
-                      path: docs/specs/repair-plan.md
-                      sha: 0123456789abcdef0123456789abcdef01234567
-                    slices:
-                      - id: 1
-                        line_budget: 20
-                        files:
-                          modify: [src/repair.py]
-                        verification:
-                          type: command
-                          command: py -3 repair.py
-                          expected_exit_code: 0
-                        public_callers: []
-                    ---
-                    """
-                ).lstrip(),
-                encoding="utf-8",
-            )
-            result = subprocess.run(
-                [sys.executable, str(SCRIPT), str(plan), "--repo", str(root)],
-                text=True,
-                capture_output=True,
-                check=False,
-            )
+            root = Path(directory) / "repo"
+            root.mkdir()
+            plan = """
+            ---
+            slug: boundary-plan
+            status: approved
+            slices:
+              - id: 1
+                line_budget: 20
+                files:
+                  modify: [../outside.py]
+                verification:
+                  type: command
+                  command: py -3 repair.py
+                  expected_exit_code: 0
+                public_callers: []
+            ---
+            """
+            result = run_preflight(plan, root)
 
         self.assertEqual(result.returncode, 1)
-        self.assertIn("source_spec.sha does not match", result.stdout)
+        self.assertIn("declared path escapes --repo", result.stdout)
 
 
 if __name__ == "__main__":

@@ -24,9 +24,8 @@ what tells Codex which event should run which script.
 
 | Hook | Event | Matcher | Purpose |
 |---|---|---|---|
-| `codex-spawn-model-gate.py` | `PreToolUse` | `spawn_agent|multi_agent_v1\.spawn_agent` | Require explicit model intent for Codex spawned agents |
 | `../common/context_surface_guard.py` | `PostToolUse` | `Edit|Write|MultiEdit` | Warn on suspicious hot-context edits and suggest `context-novelist` review |
-| `../common/evidence_check.py` | `PostToolUse` | `Edit|Write` | Warn when Methodos verify reports use hedged language instead of evidence |
 
-These hooks are mechanical guards. They do not replace Methodos gates, reviewers,
-or `context-novelist`.
+The context-surface hook is a mechanical guard. It does not replace Methodos
+planning, user approval, or risk review. Registration still requires a manual
+review of the copied configuration before activation.

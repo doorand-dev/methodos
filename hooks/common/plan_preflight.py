@@ -5,13 +5,11 @@ from __future__ import annotations
 
 import argparse
 import re
-import subprocess
 from collections import Counter
 from pathlib import Path
 
 
 PLACEHOLDER = re.compile(r"\b(TBD|TODO|implement later|fill in details|add appropriate|similar to slice)\b", re.I)
-SHA = re.compile(r"^[0-9a-f]{40}$")
 POSIX_COMMAND = re.compile(r"\b(test\s+-[efdr]|grep\s|bash\s|sh\s+-c)\b|\$[A-Za-z_][A-Za-z0-9_]*")
 
 
@@ -35,6 +33,18 @@ def paths(block: str) -> list[str]:
     return result
 
 
+def _check_repo_boundary(path: str, repo: Path) -> bool:
+    """Return whether a declared path is a relative path inside ``repo``."""
+    candidate = Path(path)
+    if candidate.is_absolute():
+        return False
+    try:
+        (repo / candidate).resolve().relative_to(repo.resolve())
+    except ValueError:
+        return False
+    return True
+
+
 def check(text: str, repo: Path | None = None) -> list[str]:
     errors: list[str] = []
     data = frontmatter(text)
@@ -45,23 +55,6 @@ def check(text: str, repo: Path | None = None) -> list[str]:
         errors.append("slug must be kebab-case")
     if not re.search(r"(?m)^status:\s*approved\s*$", data):
         errors.append("status must be approved before reviewer dispatch")
-
-    sha_match = re.search(r"(?m)^\s+sha:\s*([^\s#]+)", data)
-    if not sha_match or not SHA.fullmatch(sha_match.group(1)):
-        errors.append("source_spec.sha must be a 40-hex git blob SHA")
-    elif repo is not None:
-        source_path = re.search(r"(?m)^\s+path:\s*([^\s#]+)", data)
-        if not source_path or not (repo / source_path.group(1)).is_file():
-            errors.append("source_spec.path must exist under --repo")
-        else:
-            actual = subprocess.run(
-                ["git", "-C", str(repo), "hash-object", source_path.group(1)],
-                text=True,
-                capture_output=True,
-                check=False,
-            )
-            if actual.returncode or actual.stdout.strip() != sha_match.group(1):
-                errors.append("source_spec.sha does not match the current source spec blob")
 
     blocks = slice_blocks(data)
     if not blocks:
@@ -80,6 +73,8 @@ def check(text: str, repo: Path | None = None) -> list[str]:
             errors.append(f"slice {slice_id}: line_budget must be 1..200")
 
         for path in paths(block):
+            if repo is not None and not _check_repo_boundary(path, repo):
+                errors.append(f"slice {slice_id}: declared path escapes --repo: {path}")
             if path in owner:
                 errors.append(f"path owned by multiple slices: {path} ({owner[path]}, {slice_id})")
             owner[path] = slice_id
@@ -99,7 +94,7 @@ def check(text: str, repo: Path | None = None) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("plan", type=Path)
-    parser.add_argument("--repo", type=Path, help="repository root for source_spec SHA verification")
+    parser.add_argument("--repo", type=Path, help="repository root for declared-path boundary checks")
     args = parser.parse_args()
     errors = check(args.plan.read_text(encoding="utf-8"), args.repo)
     if errors:
