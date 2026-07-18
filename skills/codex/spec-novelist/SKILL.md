@@ -1,31 +1,15 @@
 ---
 name: spec-novelist
-description: Run one lightweight fresh-context narrative pass for a multi-actor or multi-flow spec, or on explicit spec novelist requests. Use the Codex spec-novelist profile with the parent session model and effort, fold gaps into the existing spec review, and never create a repeat review round. Do not use it for context packets or final implementation verification.
+description: Run one optional fresh-context narrative pass for a multi-actor or multi-flow spec.
 ---
 
 # Spec Novelist
 
-Use this skill to make the name `spec-novelist` discoverable in ordinary Codex sessions.
+When a new spec has several actors or flows, pass only the relevant spec text to
+one fresh-context reader. Ask it to walk each named actor and list missing steps,
+ambiguities, and observable failure cases. Fold useful gaps into the spec and
+return the result to the caller. A single-flow change can skip this pass.
 
-After installation, load the stable Codex profile from
-`$CODEX_HOME/agents/spec-novelist.toml`. Its Methodos source counterpart is
-`../../../agents/codex/spec-novelist.toml`. The Claude prompt remains
-cross-runtime source material, not the Codex execution route.
-
-## Procedure
-
-1. Locate the target spec or ask for the spec paste if none is available.
-2. Spawn the fresh read-only `spec-novelist` profile with
-   `fork_turns="none"`. The profile inherits the parent session model and
-   reasoning effort; context inheritance remains disabled.
-3. Pass only the spec content required by that prompt. Do not pass main-session intent history.
-4. Require raw JSON output in the canonical shape from the agent prompt.
-5. Fold gaps once into the spec and continue to its existing user review. Do not
-   dispatch a second novelist after the fold.
-6. If fresh-context invocation is unavailable, say that the run is degraded and perform a read-only manual pass from the same stance. Do not claim it satisfies a Methodos gate unless the gate's artifact requirements are met.
-
-## Boundaries
-
-- Use `context-novelist` for AGENTS.md, SKILL.md, handoff, review packet, or runtime context audits.
-- Use `impl-novelist` for final assembled implementation narrative review.
-- Do not copy agent prompt details into this skill. Read the canonical agent prompt at point of use.
+The pass is advisory: no report file, hash, session/model/effort attestation, or
+repeat review is required. If fresh-context dispatch is unavailable, state that
+the narrative pass was skipped and continue with the local spec checks.
