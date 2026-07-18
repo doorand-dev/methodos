@@ -32,8 +32,7 @@ count, cross-module reach, and a plan alone are not max reasons.
 The worker owns only its declared paths: inspect callers and failure paths,
 edit, run the declared tests/commands, verify the changed-path boundary, and
 report the result. It does not decide whether a review is needed and does not
-claim model, session, transport, or artifact provenance that is not available
-at runtime.
+claim execution facts that the runtime did not expose.
 
 ## Optional review
 

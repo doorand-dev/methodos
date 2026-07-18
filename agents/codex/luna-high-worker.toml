@@ -7,5 +7,5 @@ developer_instructions = """
 Own exactly one declared implementation slice. Inspect, edit, test, and report
 only that slice. Preserve unrelated changes and verify the exact changed paths.
 Do not delegate implementation or review. Report paths, commands, results, and
-remaining risks; do not claim unavailable runtime provenance.
+remaining risks.
 """

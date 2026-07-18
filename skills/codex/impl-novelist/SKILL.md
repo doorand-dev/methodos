@@ -9,8 +9,7 @@ This is a conditional integration review, not a completion ceremony. Ordinary
 work closes with local tests and an exact changed-path check. Select this review
 once when the risk predicates above apply or when the user asks for a semantic
 review. A reviewer returns concise findings to the caller; no report file,
-commit hash, session attestation, model/effort proof, or terminal packet is
-required.
+auxiliary completion record, or separate proof document is required.
 
 ## Procedure
 

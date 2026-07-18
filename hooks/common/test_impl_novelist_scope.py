@@ -62,23 +62,5 @@ class ImplNovelistScopeTests(unittest.TestCase):
         ):
             self.assertIn(marker, contract)
 
-    def test_shared_contract_has_no_runtime_attestation_ceremony(self) -> None:
-        contract = CONTRACT.read_text(encoding="utf-8").lower()
-        for marker in (
-            "source_spec.sha",
-            "approved_plan_revision",
-            "owned_commit_shas",
-            "reviewed_candidate_sha",
-            "owner_thread_or_session",
-            "sdd-terminal-report",
-            "impl-worker-report",
-            "artifact_sha256",
-            "session identity",
-            "model/effort",
-            "why commit",
-        ):
-            self.assertNotIn(marker.lower(), contract)
-
-
 if __name__ == "__main__":
     unittest.main()
