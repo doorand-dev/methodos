@@ -33,11 +33,6 @@
 ```yaml
 slug: <kebab-case>
 status: draft | approved
-spec_ref: docs/specs/<slug>.md | null
-source_spec:
-  path: docs/specs/<slug>.md
-  approved_at: YYYY-MM-DDTHH:MM:SS+09:00
-  sha: <40-hex git blob SHA>
 goal: <한 문장>
 slices:
   - id: <unique id>

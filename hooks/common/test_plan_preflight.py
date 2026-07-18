@@ -22,7 +22,7 @@ def run_preflight(plan: str, repo: Path | None = None) -> subprocess.CompletedPr
 
 
 class PlanPreflightTests(unittest.TestCase):
-    def test_rejects_mechanical_defects_without_sha_requirements(self) -> None:
+    def test_rejects_mechanical_defects(self) -> None:
         result = run_preflight(
             """
             ---
@@ -61,9 +61,8 @@ class PlanPreflightTests(unittest.TestCase):
         self.assertIn("POSIX shell syntax", result.stdout)
         self.assertIn("placeholder", result.stdout)
         self.assertIn("public_contracts requires public_callers inventory", result.stdout)
-        self.assertNotIn("source_spec.sha", result.stdout)
 
-    def test_accepts_a_sha_less_scoped_plan(self) -> None:
+    def test_accepts_a_scoped_plan(self) -> None:
         result = run_preflight(
             """
             ---
