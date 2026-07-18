@@ -58,22 +58,26 @@ def check(text: str, repo: Path | None = None) -> list[str]:
     if not re.search(r"(?m)^status:\s*approved\s*$", data):
         errors.append("status must be approved before reviewer dispatch")
 
-    sha_match = re.search(r"(?m)^\s+sha:\s*([^\s#]+)", data)
-    if not sha_match or not SHA.fullmatch(sha_match.group(1)):
-        errors.append("source_spec.sha must be a 40-hex git blob SHA")
-    elif repo is not None:
-        source_path = re.search(r"(?m)^\s+path:\s*([^\s#]+)", data)
-        if not source_path or not (repo / source_path.group(1)).is_file():
-            errors.append("source_spec.path must exist under --repo")
-        else:
-            actual = subprocess.run(
-                ["git", "-C", str(repo), "hash-object", source_path.group(1)],
-                text=True,
-                capture_output=True,
-                check=False,
-            )
-            if actual.returncode or actual.stdout.strip() != sha_match.group(1):
-                errors.append("source_spec.sha does not match the current source spec blob")
+    source_spec_declared = bool(re.search(r"(?m)^source_spec:\s*(?:#.*)?$", data))
+    spec_ref = re.search(r"(?m)^spec_ref:\s*([^\s#]+)", data)
+    spec_ref_declared = bool(spec_ref and spec_ref.group(1).lower() not in {"null", "~"})
+    if source_spec_declared or spec_ref_declared:
+        sha_match = re.search(r"(?m)^\s+sha:\s*([^\s#]+)", data)
+        if not sha_match or not SHA.fullmatch(sha_match.group(1)):
+            errors.append("source_spec.sha must be a 40-hex git blob SHA")
+        elif repo is not None:
+            source_path = re.search(r"(?m)^\s+path:\s*([^\s#]+)", data)
+            if not source_path or not (repo / source_path.group(1)).is_file():
+                errors.append("source_spec.path must exist under --repo")
+            else:
+                actual = subprocess.run(
+                    ["git", "-C", str(repo), "hash-object", source_path.group(1)],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                if actual.returncode or actual.stdout.strip() != sha_match.group(1):
+                    errors.append("source_spec.sha does not match the current source spec blob")
 
     blocks = slice_blocks(data)
     if not blocks:
