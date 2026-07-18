@@ -155,7 +155,6 @@ Return JSON via stdout in this exact shape:
   "reviewer_transport": "<explicit transport>",
   "reviewer_model": "<explicit model>",
   "reviewer_reasoning_effort": "<explicit effort>",
-  "reviewer_session_id": "<ChatGPT session id | null>",
   "fallback_reason": "provider_send_failure | model_or_effort_unconfirmed | timeout | finality_failure | attachment_or_context_failure | null",
   "reviewer_mode": "fresh_web_session" | "fresh_subagent" | "fresh_external_session" | "controller_self_review" | "unavailable",
   "reviewer_role": "plan-verify-reviewer" | "none",

@@ -214,7 +214,6 @@ Return JSON via stdout in this exact shape:
   "reviewer_transport": "<explicit transport>",
   "reviewer_model": "<explicit model>",
   "reviewer_reasoning_effort": "<explicit effort>",
-  "reviewer_session_id": "<ChatGPT session id | null>",
   "fallback_reason": "provider_send_failure | model_or_effort_unconfirmed | timeout | finality_failure | attachment_or_context_failure | null",
   "verification_class": "deterministic_artifact_or_command | behavior_integration_or_judgment",
   "created_at_local": "YYYY-MM-DDTHH:MM:SS+09:00",
