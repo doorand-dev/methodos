@@ -29,3 +29,30 @@ what tells Codex which event should run which script.
 The context-surface hook is a mechanical guard. It does not replace Methodos
 planning, user approval, or risk review. Registration still requires a manual
 review of the copied configuration before activation.
+
+## Optional Windows Desktop MCP Reaper
+
+Codex Desktop can retain one `node_repl.exe` process per resumed thread. For a
+Windows user who does not run Browser, Chrome, or Computer Use concurrently,
+`reap-stale-node-repl.ps1` provides an opt-in process cap. It only considers
+`node_repl.exe` processes owned directly by a live Codex `app-server` and keeps
+the newest instance by default.
+
+Preview without stopping anything:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File `
+  "C:\path\to\methodos\hooks\codex\reap-stale-node-repl.ps1" -WhatIf
+```
+
+Run once:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File `
+  "C:\path\to\methodos\hooks\codex\reap-stale-node-repl.ps1" -MaxNodeRepl 1
+```
+
+To cap the processes periodically, register the same command with Windows Task
+Scheduler. Keep registration explicit: Methodos does not install or enable this
+maintenance task automatically. Stopping a process can disconnect Browser or
+Chrome tools in an older thread; reopen that thread before using those tools.
