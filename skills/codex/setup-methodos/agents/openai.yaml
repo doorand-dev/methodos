@@ -1,6 +1,0 @@
-interface:
-  display_name: "Setup Methodos"
-  short_description: "Configure Methodos for a repo"
-  default_prompt: "Use $setup-methodos to choose Methodos profiles, artifact roots, context files, hooks, and runtime wiring for this repository."
-policy:
-  allow_implicit_invocation: false

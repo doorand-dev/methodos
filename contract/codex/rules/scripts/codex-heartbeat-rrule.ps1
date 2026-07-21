@@ -5,6 +5,8 @@ param(
     [switch]$Apply
 )
 
+# Public source. Deploy to ~/.codex/rules/scripts/codex-heartbeat-rrule.ps1.
+
 $ErrorActionPreference = "Stop"
 $script:Utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 $OutputEncoding = $script:Utf8NoBom
@@ -24,10 +26,25 @@ $totalSeconds = $DelaySeconds + ($DelayMinutes * 60)
 if ($totalSeconds -lt 1) {
     $totalSeconds = 1
 }
+if ($totalSeconds -gt 86340) {
+    throw "One-shot grid rule cannot express delays over 23h59m. Use a shorter delay and re-arm on wake."
+}
 
-$targetLocal = (Get-Date).AddSeconds($totalSeconds)
-$stampUtc = $targetLocal.ToUniversalTime().ToString("yyyyMMddTHHmmss") + "Z"
-$rrule = "DTSTART:$stampUtc`nRRULE:FREQ=MINUTELY;COUNT=1"
+# Codex Desktop automation_update rejects DTSTART and bare relative COUNT=1 rules.
+# Use a whole-minute grid rule: first whole minute at or after now+delay.
+# <=59min uses FREQ=HOURLY;BYMINUTE. Longer delays pin the hour with FREQ=DAILY;BYHOUR;BYMINUTE.
+$nowLocal = Get-Date
+$targetLocal = $nowLocal.AddSeconds($totalSeconds)
+if ($targetLocal.Second -gt 0 -or $targetLocal.Millisecond -gt 0) {
+    $targetLocal = $targetLocal.AddSeconds(60 - $targetLocal.Second).AddMilliseconds(-$targetLocal.Millisecond)
+}
+$byMinute = $targetLocal.Minute
+$byHour = $targetLocal.Hour
+if (($targetLocal - $nowLocal).TotalSeconds -lt 3600) {
+    $rrule = "RRULE:FREQ=HOURLY;BYMINUTE=$byMinute;BYSECOND=0;COUNT=1"
+} else {
+    $rrule = "RRULE:FREQ=DAILY;BYHOUR=$byHour;BYMINUTE=$byMinute;BYSECOND=0;COUNT=1"
+}
 $epochMs = [DateTimeOffset]::Now.ToUnixTimeMilliseconds()
 $toml = $null
 
@@ -49,7 +66,7 @@ if ($Apply) {
         throw "automation.toml has no rrule line: $toml"
     }
 
-    $newRruleLine = 'rrule = "' + $rrule.Replace("`n", "\n") + '"'
+    $newRruleLine = 'rrule = "' + $rrule + '"'
     $content = [regex]::Replace($content, '(?m)^rrule\s*=\s*"[^"]*"', $newRruleLine)
     if ($content -match '(?m)^status\s*=') {
         $content = [regex]::Replace($content, '(?m)^status\s*=\s*"[^"]*"', 'status = "ACTIVE"')
@@ -69,7 +86,9 @@ if ($Apply) {
     automationId = $(if ([string]::IsNullOrWhiteSpace($AutomationId)) { $null } else { $AutomationId })
     delaySeconds = $totalSeconds
     targetLocal = $targetLocal.ToString("yyyy-MM-dd HH:mm:ss K")
-    rawDtstart = "DTSTART:$stampUtc"
+    byMinute = $byMinute
+    byHour = $byHour
+    rawDtstart = $null
     rrule = $rrule
     toml = $toml
     applied = [bool]$Apply

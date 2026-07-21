@@ -40,10 +40,12 @@ Do not review by default. Request a targeted checkpoint when the slice changes
 an explicit public contract, permission/security or user data, persistent/latest
 or idempotency/concurrency behavior, migration or external state, financial
 execution, or a foundation shared by multiple independent slices. The review
-runs the relevant command and exact-path check; every blocking finding points
+runs on the `impl-checkpoint-reviewer` agent (read-only) with the relevant
+command and exact-path check; every blocking finding points
 to an approved acceptance condition or invariant.
 
-Request a final review only when the candidate introduces a new public or user
+Request a final review on the `impl-novelist` agent (read-only) only when the
+candidate introduces a new public or user
 flow, changes a shared contract or permission/data boundary, touches external
 state/concurrency/migration, or combines multiple independent slices with a
 real integration omission risk. Otherwise local verification is sufficient.
