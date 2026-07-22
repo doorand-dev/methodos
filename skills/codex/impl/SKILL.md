@@ -1,6 +1,6 @@
 ---
 name: impl
-description: Execute a closed low-risk change directly; delegate other slices to Luna/high by default and use Luna/max only for a concrete costly uncertainty.
+description: Execute one closed low-risk packet directly; apply the plan trigger before implementation, then delegate one closed implementation slice to Luna/high by default.
 ---
 
 # /impl — implementation routing
@@ -23,8 +23,19 @@ the exact changed paths, and commit according to repository rules.
 
 ## Delegated execution
 
-When the packet is not closed, delegate one declared slice to `luna-high-worker`
-by default. After decomposition, use `luna-max-worker` only when that slice
+Before choosing implementation topology, apply `/plan`'s Trigger. If it
+matches, stop before implementation and obtain an approved plan; delegation
+never substitutes for SDD approval.
+
+Once the work is in `/impl`, delegate exactly one declared closed
+implementation slice to `luna-high-worker` by default. This model default
+applies to a slice executor, whether it is an independent implementation-only
+thread or a subagent/worker. It does not select the model for a task that owns
+planning, diagnosis, integration, or a multi-slice lifecycle. An existing
+owning task may direct-execute one closed low-risk packet in its current session
+without changing its session model.
+
+After decomposition, use `luna-max-worker` only when that slice
 retains a concrete high-cost, hard-to-recover uncertainty in cause, impact, or
 verification, or Luna/high has failed to converge. Multi-slice work, file
 count, cross-module reach, and a plan alone are not max reasons.
@@ -33,6 +44,29 @@ The worker owns only its declared paths: inspect callers and failure paths,
 edit, run the declared tests/commands, verify the changed-path boundary, and
 report the result. It does not decide whether a review is needed and does not
 claim execution facts that the runtime did not expose.
+
+### Supervised wait
+
+After spawning a supervised built-in subagent whose result gates the next
+step, issue one long bounded `wait_agent` call, up to the tool-supported
+maximum. It returns early when the target completes, errors, is interrupted, or
+shuts down. Do not read, list, or query status, and do not inspect a
+healthy-running worker transcript while that wait is active.
+
+If the execution wrapper yields a resumable cell or session for the wait,
+resume that same wait instead of issuing another `wait_agent` or a read/list/
+status call. A waiter timeout or cancellation is not worker failure. If the
+result is still needed, make a bounded re-wait without tight polling. When a
+user interrupts or replaces the request, preserve or intentionally cancel the
+wait and worker according to the new scope; classify the worker only from its
+actual status.
+
+Higher-priority runtime instructions that require a user update still apply.
+Satisfy them with minimal commentary without querying worker state. A terminal
+wake is only a collection signal; verify the declared tests, exact diff and
+paths, and Git evidence before claiming completion. `wait_agent` here applies
+only to supervised built-in subagents. User-visible independent tasks use the
+global `wait_threads` and heartbeat contract instead.
 
 ## Optional review
 
