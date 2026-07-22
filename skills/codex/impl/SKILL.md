@@ -17,33 +17,24 @@ Use direct execution when one packet closes all of these:
   state side effect;
 - no unexplained overlap with existing dirty changes.
 
-File count is not a routing cutoff. A coherent multi-file packet is still
-direct when the goal, paths, and checks are closed. Run the command, inspect
-the exact changed paths, and commit according to repository rules.
-
 ## Delegated execution
 
 Before choosing implementation topology, apply `/plan`'s Trigger. If it
 matches, stop before implementation and obtain an approved plan; delegation
 never substitutes for SDD approval.
 
-Once the work is in `/impl`, delegate exactly one declared closed
-implementation slice to `luna-high-worker` by default. This model default
-applies to a slice executor, whether it is an independent implementation-only
-thread or a subagent/worker. It does not select the model for a task that owns
-planning, diagnosis, integration, or a multi-slice lifecycle. An existing
-owning task may direct-execute one closed low-risk packet in its current session
-without changing its session model.
+In `/impl`, delegate exactly one declared closed slice to `luna-high-worker`.
+This default applies to a slice executor, not a planning, diagnosis,
+integration, or multi-slice owner. An existing owner may direct-execute one
+closed low-risk packet without changing its session model.
 
-After decomposition, use `luna-max-worker` only when that slice
-retains a concrete high-cost, hard-to-recover uncertainty in cause, impact, or
-verification, or Luna/high has failed to converge. Multi-slice work, file
-count, cross-module reach, and a plan alone are not max reasons.
+Use `luna-max-worker` only for a concrete costly-to-recover uncertainty left in
+the slice or after Luna/high fails to converge. Size, reach, and a plan alone
+do not justify max.
 
-The worker owns only its declared paths: inspect callers and failure paths,
-edit, run the declared tests/commands, verify the changed-path boundary, and
-report the result. It does not decide whether a review is needed and does not
-claim execution facts that the runtime did not expose.
+The worker inspects relevant callers and failure paths, edits only declared
+paths, runs declared checks, and reports the result. It neither chooses review
+nor claims unobserved execution facts.
 
 ### Supervised wait
 
@@ -56,31 +47,21 @@ evidence before claiming completion.
 
 ## Optional review
 
-Do not review by default. Request a targeted checkpoint when the slice changes
-an explicit public contract, permission/security or user data, persistent/latest
-or idempotency/concurrency behavior, migration or external state, financial
-execution, or a foundation shared by multiple independent slices. The review
-runs on the `impl-checkpoint-reviewer` agent (read-only) with the relevant
-command and exact-path check; every blocking finding points
-to an approved acceptance condition or invariant.
+Do not review by default. Use `impl-checkpoint-reviewer` only for explicit
+public-contract, permission/security/user-data, persistent/idempotency/
+concurrency, migration/external-state, financial, or shared-foundation changes.
+Each blocking finding cites an approved acceptance condition or invariant.
 
-Request a final review on the `impl-novelist` agent (read-only) only when the
-candidate introduces a new public or user
-flow, changes a shared contract or permission/data boundary, touches external
-state/concurrency/migration, or combines multiple independent slices with a
-real integration omission risk. Otherwise local verification is sufficient.
+Use `impl-novelist` only for a new public/user flow, shared contract or
+authority/data boundary, external-state/concurrency/migration change, or a real
+integration omission risk across independent slices. Otherwise local
+verification is sufficient.
 
-For a broken targeted review, send stable finding IDs and the smallest repair
-scope to the original owner, then recheck only the affected selectors and
-commands. If acceptance, public contract, authority/data behavior, or the
-impact graph changes, stop and obtain a new approved plan.
+Return stable findings to the original owner and recheck only affected
+commands. If acceptance, contract, authority/data behavior, or the impact graph
+changes, stop and obtain a new approved plan.
 
 ## Completion
 
-Completion requires the declared tests/commands to pass and the exact changed
-paths to remain within scope. External work, user data, permissions, database
-or schema changes, public contracts, concurrency, migrations, and other
-external-state effects require the applicable user approval before completion.
-
-Do not make an implementation owner spawn reviewers. Do not turn transport
-metadata, generated artifacts, or commit prose into a completion gate.
+Completion requires declared checks to pass, changed paths to remain in scope,
+and every user approval required by `/plan` to be present.
