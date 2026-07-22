@@ -48,25 +48,11 @@ claim execution facts that the runtime did not expose.
 ### Supervised wait
 
 After spawning a supervised built-in subagent whose result gates the next
-step, issue one long bounded `wait_agent` call, up to the tool-supported
-maximum. It returns early when the target completes, errors, is interrupted, or
-shuts down. Do not read, list, or query status, and do not inspect a
-healthy-running worker transcript while that wait is active.
-
-If the execution wrapper yields a resumable cell or session for the wait,
-resume that same wait instead of issuing another `wait_agent` or a read/list/
-status call. A waiter timeout or cancellation is not worker failure. If the
-result is still needed, make a bounded re-wait without tight polling. When a
-user interrupts or replaces the request, preserve or intentionally cancel the
-wait and worker according to the new scope; classify the worker only from its
-actual status.
-
-Higher-priority runtime instructions that require a user update still apply.
-Satisfy them with minimal commentary without querying worker state. A terminal
-wake is only a collection signal; verify the declared tests, exact diff and
-paths, and Git evidence before claiming completion. `wait_agent` here applies
-only to supervised built-in subagents. User-visible independent tasks use the
-global `wait_threads` and heartbeat contract instead.
+step, call `wait_agent` once with the longest supported timeout. It returns
+immediately on terminal status; if the wrapper yields, resume the same wait
+instead of polling status or transcript. A timeout is not worker failure;
+re-wait only if the result is still needed. After wake, verify the declared
+evidence before claiming completion.
 
 ## Optional review
 
