@@ -1,6 +1,6 @@
 ---
 name: impl
-description: Execute one closed low-risk packet directly; apply the plan trigger before implementation, then delegate one closed implementation slice to Luna/high by default.
+description: Execute one closed low-risk packet directly; apply the plan trigger, then choose Luna/high or Luna/max for one closed implementation slice.
 ---
 
 # /impl — implementation routing
@@ -23,14 +23,17 @@ Before choosing implementation topology, apply `/plan`'s Trigger. If it
 matches, stop before implementation and obtain an approved plan; delegation
 never substitutes for SDD approval.
 
-In `/impl`, delegate exactly one declared closed slice to `luna-high-worker`.
-This default applies to a slice executor, not a planning, diagnosis,
-integration, or multi-slice owner. An existing owner may direct-execute one
-closed low-risk packet without changing its session model.
+In `/impl`, choose one worker for exactly one declared closed slice:
 
-Use `luna-max-worker` only for a concrete costly-to-recover uncertainty left in
-the slice or after Luna/high fails to converge. Size, reach, and a plan alone
-do not justify max.
+- `luna-high-worker` when implementation and verification are routine;
+- `luna-max-worker` before spawn when a concrete costly-to-recover uncertainty
+  remains, including cross-restart state, concurrency/CAS, or exactly-once
+  behavior. Use max also after Luna/high fails to converge.
+
+This choice applies to a slice executor, not a planning, diagnosis,
+integration, or multi-slice owner. An existing owner may direct-execute one
+closed low-risk packet without changing its session model. Size, reach, and a
+plan alone do not justify max.
 
 The worker inspects relevant callers and failure paths, edits only declared
 paths, runs declared checks, and reports the result. It neither chooses review
