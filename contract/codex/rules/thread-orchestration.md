@@ -46,6 +46,11 @@
 
 독립 thread에 발주하면 턴을 끝낸다. 수행 thread가 parent thread로 terminal을
 직접 보고하고, reply 도착이 발주자를 깨운다. 작업 길이는 판단 입력이 아니다.
+`PLAN_READY|NEEDS_USER|COMPLETED|BLOCKED` report-up을 parent에 SEND한 child는 자기
+turn을 끝내고 parent의 follow-up/wake로만 재개한다. child가 `wait_threads`나
+`read_thread`로 parent를 회수·poll하지 않는다. parent 발주가 named decision에 대한
+단 한 번의 synchronous wait를 명시한 경우만 그 bounded wait를 허용하며 반복하지
+않는다.
 
 **ORCH-RECOVER-001** — compact/resume 뒤 unresolved outbound는 SEND를 가정하거나
 즉시 반복하지 않는다. 대상 `read_thread`의 최근 입력·turn id·status를 한 번 읽고
