@@ -74,4 +74,3 @@ Remove temporary instrumentation and throwaway harnesses. State the confirmed
 cause and remaining risk. Recommend architecture follow-up only when the missing
 seam materially caused the defect; do not create a report or follow-up task by
 default.
-
