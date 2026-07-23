@@ -14,15 +14,11 @@ Long asynchronous monitoring remains an explicit user choice.
 Put this contract in the trusted instruction or system block of every Pro
 request:
 
-> 과도한 증명·감사·대기업 수준의 강박적 검증·증분 검증(incremental
-> verification) 패턴을 배제하고, 실제 동작하는 가장 단순한 최적 방안
-> 하나를 제시하라. 완전 재설계·다중 폴백·2후보 비교·메타데이터 체계·과한
-> 계약은 제안하지 마라. 결론은 (a) 권고 방식 한 줄, (b) 왜 그게 최적인지
-> 근거, (c) 실패 케이스와 최소 대비만으로 제한하라.
-
-Preserve any stricter user-supplied output contract. If the user explicitly asks
-for alternatives, comparison, or a broader audit, follow that request instead of
-silently forcing the single-option shape.
+> 설계·구현 방안을 제안할 때 과도한 증명·감사·대기업 수준의 강박적
+> 검증·증분 검증(incremental verification)·메타데이터/증거 체계를 기본으로
+> 추가하지 마라. 실제 결과를 바꾸거나 재실행으로 반증 가능한 신호와 필요한
+> 사용자 승인만 남겨라. 구체적 위험이나 사용자 요청이 없는 검증 절차로 설계
+> 범위를 확장하지 마라.
 
 Before uploading files, obtain user approval and reject secrets, `.env`, and
 other sensitive paths. Send only the requested files, then inspect the sent turn
@@ -50,9 +46,9 @@ Example:
 
 ```powershell
 agbrowse web-ai query --vendor chatgpt --model pro --inline-only `
-  --system "<mandatory minimal-single-option contract>" `
+  --system "<mandatory proportional-verification principle>" `
   --prompt "짧은 질문" --timeout 300
 powershell -File .\skills\codex\ask-chatgpt-pro\scripts\pro-review.ps1 `
   -Action send -NoWatch -ApproveExternalUpload `
-  -Prompt "<mandatory contract + review request>" -File .\src\main.ts
+  -Prompt "<mandatory principle + review request>" -File .\src\main.ts
 ```
