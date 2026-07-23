@@ -16,11 +16,12 @@ approved closed implementation slice를 실행하는 독립 owner와 구현 work
 활성 전역 `impl` 계약을 따른다. 현재 owner가 닫힌 low-risk packet을 직접
 실행할 때는 세션 모델을 바꾸지 않는다.
 
-오케스트레이션 owner는 approved closed slice가 정확히 하나이고 planning thread의
+오케스트레이션 owner는 parent가 lifecycle terminal을 판정하기 전이고 open
+HITL·child가 없으며 approved closed slice가 정확히 하나이고 planning thread의
 context 재사용 가치가 높을 때에만, 그 독립 thread의 다음 turn에 명시적
-`model`·`thinking`을 보내 구현 executor로 전환할 수 있다. 전환한 thread는
-그 slice만 소유하며 planning 또는 여러 slice lifecycle owner로 계속 확장하지
-않는다.
+`model`·`thinking`을 보내 구현 executor로 전환할 수 있다. 전환 발주는 exact
+parent·slice·terminal 회신을 다시 선언한다. 전환한 thread는 그 slice만 소유하며
+planning 또는 여러 slice lifecycle owner로 계속 확장하지 않는다.
 
 create_thread·send_message_to_thread로 독립 세션에 일을 맡길 때는 발주 메시지에
 회신 계약을 닫아 포함한다: 누가, 어디로(parent thread), 어떤 terminal 형식

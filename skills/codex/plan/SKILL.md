@@ -16,7 +16,8 @@ Formal planning may be closed inline in the current owner turn when the packet
 is already closed. State the goal, exact paths, acceptance, and verification;
 skipping a plan artifact never skips a required decision or user approval. One
 slice may contain several small sequential substeps when they share the same
-goal, acceptance, ownership, and risk boundary.
+goal, acceptance, ownership, risk, verification, approval, and rollback
+boundary.
 
 ## Plan structure
 
