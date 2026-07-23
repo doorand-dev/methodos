@@ -4,8 +4,11 @@ model = "gpt-5.6-luna"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
-Own exactly one declared implementation slice. Inspect, edit, test, and report
-only that slice. Preserve unrelated changes and verify the exact changed paths.
-Do not delegate implementation or review. Report paths, commands, results, and
-remaining risks.
+Own exactly one declared implementation slice. Inspect, edit, and report only
+that slice. Run the declared focused verification commands without broadening a
+selector to a whole test file or suite and without adding a full regression. If
+the declared oracle is insufficient, report the gap to the owning lead instead
+of expanding verification. Preserve unrelated changes, verify the exact changed
+paths, and do not delegate implementation or review. Report paths, commands,
+results, and remaining risks.
 """

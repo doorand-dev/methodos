@@ -39,7 +39,7 @@ slices:
     files:
       create: [<exact path>, ...]
       modify: [<exact path>, ...]
-      test: [<exact path>, ...]
+      test: []  # optional existing test/check paths; empty is valid
     verification:
       type: unit_test | command | fixture | custom
       command: <실행 명령>
@@ -51,10 +51,13 @@ slices:
     checkpoint_reason: null | <high-risk predicate>
 ```
 
-모든 `files` 배열은 명시하며 빈 배열도 허용한다. 한 경로는 한 slice만 소유한다.
+모든 `files` 배열은 명시하며 빈 배열도 허용한다. `test`는 선택한 oracle이 경로를
+가질 때만 채우며, schema를 채우기 위해 새 테스트를 만들지 않는다. 한 경로는 한
+slice만 소유한다.
 `public_contracts`가 비어 있지 않으면 해당 심볼의 `public_callers` inventory를 함께
 기록한다. `verification.command`는 대상 플랫폼의 명령 문법을 사용하고, 테스트 실행
-또는 다른 재현 가능한 명령과 기대 종료 코드를 적는다.
+또는 다른 재현 가능한 명령과 기대 종료 코드를 적는다. 하나의 oracle이 여러
+acceptance를 증명할 수 있다.
 
 `status: approved`는 사용자의 명시적 승인(user approval)을 뜻한다. 승인되지 않은 plan은 구현이나
 review의 입력으로 사용하지 않는다.

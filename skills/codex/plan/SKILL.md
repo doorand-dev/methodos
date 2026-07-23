@@ -22,11 +22,12 @@ boundary.
 ## Plan structure
 
 Record one goal, architecture boundaries, and a dependency-ordered list of
-slices. Each slice must name exact `create`, `modify`, and `test` paths, the
-relevant callers/producers/consumers, the observable acceptance condition, and
-one or more verification commands with expected exit/output. Keep signatures,
-schemas, and short test skeletons inline when they encode a cross-slice
-contract. Do not prescribe an algorithm that belongs in `/impl`.
+slices. Each slice must name exact `create` and `modify` paths plus optional
+`test`/check paths, the relevant callers/producers/consumers, the observable
+acceptance condition, and the smallest verification oracle with expected
+exit/output. Keep signatures, schemas, and short test skeletons inline only
+when they encode a cross-slice contract. Do not prescribe an algorithm that
+belongs in `/impl`.
 
 ```yaml
 slug: <kebab-case>
@@ -38,7 +39,7 @@ slices:
     files:
       create: []
       modify: [<exact/path>]
-      test: [<exact/path>]
+      test: []  # optional existing test/check paths
     acceptance: <observable condition>
     verification:
       - command: <shell command>
@@ -49,7 +50,9 @@ slices:
 ```
 
 The plan is approved only when every changed path has an owner slice, every
-acceptance has a proving command, and no placeholder or unresolved WHAT remains.
+acceptance is covered by a proving oracle, and no placeholder or unresolved
+WHAT remains. One oracle may prove several acceptance conditions. Do not create
+a test solely to fill the optional `test` field.
 `public_contracts` and `public_callers` are required when a public symbol or
 artifact changes; discover callers with `git grep` rather than guessing.
 
@@ -69,10 +72,12 @@ costly; routine work does not need one.
 ## Verification and handoff
 
 Use the smallest relevant oracle: unit test, command, fixture comparison,
-artifact existence, visual check, or custom command. The implementer runs these
-commands and confirms the exact changed paths are within the slice. A checkpoint
-or final review is conditional on the risk predicates in `/impl`; the plan does
-not require a reviewer or unverifiable transport metadata as a gate.
+artifact existence, visual check, or custom command. An existing focused check
+is sufficient when it proves the changed behavior; a new test is not required
+by default. The implementer runs the declared commands and confirms the exact
+changed paths are within the slice. A checkpoint or final review is conditional
+on the risk predicates in `/impl`; the plan does not require a reviewer or
+unverifiable transport metadata as a gate.
 
 Before implementation, obtain user approval for any external work or changes to
 user data, permissions, database/schema, public contracts, concurrency,

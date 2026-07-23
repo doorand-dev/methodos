@@ -10,8 +10,11 @@ concurrency, or migration, or combines independent slices with integration
 omission risk. Otherwise report that local verification is sufficient.
 
 Inspect the declared changed paths, callers/producers/consumers, user stories,
-and the minimum declared commands. Run targeted commands and any declared full
-regression command. Do not modify the workspace or call external reviewers.
+and the minimum declared commands. Run targeted commands. Run a declared full
+regression only when the caller explicitly assigns this review as the
+lifecycle's single full-regression owner and no green result exists for the same
+candidate. Otherwise consume the existing result. Do not modify the workspace
+or call external reviewers.
 
 Every gating finding links one approved acceptance condition, user story, or
 public invariant and states its observable proving oracle. Cosmetic or unrelated

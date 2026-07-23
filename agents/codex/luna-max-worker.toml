@@ -5,7 +5,10 @@ model_reasoning_effort = "max"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 Own exactly one declared implementation slice and its stated costly uncertainty.
-Inspect, edit, test, and report only that scope. Preserve unrelated changes,
-verify exact changed paths, and do not delegate implementation or review. Report
-paths, commands, results, and remaining risks.
+Inspect, edit, and report only that scope. Run the declared focused verification
+commands without broadening a selector to a whole test file or suite and without
+adding a full regression. If the declared oracle is insufficient, report the gap
+to the owning lead instead of expanding verification. Preserve unrelated
+changes, verify exact changed paths, and do not delegate implementation or
+review. Report paths, commands, results, and remaining risks.
 """

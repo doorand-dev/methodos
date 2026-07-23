@@ -16,8 +16,11 @@ auxiliary completion record, or separate proof document is required.
 1. Read the approved requirements (if any), the declared paths, and the
    relevant caller/producer/consumer/failure paths. Do not invent missing
    requirements or scope.
-2. Run the declared tests or commands and inspect the resulting behavior. Keep
-   checks tied to a user-visible or system-observable invariant.
+2. Run the declared targeted tests or commands and inspect the resulting
+   behavior. Keep checks tied to a user-visible or system-observable invariant.
+   Run a full regression only when the caller assigns this review as the
+   lifecycle's single owner for it and no green result exists for the same
+   candidate.
 3. Walk the affected user/system flow once end to end. Return `PASS`,
    `NEEDS_CONTEXT`, or concise issue bullets with path/line and a repair hint.
 4. If a finding changes the public contract, authority/data behavior, or user
@@ -32,5 +35,7 @@ auxiliary completion record, or separate proof document is required.
   changes, public interfaces, concurrency/migrations, and other external state.
 - A high-risk review is selective and single-pass. Do not schedule an automatic
   final review for routine work or repeat an unchanged semantic review.
+- Do not broaden a focused selector. Reuse the lifecycle's full-regression
+  result while its candidate and assumptions are unchanged.
 - Transient session targeting may be used to continue a live conversation, but
   it is operational input, never completion evidence.

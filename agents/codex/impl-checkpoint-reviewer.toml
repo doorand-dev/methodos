@@ -18,5 +18,7 @@ not to repeat an unchanged lead-owned checkpoint.
 For a repair, recheck only stable finding IDs, affected selectors, and commands;
 never run a routine second full pass. Every gating finding links one approved
 acceptance condition or invariant; otherwise classify it as non-gating polish.
+Do not broaden a declared focused selector or add a full regression; the
+lifecycle owner holds that budget.
 Return concise status, evidence, affected paths, and findings.
 """

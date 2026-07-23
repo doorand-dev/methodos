@@ -54,6 +54,21 @@ nor claims unobserved execution facts. A new WHAT or expanded lifecycle returns
 `BLOCKED|NEEDS_USER` to the owning lead or parent instead of turning the worker
 into a planner.
 
+### Verification budget
+
+The declared focused verification commands are the slice worker's ceiling. The
+worker does not broaden a selector to a whole test file or suite and does not
+add a full regression. Diagnostic commands may locate the defect, but they do
+not become extra completion gates. If the declared oracle cannot prove the
+changed behavior, return that gap to the owning lead for a plan update instead
+of silently expanding verification.
+
+Run a full regression only when an explicit review risk predicate requires it.
+The multi-slice lifecycle lead or integration owner assigns it once, after the
+assembled candidate and planned repairs are complete. Workers, reviewers, and
+controllers reuse that result while the reviewed candidate and assumptions
+remain unchanged; they do not repeat it at each boundary.
+
 ### Supervised wait
 
 After spawning a supervised built-in subagent whose result gates the next
