@@ -8,7 +8,8 @@
 ## 도구 매핑
 
 - SPAWN(워커 생성) = native spawn thread/collaboration.spawn_agent(자기 자식 한정, agent_name 소문자_)
-- SEND(세션 간 메시지) = Desktop thread 네이티브
+- SEND(세션 간 메시지) = Desktop native `send_message_to_thread`. 오류 없이 반환한
+  대상 `threadId`가 전달 증거다. 전달 의도·assistant 문구·thread 상태는 SEND가 아니다.
 - WAKE(턴 종료 후 재개 신호) = Desktop automations(`automation_update`)
 - PROVE(완료 증거) = 커밋/파일. SEND/WAKE 성공·thread 상태는 완료 증거가 아니다.
 
@@ -23,6 +24,9 @@
   아카이브하라"를 함께 넣는다.
 - **ORCH-OWNER-001** — 독립 thread의 발주자(스포너)가 terminal 회수·판정과
   아카이브를 소유한다.
+- pre-approval spec pass의 owner·trigger는 활성 `plan`/`spec-novelist`, planned
+  implementation checkpoint의 owner·repair loop는 활성 `impl`이 정본이다.
+  root controller라는 이유로 planning/multi-slice lead의 내부 gate를 대신하지 않는다.
 
 ## Ordering과 병렬
 
@@ -43,9 +47,28 @@
 독립 thread에 발주하면 턴을 끝낸다. 수행 thread가 parent thread로 terminal을
 직접 보고하고, reply 도착이 발주자를 깨운다. 작업 길이는 판단 입력이 아니다.
 
+**ORCH-RECOVER-001** — compact/resume 뒤 unresolved outbound는 SEND를 가정하거나
+즉시 반복하지 않는다. 대상 `read_thread`의 최근 입력·turn id·status를 한 번 읽고
+다음처럼 복구한다.
+
+- `pending outbound`: 결정 뒤 matching follow-up 입력이 없고 대상의 이전 turn이
+  terminal/idle이다. 한 번 SEND한다.
+- `sent-but-unconfirmed`: SEND는 성공했지만 matching follow-up turn 시작은 아직
+  보이지 않거나, 대상이 active/queued라 수신 여부가 불명확하다. 재전송하지 않고
+  reply/wake로 회수한다.
+- `confirmed-active`: matching follow-up 입력의 turn이 active/inProgress다. 재전송·
+  polling하지 않는다.
+- `terminal-consumed`: terminal을 읽은 뒤 parent가 review/integration/HITL 판정을
+  자기 transcript에 남겼다. cursor 이동이나 메시지 열람만으로 판정하지 않는다.
+
+동일 메시지 재전송을 막는 idempotency key는 현재 SEND에 없다. `read_thread`의
+matching 입력이 중복 방지 근거이며, cursor/revision은 증분 조회 토큰일 뿐 SEND나
+terminal 소비 증거가 아니다.
+
 `wait_threads` 대기는 단 한 경우만 허용한다: 사용자가 현재 턴에서 결과를
 기다리고 있고 이번 응답에 그 결과가 필요할 때. 이때도 대기 1회 상한을 넘기면
 반복하지 말고 턴 종료 + reply로 전환하고 사용자에게 그렇게 보고한다.
+SEND 확인, active 확인, compact/resume 복구에는 `wait_threads`를 쓰지 않는다.
 
 **ORCH-TERM-001** — terminal은 COMPLETED|BLOCKED|NEEDS_USER 하나와 증거(exact
 changed paths, 실행한 검증 명령·결과, commit/HEAD)를 담는다. 메시지 수신·thread

@@ -9,6 +9,12 @@ user data, persistent/latest/idempotency/concurrency behavior, migration or
 external state, financial execution, or a foundation shared by independent
 slices. Run the relevant command and exact changed-path check. Do not edit.
 
+The planning/integration lead that owns the checkpoint dispatches this fresh,
+read-only child independently of the slice worker. Do not accept self-review
+ownership from a one-slice worker. A root controller may dispatch only for a
+distinct cross-task, changed-master-candidate, or runtime/HITL release boundary,
+not to repeat an unchanged lead-owned checkpoint.
+
 For a repair, recheck only stable finding IDs, affected selectors, and commands;
 never run a routine second full pass. Every gating finding links one approved
 acceptance condition or invariant; otherwise classify it as non-gating polish.

@@ -35,6 +35,12 @@ integration, or multi-slice owner. An existing owner may direct-execute one
 closed low-risk packet without changing its session model. Size, reach, and a
 plan alone do not justify max.
 
+A multi-slice lifecycle lead remains the lead and spawns each declared closed
+slice as a built-in implementation worker. Same-thread conversion to a Luna
+executor follows the global independent-session contract and is only for a true
+one-slice lifecycle with no remaining child, HITL, checkpoint, repair, or
+planning work; it never converts back to a planning lead in that lifecycle.
+
 A declared slice may be composite: keep small sequential substeps in one worker
 when they share the same goal, acceptance, ownership, risk, verification,
 approval, and rollback boundary. Reuse an existing worker or owner only to
@@ -44,7 +50,9 @@ routing.
 
 The worker inspects relevant callers and failure paths, edits only declared
 paths, runs declared checks, and reports the result. It neither chooses review
-nor claims unobserved execution facts.
+nor claims unobserved execution facts. A new WHAT or expanded lifecycle returns
+`BLOCKED|NEEDS_USER` to the owning lead or parent instead of turning the worker
+into a planner.
 
 ### Supervised wait
 
@@ -61,6 +69,20 @@ Do not review by default. Use `impl-checkpoint-reviewer` only for explicit
 public-contract, permission/security/user-data, persistent/idempotency/
 concurrency, migration/external-state, financial, or shared-foundation changes.
 Each blocking finding cites an approved acceptance condition or invariant.
+
+Review ownership follows the lifecycle boundary. At a planned checkpoint inside
+an approved multi-slice plan, the planning/integration lead spawns the fresh,
+read-only `impl-checkpoint-reviewer` as its child. That lead owns findings back
+to the affected slice worker, repair, affected-finding re-review, and release of
+the next slice. A one-slice implementation worker never chooses, spawns, or
+performs its own review. The lead may perform a routine local checkpoint only
+when the named reviewer predicate above does not match.
+
+A root controller does not repeat an unchanged lead-owned checkpoint. It may
+own a separate review only for a cross-task integration conflict, a changed
+master integration candidate, or a runtime/HITL release boundary. A prior
+lead-owned PASS satisfies the internal checkpoint while its reviewed candidate
+and assumptions remain unchanged.
 
 Use `impl-novelist` only for a new public/user flow, shared contract or
 authority/data boundary, external-state/concurrency/migration change, or a real

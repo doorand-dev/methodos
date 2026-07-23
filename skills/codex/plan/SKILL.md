@@ -53,6 +53,11 @@ acceptance has a proving command, and no placeholder or unresolved WHAT remains.
 `public_contracts` and `public_callers` are required when a public symbol or
 artifact changes; discover callers with `git grep` rather than guessing.
 
+Before emitting `PLAN_READY`, the planning owner applies the active
+`spec-novelist` ownership and timing contract. A controller cannot run that
+pre-approval pass on the planning owner's behalf or count its own advisory pass
+as satisfying the gate.
+
 ## Risk and decisions
 
 Surface user-facing flow choices, irreversible operations, user data,
