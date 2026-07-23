@@ -35,6 +35,12 @@ integration, or multi-slice owner. An existing owner may direct-execute one
 closed low-risk packet without changing its session model. Size, reach, and a
 plan alone do not justify max.
 
+A declared slice may be composite: keep small sequential substeps in one worker
+when they share the same goal, acceptance, ownership, and risk boundary. Reuse
+an existing worker or owner only to complete, correct, or re-verify that same
+open slice. Do not append a new goal, acceptance, write scope, or risk boundary;
+that requires a new slice and fresh routing.
+
 The worker inspects relevant callers and failure paths, edits only declared
 paths, runs declared checks, and reports the result. It neither chooses review
 nor claims unobserved execution facts.

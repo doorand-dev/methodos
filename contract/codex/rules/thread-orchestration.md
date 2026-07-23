@@ -31,6 +31,10 @@
 - dispatch는 lane당 정확히 한 번의 bounded 메시지로 보낸다. healthy busy thread를
   poll하거나 재촉 메시지를 보내지 않는다.
 - 선행 thread가 끝나면 실제 diff가 후행 가정을 바꾸는지만 확인하고 재개한다.
+- 기존 thread는 같은 goal·stage·ownership의 open lifecycle 안에서만 후속 지시를
+  받는다. 같은 slice의 순차 substep·correction·reverification이면 재사용할 수
+  있지만, 새 goal이나 새 slice는 fresh thread 또는 명시적으로 재선언한 worker로
+  라우팅한다. terminal 이후에는 관련성만으로 재사용하지 않는다.
 
 ## 회수
 
