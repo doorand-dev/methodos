@@ -24,6 +24,7 @@ what tells Codex which event should run which script.
 
 | Hook | Event | Matcher | Purpose |
 |---|---|---|---|
+| `wait_agent_timeout.py` | `PreToolUse` | `multi_agent_v1__wait_agent` | Raise omitted or short waits to 3,600,000 ms without issuing another wait |
 | `../common/context_surface_guard.py` | `PostToolUse` | `Edit|Write|MultiEdit` | Warn on suspicious hot-context edits and suggest `context-novelist` review |
 
 The context-surface hook is a mechanical guard. It does not replace Methodos

@@ -1,5 +1,19 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "multi_agent_v1__wait_agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/absolute/path/to/methodos/hooks/codex/wait_agent_timeout.py\"",
+            "commandWindows": "py -3 \"C:\\absolute\\path\\to\\methodos\\hooks\\codex\\wait_agent_timeout.py\"",
+            "timeout": 10,
+            "statusMessage": "Normalizing subagent wait timeout"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",
