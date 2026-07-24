@@ -25,9 +25,15 @@ what tells Codex which event should run which script.
 | Hook | Event | Matcher | Purpose |
 |---|---|---|---|
 | `wait_agent_timeout.py` | `PreToolUse` | `multi_agent_v1__wait_agent` | Raise omitted or short waits to 3,600,000 ms without issuing another wait |
-| `../common/context_surface_guard.py` | `PostToolUse` | `Edit|Write|MultiEdit` | Warn on suspicious hot-context edits and suggest `context-novelist` review |
+| `context_scenario_guard.py` | `PreToolUse` | `apply_patch` | Detect hot context targets mechanically and provide a placement self-check |
 
-The context-surface hook is a mechanical guard. It does not replace Methodos
+The context scenario hook detects only patch headers for `AGENTS.md`, `SKILL.md`,
+`hooks.json`, or `.md`/`.toml` files under a `rules` or `agents` path. When it
+finds one, it gives an executable self-check: identify the reader and trigger,
+choose the minimum global/project/subtree scope, check the existing SSOT and
+duplicates, and name the actual consumer/load path. Only when semantic placement
+remains ambiguous should the operator run `context-novelist` before editing.
+The hook performs no automatic LLM invocation and does not replace Methodos
 planning, user approval, or risk review. Registration still requires a manual
 review of the copied configuration before activation.
 

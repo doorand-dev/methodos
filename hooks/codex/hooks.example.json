@@ -12,18 +12,16 @@
             "statusMessage": "Normalizing subagent wait timeout"
           }
         ]
-      }
-    ],
-    "PostToolUse": [
+      },
       {
-        "matcher": "Edit|Write|MultiEdit",
+        "matcher": "apply_patch",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"/absolute/path/to/methodos/hooks/common/context_surface_guard.py\"",
-            "commandWindows": "py -3 \"C:\\absolute\\path\\to\\methodos\\hooks\\common\\context_surface_guard.py\"",
+            "command": "python3 \"/absolute/path/to/methodos/hooks/codex/context_scenario_guard.py\"",
+            "commandWindows": "py -3 \"C:\\absolute\\path\\to\\methodos\\hooks\\codex\\context_scenario_guard.py\"",
             "timeout": 10,
-            "statusMessage": "Checking hot context surface placement"
+            "statusMessage": "Checking context scenario placement"
           }
         ]
       }
