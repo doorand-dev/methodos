@@ -26,6 +26,7 @@ def _updated_input(output: dict[str, object]) -> dict[str, object]:
     hook_output = output["hookSpecificOutput"]
     assert isinstance(hook_output, dict)
     assert hook_output["hookEventName"] == "PreToolUse"
+    assert hook_output["permissionDecision"] == "allow"
     updated_input = hook_output["updatedInput"]
     assert isinstance(updated_input, dict)
     return updated_input

@@ -39,6 +39,7 @@ def main() -> int:
             {
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",
+                    "permissionDecision": "allow",
                     "updatedInput": updated_input,
                 }
             },
