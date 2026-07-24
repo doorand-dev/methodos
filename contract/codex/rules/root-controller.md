@@ -64,9 +64,23 @@ surface에만 결과를 남기며 가짜 parent를 만들지 않는다.
 ## Completion과 정리
 
 Root는 packet terminal을 product acceptance로 간주하지 않는다. Lifecycle terminal,
-프로젝트 integration, 필요한 runtime/HITL을 순서대로 소비한 뒤 overall terminal을
-판정한다. Child archive eligibility·retention·worktree cleanup은 프로젝트 계약이
-소유하며 idle 표시만으로 판정하지 않는다.
+프로젝트 integration과 focused verification, 필요한 runtime/HITL release를 순서대로
+소비한 뒤 프로젝트 release eligibility를 적용하고 overall terminal을 판정한다. 이때
+overall `COMPLETED` 전에 선언된 모든 child lifecycle source binding을 소비하며, source
+worktree 판단·cleanup queue 등록은 활성 전역 `~/.codex/rules/worktree.md`를 따른다.
+
+- 각 source binding이 shared checkout이거나 source worktree가 없으면 cleanup은 N/A다.
+- releasable source worktree는 `worktree.md`에 따라 durable cleanup queue에 등록한 뒤,
+  해당 source binding을 소유한 child lifecycle을 native archive한다. durable queue 등록
+  성공이면 충분하며 비동기 물리 삭제를 기다리지 않는다.
+- `worktree.md`의 blocker(예: dirty, untracked, unmerged, current-cwd, unique-commit),
+  queue 실패 또는 archive 실패가 있으면 child를 archive하지 않고 기존 `BLOCKED`로
+  exact path·blocker·next owner를 반환한다.
+- 명시적 ownership transfer가 있으면 새 active owner가 binding을 수락한 뒤에만 old
+  child를 archive한다.
+
+Child archive eligibility·retention·release는 프로젝트 계약이 소유하고, cleanup queue의
+disposition·안전 규칙은 `worktree.md`가 소유한다. idle 표시만으로 판정하지 않는다.
 
 마이그레이션 중 프로젝트 adapter는 legacy 또는 migrated 중 하나여야 한다. Compatibility
 문구는 이 파일을 가리키는 pointer만 허용하며 별도 normative copy가 아니다.
