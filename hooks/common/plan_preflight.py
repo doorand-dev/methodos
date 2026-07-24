@@ -33,6 +33,18 @@ def paths(block: str) -> list[str]:
     return result
 
 
+def scalar(block: str, key: str) -> str | None:
+    match = re.search(rf"(?m)^\s+{re.escape(key)}:\s*(.+?)\s*$", block)
+    return match.group(1).strip().strip("'\"") if match else None
+
+
+def inline_list(block: str, key: str) -> list[str] | None:
+    match = re.search(rf"(?m)^\s+{re.escape(key)}:\s*\[([^]]*)\]\s*$", block)
+    if not match:
+        return None
+    return [item.strip().strip("'\"") for item in match.group(1).split(",") if item.strip()]
+
+
 def _check_repo_boundary(path: str, repo: Path) -> bool:
     """Return whether a declared path is a relative path inside ``repo``."""
     candidate = Path(path)
@@ -66,6 +78,10 @@ def check(text: str, repo: Path | None = None) -> list[str]:
 
     owner: dict[str, str] = {}
     for slice_id, block in blocks:
+        scope_authority = scalar(block, "scope_authority")
+        if scope_authority not in {"confirmed", "user_approved_unresolved"}:
+            errors.append(f"slice {slice_id}: invalid or missing scope_authority")
+
         budget = re.search(r"(?m)^\s+line_budget:\s*(\d+)\s*$", block)
         if not budget:
             errors.append(f"slice {slice_id}: line_budget is required")
@@ -79,9 +95,40 @@ def check(text: str, repo: Path | None = None) -> list[str]:
                 errors.append(f"path owned by multiple slices: {path} ({owner[path]}, {slice_id})")
             owner[path] = slice_id
 
-        command = re.search(r"(?m)^\s+command:\s*(.+)$", block)
-        if command and POSIX_COMMAND.search(command.group(1)):
+        command = scalar(block, "command")
+        expected_exit_code = scalar(block, "expected_exit_code")
+        if not command:
+            errors.append(f"slice {slice_id}: verification command is required")
+        elif POSIX_COMMAND.search(command):
             errors.append(f"slice {slice_id}: POSIX shell syntax in PowerShell command")
+        if expected_exit_code is None or not re.fullmatch(r"-?\d+", expected_exit_code):
+            errors.append(f"slice {slice_id}: numeric expected_exit_code is required")
+
+        verification_scope = scalar(block, "scope")
+        proves = inline_list(block, "proves")
+        risk_predicate = scalar(block, "risk_predicate")
+        approved_by = scalar(block, "approved_by")
+        if verification_scope not in {"focused", "integration", "full"}:
+            errors.append(f"slice {slice_id}: invalid or missing verification scope")
+        if not proves:
+            errors.append(f"slice {slice_id}: verification proves must be non-empty")
+        if verification_scope == "focused":
+            if risk_predicate != "null" or approved_by != "null":
+                errors.append(f"slice {slice_id}: focused verification requires null risk and approval")
+        elif verification_scope in {"integration", "full"}:
+            if risk_predicate in {None, "null"}:
+                errors.append(f"slice {slice_id}: broader verification requires a named risk")
+            if approved_by not in {"lifecycle_owner", "user"}:
+                errors.append(f"slice {slice_id}: broader verification requires approval")
+
+        review_checkpoint = scalar(block, "review_checkpoint")
+        checkpoint_reason = scalar(block, "checkpoint_reason")
+        if review_checkpoint not in {"skip", "candidate", "required"}:
+            errors.append(f"slice {slice_id}: invalid or missing review_checkpoint")
+        elif review_checkpoint == "skip" and checkpoint_reason != "null":
+            errors.append(f"slice {slice_id}: skipped review requires checkpoint_reason: null")
+        elif review_checkpoint in {"candidate", "required"} and checkpoint_reason in {None, "null"}:
+            errors.append(f"slice {slice_id}: candidate or required review needs checkpoint_reason")
 
         if "public_contracts:" in block and "public_callers:" not in block:
             errors.append(f"slice {slice_id}: public_contracts requires public_callers inventory")

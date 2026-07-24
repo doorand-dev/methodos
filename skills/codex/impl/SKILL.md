@@ -12,6 +12,8 @@ Use direct execution when one packet closes all of these:
 - one observable goal and acceptance condition;
 - exact write paths (any number of files), relevant callers/producers/consumers,
   and a verification command with a clear pass condition;
+- explicit scope authority and a verification scope that satisfy the shared
+  plan contract;
 - no unresolved user-facing choice, new schema/public contract, permission or
   user-data change, irreversible migration, concurrency change, or external
   state side effect;
@@ -58,6 +60,12 @@ nor claims unobserved execution facts. A new WHAT or expanded lifecycle returns
 `BLOCKED|NEEDS_USER` to the owning lead or parent instead of turning the worker
 into a planner.
 
+The lifecycle owner, not the worker, owns evidence re-scope, recording required
+user approval for unresolved scope, review selection, broad-verification
+assignment, and acceptance of the worker terminal. A failed focused oracle
+returns to that owner for the smallest diagnosis or packet correction; it does
+not authorize an adjacent hardening slice.
+
 ### Verification budget
 
 The declared focused verification commands are the slice worker's ceiling. The
@@ -67,11 +75,25 @@ not become extra completion gates. If the declared oracle cannot prove the
 changed behavior, return that gap to the owning lead for a plan update instead
 of silently expanding verification.
 
-Run a full regression only when an explicit review risk predicate requires it.
+An `integration` command is valid only for a named producer-consumer seam that
+the final candidate actually changes. A `full` command is valid only for a
+named risk that narrower oracles cannot cover. Both require the exact command
+and explicit lifecycle-owner or user approval in the packet. The lifecycle
+lead/integration owner runs that command itself or assigns one fresh checkpoint
+reviewer as its explicit executor; an ordinary slice worker never inherits it
+by selector expansion.
+
+Immediately before a broader command, the lifecycle owner checks the assembled
+candidate again. If the named seam or risk was not actually changed, downgrade
+to the focused oracle instead of spending the prior approval.
+
+Run a full regression only when the approved packet's named risk predicate
+requires it.
 The multi-slice lifecycle lead or integration owner assigns it once, after the
 assembled candidate and planned repairs are complete. Downstream owners reuse
-that result while the reviewed candidate and assumptions remain unchanged; they
-do not repeat it at each boundary.
+that result while the changed paths/content and reviewed assumptions remain
+unchanged; they do not repeat it at each boundary. No verification ledger or
+separate candidate identifier is required.
 
 ### Supervised wait
 
@@ -84,10 +106,14 @@ evidence before claiming completion.
 
 ## Optional review
 
-Do not review by default. Use `impl-checkpoint-reviewer` only for explicit
-public-contract, permission/security/user-data, persistent/idempotency/
-concurrency, migration/external-state, financial, or shared-foundation changes.
-Each blocking finding cites an approved acceptance condition or invariant.
+Do not review by default. At the planned checkpoint, the lifecycle owner
+re-evaluates the final actual diff. Use `impl-checkpoint-reviewer` only when that
+diff actually changes a public contract, permission/security/user-data,
+persistence/idempotency/concurrency, migration/external state, financial
+execution, or a foundation shared by independent slices. An original issue
+label, planned-but-untouched risk, file count, or surrounding-system complexity
+does not trigger review. Each blocking finding cites an approved acceptance
+condition or invariant.
 
 Review ownership follows the lifecycle boundary. At a planned checkpoint inside
 an approved multi-slice plan, the planning/integration lead spawns the fresh,
@@ -114,4 +140,7 @@ changes, stop and obtain a new approved plan.
 ## Completion
 
 Completion requires declared checks to pass, changed paths to remain in scope,
-and every user approval required by `/plan` to be present.
+every user approval required by `/plan` to be present, and the reported
+completion commands to be no broader than the approved packet. The lifecycle
+owner rejects a terminal that expanded verification and requests a focused
+rerun or packet correction; it does not count the broader run as a new gate.

@@ -32,6 +32,10 @@ changed master candidate, runtime/HITL release라는 별도 gate에만 허용한
   terminal을 명시한 follow-up으로 시작한다. 과거 lifecycle을 조용히 다시 열지 않는다.
 - 관련 owner가 없으면 앱의 thread 생성 권한을 따른다. 사용자 권한이 필요한 표면에서
   승인 없이 built-in worker로 대체하지 않고 `NEEDS_USER`를 반환한다.
+- one-shot operational recovery와 durable automation repair가 비용·범위·상태 수명에서
+  materially 다르면 두 경로를 사용자에게 드러내고 선택된 lifecycle owner로 라우팅한다.
+  Root는 broader durable 경로를 조용히 선택하거나 직접 진단하지 않으며, 선택이 없으면
+  `NEEDS_USER`를 반환한다. 구체적인 mode 이름과 위험은 프로젝트 adapter가 소유한다.
 - Root가 product worker를 이미 잘못 SPAWN했다면 실행 중인 agent를 취소하지 않는다.
   기존 parent가 packet terminal을 받은 뒤 exact result를 lifecycle lead에 전달하고,
   lead만 product acceptance·repair를 소유한다. Running worker의 parentage를 중간에

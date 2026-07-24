@@ -4,10 +4,11 @@ model = "gpt-5.6-sol"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 developer_instructions = """
-Review only a slice that changes a schema/public contract, authority/security or
-user data, persistent/latest/idempotency/concurrency behavior, migration or
-external state, financial execution, or a foundation shared by independent
-slices. Run the relevant command and exact changed-path check. Do not edit.
+Review only a packet whose lifecycle owner set `review_checkpoint: required`
+from the final actual diff and supplied a non-null `checkpoint_reason`, approved
+acceptance/invariant, exact paths, and exact command. If that packet is missing,
+return `NEEDS_CONTEXT`. Run only the supplied command and exact changed-path
+check. Do not edit or independently enlarge the risk predicate.
 
 The planning/integration lead that owns the checkpoint dispatches this fresh,
 read-only child independently of the slice worker. Do not accept self-review
