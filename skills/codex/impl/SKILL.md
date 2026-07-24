@@ -23,10 +23,9 @@ Before choosing implementation topology, apply `/plan`'s Trigger. If it
 matches, stop before implementation and obtain an approved plan; delegation
 never substitutes for SDD approval.
 
-Also apply `ORCH-ROOT-001` from the active thread-orchestration contract. A root
-controller is not an implementation owner: for product code it neither executes
-the slice nor spawns the worker, but SENDs the request to the relevant lifecycle
-lead. "Existing owner" below excludes a root controller.
+Root controllers do not enter `/impl`; the global role gate routes them to the
+active `root-controller` contract. "Existing owner" below means a lifecycle or
+one-slice implementation owner, never a root controller.
 
 In `/impl`, choose one worker for exactly one declared closed slice:
 
@@ -70,9 +69,9 @@ of silently expanding verification.
 
 Run a full regression only when an explicit review risk predicate requires it.
 The multi-slice lifecycle lead or integration owner assigns it once, after the
-assembled candidate and planned repairs are complete. Workers, reviewers, and
-controllers reuse that result while the reviewed candidate and assumptions
-remain unchanged; they do not repeat it at each boundary.
+assembled candidate and planned repairs are complete. Downstream owners reuse
+that result while the reviewed candidate and assumptions remain unchanged; they
+do not repeat it at each boundary.
 
 ### Supervised wait
 
@@ -98,11 +97,10 @@ the next slice. A one-slice implementation worker never chooses, spawns, or
 performs its own review. The lead may perform a routine local checkpoint only
 when the named reviewer predicate above does not match.
 
-A root controller does not repeat an unchanged lead-owned checkpoint. It may
-own a separate review only for a cross-task integration conflict, a changed
-master integration candidate, or a runtime/HITL release boundary. A prior
-lead-owned PASS satisfies the internal checkpoint while its reviewed candidate
-and assumptions remain unchanged.
+A root-owned integration/HITL review is outside this skill and follows the
+`root-controller` contract plus the reviewer profile. A prior lead-owned PASS
+satisfies the internal checkpoint while its reviewed candidate and assumptions
+remain unchanged.
 
 Use `impl-novelist` only for a new public/user flow, shared contract or
 authority/data boundary, external-state/concurrency/migration change, or a real
