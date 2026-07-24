@@ -1,6 +1,6 @@
 ---
 name: decision
-description: Converge an option comparison, workaround, irreversible operation, public interface, or user-delegated decision.
+description: Converge an option comparison, workaround, irreversible operation, public or user-visible behavior change, or user-delegated decision.
 ---
 
 # /decision
@@ -8,6 +8,20 @@ description: Converge an option comparison, workaround, irreversible operation, 
 Use this skill when options materially differ, a change is hard to reverse, or
 the user asks the agent to decide. For a closed, reversible implementation,
 answer directly.
+
+## User-visible behavior authority
+
+**BEHAVIOR-AUTH-001** — Safety, validation, persistence, idempotency, retry,
+exactly-once behavior, and tests constrain implementation HOW but do not
+authorize a different user-visible WHAT. Apply this gate only when the proposed
+observable behavior differs from an explicitly approved or established baseline
+in action meaning, navigation/timing, visible state or copy, workflow ordering,
+editing/source authority, fallback/retry, or output name/shape/cardinality.
+
+An exact evidenced restoration may stay on the focused repair path. Otherwise
+the lifecycle owner presents bounded alternatives and obtains user approval
+before implementation; an ambiguous baseline returns `NEEDS_USER`. Current
+code, tests, and generated artifacts are implementation evidence, not approval.
 
 1. State what changes for the user or operator and what remains uncertain.
 2. Compare the smallest viable options, including near-term cost and ongoing

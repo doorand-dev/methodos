@@ -19,6 +19,10 @@ Codex 배포에서는 `setup-methodos`, `using-methodos`, `conditional-heartbeat
 - fresh reviewer → reviewer profile + exact checkpoint packet
 - standalone automation/observer → project prompt·adapter·durable state/output surface
 
+어떤 역할이든 승인된 baseline과 다른 user-visible behavior 가능성을 발견하면 active
+`decision`의 `BEHAVIOR-AUTH-001`을 point-of-use로 적용한다. 명시적 기존 계약의 정확한
+복원은 이 규칙만으로 formal plan을 요구하지 않는다.
+
 프로젝트 crosswalk가 있으면 역할이 둘 이상에 매핑되거나 어디에도 매핑되지 않을 때
 `NEEDS_USER`를 반환한다. 아직 crosswalk가 없는 legacy project는 explicit assignment로
 한 역할을 선택하고 같은 turn에 신규·legacy 역할 본문을 섞지 않는다. Worker와 reviewer는

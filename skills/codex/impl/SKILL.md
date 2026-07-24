@@ -60,6 +60,12 @@ nor claims unobserved execution facts. A new WHAT or expanded lifecycle returns
 `BLOCKED|NEEDS_USER` to the owning lead or parent instead of turning the worker
 into a planner.
 
+If a technically safe implementation changes user-visible behavior outside the
+approved packet, stop and return `NEEDS_USER`; tests or safety invariants do not
+authorize that delta. Before acceptance, the lifecycle owner compares final
+actual behavior with the approved or established baseline. An exact evidenced
+restoration may remain a focused repair.
+
 The lifecycle owner, not the worker, owns evidence re-scope, recording required
 user approval for unresolved scope, review selection, broad-verification
 assignment, and acceptance of the worker terminal. A failed focused oracle
