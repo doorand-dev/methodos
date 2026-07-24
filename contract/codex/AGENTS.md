@@ -19,7 +19,8 @@ Codex 배포에서는 `setup-methodos`, `using-methodos`, `conditional-heartbeat
 - fresh reviewer → reviewer profile + exact checkpoint packet
 - standalone automation/observer → project prompt·adapter·durable state/output surface
 
-어떤 역할이든 승인된 baseline과 다른 user-visible behavior 가능성을 발견하면 active
+어떤 역할이든 승인된 baseline과 다른 user-visible behavior 가능성 또는 user-visible
+visual/layout/output의 referent가 둘 이상의 구체적 대상으로 모호하게 남으면 active
 `decision`의 `BEHAVIOR-AUTH-001`을 point-of-use로 적용한다. 명시적 기존 계약의 정확한
 복원은 이 규칙만으로 formal plan을 요구하지 않는다.
 
