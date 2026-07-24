@@ -23,6 +23,11 @@ Before choosing implementation topology, apply `/plan`'s Trigger. If it
 matches, stop before implementation and obtain an approved plan; delegation
 never substitutes for SDD approval.
 
+Also apply `ORCH-ROOT-001` from the active thread-orchestration contract. A root
+controller is not an implementation owner: for product code it neither executes
+the slice nor spawns the worker, but SENDs the request to the relevant lifecycle
+lead. "Existing owner" below excludes a root controller.
+
 In `/impl`, choose one worker for exactly one declared closed slice:
 
 - `luna-high-worker` when implementation and verification are routine;

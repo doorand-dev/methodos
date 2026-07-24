@@ -15,8 +15,9 @@
 
 ## Thread vs subagent
 
-- 구현 slice 라우팅(직접 실행/`luna-high-worker` 위임/조건부 리뷰)은 전역 `impl`
-  스킬이 정본이다. 이 문서는 독립 thread 오케만 소유한다.
+- 유효한 implementation owner가 된 뒤의 slice 라우팅(직접 실행/
+  `luna-high-worker` 위임/조건부 리뷰)은 전역 `impl` 스킬이 정본이다. root
+  controller가 implementation owner인지 판정하는 선행 gate는 이 문서가 소유한다.
 - 부모 턴 안에서 결과를 회수해 판단을 계속할 작업은 built-in subagent로 실행한다.
 - 사용자 표시가 필요한 작업과 세션 경계를 넘는 위임은 독립 thread로 만든다.
   독립 thread 발주에는 전역 AGENTS.md의 회신 계약을
@@ -24,6 +25,22 @@
   아카이브하라"를 함께 넣는다.
 - **ORCH-OWNER-001** — 독립 thread의 발주자(스포너)가 terminal 회수·판정과
   아카이브를 소유한다.
+- **ORCH-ROOT-001** — SPAWN 직전에 "나는 root controller인가, 대상은 product
+  code인가?"를 판정한다. 둘 다 참이면 직접 구현하거나 implementation worker를
+  SPAWN하지 않고 기존 관련 planning/multi-slice lifecycle owning task에 SEND한다.
+  그 lead가 packet을 닫거나 갱신하고 true one-slice 전환 또는 자기 Luna worker를
+  소유한다. 관련 lead가 completed/archived이면 먼저 unarchive하고 새 goal·stage·
+  terminal을 명시한 bounded follow-up으로 새 lifecycle을 연다. duplicate lead를
+  만들지 않는다. 관련 owner가 없으면 앱의 thread 생성 권한을 따르며, 사용자 권한이
+  필요한 표면에서는 승인 없이 worker로 대체하지 말고 `NEEDS_USER`를 반환한다.
+  routing을 위한 exact-path read-only 확인은 허용한다.
+- root controller는 master integration mechanics와 runtime restart/config activation/
+  HITL만 직접 소유한다. child terminal 뒤 product source repair는 WHAT이 그대로여도
+  원래 lead에 돌려보낸다. 프로젝트 계약이 명시적으로 허용한 merge/conflict의
+  기계적 해소는 승인된 behavior를 바꾸지 않을 때만 controller가 소유한다.
+- root가 product worker를 잘못 SPAWN했고 이미 실행 중이면 취소하지 않는다. terminal
+  뒤 exact result/commit을 관련 lead에 SEND해 acceptance와 integration ordering을
+  맡기고 controller가 feature를 self-approve하지 않는다.
 - pre-approval spec pass의 owner·trigger는 활성 `plan`/`spec-novelist`, planned
   implementation checkpoint의 owner·repair loop는 활성 `impl`이 정본이다.
   root controller라는 이유로 planning/multi-slice lead의 내부 gate를 대신하지 않는다.
@@ -35,12 +52,13 @@
 - dispatch는 lane당 정확히 한 번의 bounded 메시지로 보낸다. healthy busy thread를
   poll하거나 재촉 메시지를 보내지 않는다.
 - 선행 thread가 끝나면 실제 diff가 후행 가정을 바꾸는지만 확인하고 재개한다.
-- 기존 thread는 같은 goal·stage·ownership의 open lifecycle 안에서만 후속 지시를
-  받는다. 같은 slice의 순차 substep·correction·reverification이면 재사용할 수
-  있지만, 새 goal이나 새 slice는 fresh thread 또는 명시적으로 재선언한 worker로
-  라우팅한다. 여기서 terminal은 worker callback이 아니라 발주 parent가 review와
-  integration을 닫고 판정한 lifecycle terminal이다. 그 이후에는 관련성만으로
-  재사용하지 않는다.
+- 기존 worker thread는 같은 goal·stage·ownership의 open lifecycle 안에서만 후속
+  지시를 받는다. 같은 slice의 순차 substep·correction·reverification이면 재사용할
+  수 있지만, 새 goal이나 새 slice를 worker에 붙이지 않는다. planning/multi-slice
+  lifecycle owning task가 계속 같은 domain owner라면 completed/archived 뒤에도
+  `ORCH-ROOT-001`의 명시적 새 lifecycle로 재개할 수 있다. terminal은 worker callback이
+  아니라 발주 parent가 review와 integration을 닫고 판정한 lifecycle terminal이다.
+  관련성만으로 worker를 재사용하거나 lead를 조용히 계속 실행하지 않는다.
 
 ## 회수
 
