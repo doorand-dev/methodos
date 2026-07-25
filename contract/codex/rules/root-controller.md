@@ -35,6 +35,11 @@ changed master candidate, runtime/HITL release라는 별도 gate에만 허용한
 - 이전 lifecycle이 terminal이어도 같은 domain lead task의 context가 유효하면 task를
   재사용할 수 있다. archived이면 unarchive하고, 새 lifecycle identity·goal·parent·
   terminal을 명시한 follow-up으로 시작한다. 과거 lifecycle을 조용히 다시 열지 않는다.
+- Task 재사용은 이전 lifecycle이 terminal을 반환한 뒤에만 한다. 직전 packet이 아직
+  terminal이 아니면 새 lifecycle packet을 같은 task에 넣지 않고 terminal을 기다리거나
+  별도 owner로 라우팅한다. Packet이 스스로 새 lifecycle을 선언하면 그 자체가 별도
+  lifecycle이며 기존 task에 누적하지 않는다. 이미 보낸 packet과 goal·scope가 같은
+  packet은 재발주하지 않고 기존 packet의 terminal을 소비한다.
 - 관련 owner가 없으면 앱의 thread 생성 권한을 따른다. 사용자 권한이 필요한 표면에서
   승인 없이 built-in worker로 대체하지 않고 `NEEDS_USER`를 반환한다.
 - one-shot operational recovery와 durable automation repair가 비용·범위·상태 수명에서
