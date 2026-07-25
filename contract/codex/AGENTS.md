@@ -19,6 +19,10 @@ Codex 배포에서는 `setup-methodos`, `using-methodos`, `conditional-heartbeat
 - fresh reviewer → reviewer profile + exact checkpoint packet
 - standalone automation/observer → project prompt·adapter·durable state/output surface
 
+역할 선택은 작업 시작 시점 한 번으로 끝나지 않는다. 같은 세션이 진단·감사·계획에서
+구현·편집으로 넘어가는 등 역할이 실제로 바뀌면 그 전환점에서 crosswalk를 다시 적용해
+새 역할과 그 계약을 읽는다. 작업이 작아 보인다는 이유로 이 재선택을 건너뛰지 않는다.
+
 어떤 역할이든 승인된 baseline과 다른 user-visible behavior 가능성 또는 user-visible
 visual/layout/output의 referent가 둘 이상의 구체적 대상으로 모호하게 남으면 active
 `decision`의 `BEHAVIOR-AUTH-001`을 point-of-use로 적용한다. 명시적 기존 계약의 정확한

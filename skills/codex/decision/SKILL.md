@@ -1,6 +1,6 @@
 ---
 name: decision
-description: Converge an option comparison, workaround, irreversible operation, public or user-visible behavior change, ambiguous user-visible referent, or user-delegated decision.
+description: Use before acting whenever the user's words do not already decide the matter: an option comparison, a workaround, an irreversible operation, a change to user-visible behavior, an ambiguous user-visible referent, or a decision the user delegated. Also use when a question or remark is about to be treated as approval, when an agent-proposed option would be settled without an explicit user choice, or when a new architecture or user-visible decision follows the last user input.
 ---
 
 # /decision

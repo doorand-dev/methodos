@@ -1,6 +1,6 @@
 ---
 name: impl
-description: Execute one closed low-risk packet directly; apply the plan trigger, then choose Luna/high or Luna/max for one closed implementation slice.
+description: Use before editing any file for an implementation, repair, or cleanup task, including one that looks small or obvious, and whenever a session turns from diagnosis, audit, or planning into making changes. Closes the packet first (goal, acceptance, exact write paths, verification command), then routes direct execution versus delegation and worker model. Also use when packet constraints conflict and the work must return to its owner.
 ---
 
 # /impl — implementation routing
