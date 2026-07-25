@@ -39,3 +39,11 @@ auxiliary completion record, or separate proof document is required.
   result while its candidate and assumptions are unchanged.
 - Transient session targeting may be used to continue a live conversation, but
   it is operational input, never completion evidence.
+
+## Model selection
+
+The default execution profile is Sol/medium. When the user names a model, spawn
+this review with that model instead. Valid candidates are
+`alibaba-token-plan-intl/qwen3.8-max-preview`, `gpt-5.6-luna`, and
+`anthropic/claude-opus-5`. If the named model is not a valid slug, do not cancel
+the review: offer the closest valid slug and confirm before spawning.
