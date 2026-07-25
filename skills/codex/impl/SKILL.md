@@ -66,6 +66,12 @@ authorize that delta. Before acceptance, the lifecycle owner compares final
 actual behavior with the approved or established baseline. An exact evidenced
 restoration may remain a focused repair.
 
+If the packet imposes constraints that cannot be satisfied together by a minimal
+change, return `BLOCKED|NEEDS_USER` naming the conflicting constraints instead of
+absorbing the conflict into defensive code, speculative wiring, or repeated
+re-extraction. This includes a constraint requiring the agent to preserve a
+structure that an accepted diagnosis already identified as the cause.
+
 The lifecycle owner, not the worker, owns evidence re-scope, recording required
 user approval for unresolved scope, review selection, broad-verification
 assignment, and acceptance of the worker terminal. A failed focused oracle

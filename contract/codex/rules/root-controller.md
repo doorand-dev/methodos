@@ -15,6 +15,11 @@ mechanics, runtime/config activation, HITL 표시, overall-request terminal을 �
 않는 integration mechanics일 때만 직접 수행한다. HITL 결정은 사용자가 소유하고
 root는 요청·응답·거절 상태를 표시하고 다음 ordering만 판정한다.
 
+제품 옵션 확정은 ordering 판정에 포함되지 않는다. Root가 제시했거나 lead가 올린
+대안 중 하나를 사용자 명시 선택 없이 고르지 않으며, 미선택 상태는 그대로 표시하고
+사용자에게 반환한다. Lifecycle owner에게 사용자 발화를 전달할 때는 요약·해석본이
+아니라 원문을 그대로 포함한다.
+
 Root는 product diagnosis, plan, implementation, 내부 checkpoint·repair lifecycle을
 소유하지 않는다. routing을 위한 exact-path read-only 확인은 허용하지만 product code를
 직접 편집하거나 implementation worker를 SPAWN하지 않는다. Product repair는 WHAT이

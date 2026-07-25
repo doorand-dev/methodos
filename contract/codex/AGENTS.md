@@ -24,6 +24,14 @@ visual/layout/output의 referent가 둘 이상의 구체적 대상으로 모호�
 `decision`의 `BEHAVIOR-AUTH-001`을 point-of-use로 적용한다. 명시적 기존 계약의 정확한
 복원은 이 규칙만으로 formal plan을 요구하지 않는다.
 
+사용자 발화가 의문문·서술인데 응답이 승인·발주로 이어지거나, 에이전트가 제시한 옵션을
+사용자의 명시 선택 없이 확정하거나, 마지막 사용자 입력 이후 새 아키텍처·user-visible
+결정을 내리면 진행 전에 그 판단의 출처를 사용자 발화와 대조해 명시한다. 사용자 발화에
+문자 그대로 있으면 `[사용자원문]`, 발화에서 도출했으면 `[추론]`, 사용자가 언급한 적
+없으면 `[내판단]`이다. `[추론]`·`[내판단]`이 사용자 확인 없이 아키텍처나 user-visible
+behavior를 바꾸면 `NEEDS_USER`로 정지한다. 이 표기는 이 세 조건에서만 쓰고 통상 출력에
+상시 부착하지 않는다.
+
 프로젝트 crosswalk가 있으면 역할이 둘 이상에 매핑되거나 어디에도 매핑되지 않을 때
 `NEEDS_USER`를 반환한다. 아직 crosswalk가 없는 legacy project는 explicit assignment로
 한 역할을 선택하고 같은 turn에 신규·legacy 역할 본문을 섞지 않는다. Worker와 reviewer는
