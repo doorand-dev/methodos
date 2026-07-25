@@ -103,12 +103,9 @@ separate candidate identifier is required.
 
 ### Supervised wait
 
-After spawning a supervised built-in subagent whose result gates the next
-step, call `wait_agent` once with the longest supported timeout. It returns
-immediately on terminal status; if the wrapper yields, resume the same wait
-instead of polling status or transcript. A timeout is not worker failure;
-re-wait only if the result is still needed. After wake, verify the declared
-evidence before claiming completion.
+Supervised built-in subagent wait mechanics follow the global Codex `AGENTS.md`.
+After wake, the lifecycle owner verifies the slice's declared evidence and
+accepts the worker terminal only when `/impl` Completion holds.
 
 ## Optional review
 

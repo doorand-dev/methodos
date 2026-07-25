@@ -39,6 +39,11 @@ multi-slice lifecycle lead는 Sol/medium, one-slice executor와 worker는 `impl`
 packet을 직접 실행해도 session model은 바꾸지 않는다. True one-slice transition과
 model 왕복 금지는 `impl`이 정본이다.
 
+감독하는 built-in subagent의 결과가 다음 판단을 gate하면 live tool schema가 허용하는
+최대 `timeout_ms`로 `wait_agent`를 한 번 호출한다. 실행 wrapper가 재개 가능한 cell이나
+session을 반환하면 새 wait, status, transcript query를 발행하지 말고 같은 wait를 재개한다.
+Terminal wake는 recovery일 뿐이며 completion에는 역할이 선언한 evidence가 여전히 필요하다.
+
 Explicit parent가 있는 delegated thread 발주는 parent, lifecycle identity, packet,
 terminal scope·대상, wake 경로를 닫고 `thread-orchestration.md`를 point-of-use로 따른다.
 Parentless standalone automation은 parent나 SEND terminal을 지어내지 않고 프로젝트가
