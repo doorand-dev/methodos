@@ -1,10 +1,14 @@
 ---
 name: report-kit
 description: |
-  Lifecycle HTML template kit — a shared palette, components, and archetypes for visualizing project progress, data flow, measurement, and verdicts as a single self-contained HTML page. 7 archetypes (spec review, scenario flow, system panorama, lifecycle matrix, measurement snapshot, control A/B diff, verdict form) in 3 families. Explicit trigger-oriented (no over-firing): "/report-kit", "report-kit", "이 키트로", "이 양식으로 만들어", "생애주기 HTML". Consult when newly building one of these forms — do not reinvent the CSS each time. prototype v0.
+  Lifecycle HTML template kit — a shared palette, components, and archetypes for visualizing project progress, data flow, measurement, and verdicts as a single self-contained HTML page. Explicit trigger-oriented (no over-firing): "/report-kit", "report-kit", "이 키트로", "이 양식으로 만들어", "생애주기 HTML". Consult when newly building one of these forms — do not reinvent the CSS each time.
 ---
 
 # report-kit (prototype v0)
+
+7 archetypes (spec review, scenario flow, system panorama, lifecycle matrix,
+measurement snapshot, control A/B diff, verdict form) in 3 families. **STATUS:
+prototype v0.**
 
 프로젝트 상태·데이터흐름·측정·판정을 **자기완결 단일 HTML 한 장**으로 시각화하는 공유 키트.
 5개 정본 산출물(Poncou·youtube-edit)에서 추출한 시각 DNA를 재사용해, 매번 CSS를 재발명하지

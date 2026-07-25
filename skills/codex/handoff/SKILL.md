@@ -3,14 +3,10 @@ name: handoff
 description: |
   Split part of the current session's work into a **new session** by capturing only the *minimal* context that specific task needs as JSON, and recommend a starting prompt to use as the new session's first message.
 
-  Do not move the whole session state — select only what the new session needs to *start that task*, and for facts already in code/docs leave just a grep path or command.
-
-  On these natural-language triggers, **do not save immediately — confirm with the user first**:
+  Trigger on these natural-language cues (confirm with the user first before saving — see body):
   - "이거 새 세션에서 하는 게 낫지 않을까", "다음 세션에서 마저 하자"
   - "여기서 끊자", "별도 세션으로 빼자", "이거 길어질 것 같으니까 나눠서"
   - "handoff 만들어", "다음 세션에 넘길 거 정리해줘", "새 세션 시작 프롬프트"
-
-  Ask "handoff 스킬 구동할까요? 새 세션에서 어떤 작업 하실 건지 알려주시면 그에 맞는 컨텍스트만 골라서 JSON으로 남기고 시작 프롬프트도 추천드릴게요.", then proceed once the user agrees.
 
   For same-session preservation right before `/compact`, use the `snapshot` skill — do not confuse them. To add a persistent to-do, use `todo`.
 ---
@@ -21,6 +17,8 @@ description: |
 
 저장 위치: `<workspace>/.claude_context/handoff/<short-task-id>.json` (세션 스냅샷용
 `sessions/`와 분리).
+
+**즉시 저장 금지 — 먼저 확인** (아래 §Trigger Behavior 대사 그대로 사용).
 
 ---
 
