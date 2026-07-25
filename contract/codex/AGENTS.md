@@ -46,7 +46,8 @@ delegated child로 분류하지 않는다.
 
 모델·소유자 우선순위는 현재 사용자 지시 → project role/model contract → 활성 전역
 `plan`/`impl`이다. 프로젝트 모델 계약이 없으면 planning·diagnosis·integration·
-multi-slice lifecycle lead는 Sol/medium, one-slice executor와 worker는 `impl`을 따른다.
+multi-slice lifecycle lead는 `anthropic/claude-opus-5`/medium, one-slice executor와
+worker는 `impl`을 따른다.
 독립 thread 생성 시 선택한 model·thinking을 실제 인수에 명시한다. 현재 owner가 닫힌
 packet을 직접 실행해도 session model은 바꾸지 않는다. True one-slice transition과
 model 왕복 금지는 `impl`이 정본이다.
