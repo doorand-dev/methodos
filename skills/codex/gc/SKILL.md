@@ -1,7 +1,7 @@
 ---
 name: gc
 description: |
-  Project GC scan + cleanup. Delete pycache/temp files, detect finished .plans and stale handoffs, report ruff violations, find dead code and duplication, surface the friction.md backlog, and audit context surfaces (AGENTS.md/SKILL.md/settings) for stale, duplicate, or misplaced content. On first run, auto-detects large folders and prompts to exclude them from the scan. **Explicit trigger only** — fires only when the user directly says "gc" or "/gc". A general word like "정리" does not trigger it (prevents misfires).
+  Project GC scan + cleanup. Delete pycache/temp files, detect finished .plans and stale handoffs, report ruff violations, find dead code and duplication, surface the friction.md backlog, and surface obvious broken context references. Route scoped/full stale context-contract or workflow audits to context-gc. On first run, auto-detects large folders and prompts to exclude them from the scan. **Explicit trigger only** — fires only when the user directly says "gc" or "/gc". A general word like "정리" does not trigger it (prevents misfires).
 ---
 
 # /gc (전역 스킬)
@@ -13,7 +13,7 @@ description: |
 ### 1. review 스캔 보고
 
 ```
-py -3 ~/.Codex/skills/gc/gc_check.py --review-only --report-json
+py -3 ~/.agents/skills/gc/gc_check.py --review-only --report-json
 ```
 
 review 후보를 사람이 읽기 쉽게 보고:
@@ -27,7 +27,7 @@ review 후보를 사람이 읽기 쉽게 보고:
 `<workspace>/.Codex/gc.toml` 파일이 **없으면** 1회 한정:
 
 ```
-py -3 ~/.Codex/skills/gc/gc_check.py --detect-large-dirs --report-json
+py -3 ~/.agents/skills/gc/gc_check.py --detect-large-dirs --report-json
 ```
 
 100MB 이상 top-level 폴더가 1개 이상 발견되면 사용자에게 묻기:
@@ -52,19 +52,19 @@ skip_dirs = ["data", "project"]
 ### 3. safe-fix 확인 + 실행
 
 ```
-py -3 ~/.Codex/skills/gc/gc_check.py --dry-run --report-json
+py -3 ~/.agents/skills/gc/gc_check.py --dry-run --report-json
 ```
 
 safe 후보(pycache·.pyc·.tmp·.DS_Store 등) 보고 → "삭제할까요?" 확인 후:
 
 ```
-py -3 ~/.Codex/skills/gc/gc_check.py --safe-fix
+py -3 ~/.agents/skills/gc/gc_check.py --safe-fix
 ```
 
 ### 4. AST 죽은 코드·중복·임계치 감지
 
 ```
-py -3 ~/.Codex/skills/gc/gc_audit.py
+py -3 ~/.agents/skills/gc/gc_audit.py
 ```
 
 `<workspace>/.Codex/gc_report.md` 결과 읽고 보고:
@@ -94,28 +94,31 @@ py -3 ~/.Codex/skills/gc/gc_audit.py
 
 3-layer trio 흐름: blame-code(수집, ms) → **gc(감사, 본 단계)** → improve-codebase-architecture(처리, 의도 발동). 관련 결정: `docs/adr/0001-conv-friction-trio.md` (워크스페이스 기준).
 
-### 6. 컨텍스트 표면 감사 (auto-inject 파일 stale·중복·오배치)
+### 6. 컨텍스트 표면 신호
 
-step 4의 AST 스캐너는 *코드*만 본다. auto-inject 컨텍스트 파일(AGENTS.md·AGENTS.md·SKILL.md·MEMORY.md·settings.json)은 매 세션/트리거 시 비용을 무는데, 여기 쌓인 누적은 코드 그래프에 안 잡힌다. 읽기 전용 surface, 수정은 사용자 판단.
+AGENTS.md·SKILL.md·MEMORY.md·settings.json에서 명백히 존재하지 않는 파일이나
+경로 참조만 읽기 전용으로 surface한다. 범용 `gc`는 문서 계약·작업 절차의
+실제 consumer, runtime ingress, authority, lifetime, stale 의미를 전수 감사하지
+않는다.
 
-**(a) stale 참조 (스크립트 가능):** 각 AGENTS.md/SKILL.md가 가리키는 경로·파일이 실재하나 — 죽은 링크·없어진 파일 묘비 탐지.
-```
-# AGENTS.md류가 참조하는 상대경로 추출 → 존재 확인 (예시 recipe)
-grep -rEoh '\[[^]]+\]\(([^)]+)\)|`[^`]+\.(md|py|ps1|toml|json)`' --include=AGENTS.md --include=SKILL.md . \
-  | <경로 정규화> | while read p; do [ -e "$p" ] || echo "MISS $p"; done
-```
+`<workspace>/.Codex/context-friction.md`가 있으면 전체 항목 수와 `status: open`,
+`context-fault: uncertain` 개수만 한 줄로 보고한다. open 또는 uncertain이 하나라도
+있으면 `/context-gc --incidents`를 권장한다. 파일이 없으면 생성하지 않는다.
 
-**(b) 중복·오배치 (의미 판단, 스크립트 불가):** 줄마다 absence-test — *"없으면 어느 시나리오·관객이 깨지나?"*
-- **중복**: always-on 파일(루트/전역 AGENTS.md)의 내용이 *스킬 body/description이 이미 덮는* 것이면 → 포인터화 후보. (예: finding 골격이 finding 스킬과 global AGENTS.md에 이중)
-- **scope 오배치**: 전역 settings/AGENTS.md에 박힌 *한 프로젝트 전용* 항목, 또는 관객이 한 서브트리뿐인 내용 → 해당 프로젝트·nested로 push-down 후보.
-- **죽은 묘비**: "구 X 폐기"식 역사 산문 — 가리키는 대상 부재면 컷(역사는 ADR 소관).
+다음 중 하나면 후보 수와 대표 경로만 보고하고 `/context-gc <scope>`를 권장한다:
 
-보고만 — "지울 때: 없으면 뭐 깨지나 / 만들 때 대체분 같이" 원칙은 사용자 글로벌 룰이 보유, gc는 surface만.
+- 깨진 참조가 여러 context surface에 걸쳐 있음
+- 문서 절차와 현재 runtime/code가 다르다는 증거가 있음
+- 중복 authority, 죽은 trigger, orphan target, stale workflow 조사가 필요함
+- 사용자가 범위 지정 또는 전수 context 감사를 원함
+
+수정·삭제는 하지 않는다. context mark-and-sweep의 정본 절차와 분류는
+`context-gc`가 소유한다.
 
 ## 환경별 호출
 
-- Windows: `py -3 ~/.Codex/...` (또는 절대경로 `C:/Users/<user>/.Codex/...`)
-- Linux/macOS: `python3 ~/.Codex/...`
+- Windows: `py -3 ~/.agents/skills/gc/...` (또는 절대경로 `C:/Users/<user>/.agents/skills/gc/...`)
+- Linux/macOS: `python3 ~/.agents/skills/gc/...`
 
 ## 프로젝트 보완 (`<workspace>/.Codex/gc.toml`)
 
@@ -135,13 +138,3 @@ skip_dirs = ["data", "models"]
 file_lines = 500
 function_lines = 100
 ```
-
----
-
-## CONV-GATE 위임
-
-매핑 정본 → [`mine/CONV-GRAPH.md`](../../CONV-GRAPH.md).
-
-- 임계치 위반 보고 시(파일 N줄·함수 분기 M개·모듈 책임 K개) → [3I] 코드 자동 가드 promote 검토
-
-신규 시점 추가 시 CONV-GRAPH.md 매핑 표 한 줄 갱신.

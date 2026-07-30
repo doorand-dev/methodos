@@ -1,7 +1,7 @@
 ---
 name: blame-code
 description: |
-  Attribute the moment an AI (or human) misread code/docs to the code's structure, accumulating one line at a time into .Codex/friction.md. **Explicit trigger only** — fires only when the user directly says "blame code", "blame-code", "/blame-code", "코드 탓해봐". No auto-detection (prevents noise from firing indiscriminately on correction remarks). The collector of the 3-layer trio that converts AI confusion into a code-defect signal — pairs with gc (audit) and improve-codebase-architecture (processing).
+  Attribute the moment an AI (or human) misread code/docs to the code's structure, accumulating one line at a time into .Codex/friction.md. **Explicit trigger only** — fires only when the user directly says "blame code", "blame-code", "/blame-code", "코드 탓해봐". No auto-detection from generic corrections. If the stated cause is context injection, routing, lifetime, or authority rather than code structure, use blame-context instead. Pairs with gc (audit) and improve-codebase-architecture (processing).
 ---
 
 # /blame-code (전역 스킬)
@@ -14,12 +14,13 @@ description: |
 
 | 신호 | 예시 |
 |---|---|
-| AI 추론 교정 발화 (자동) | "아니 그게 아니라", "잘못 봤어", "이건 X가 아니야", "헛다리 짚었네", "헷갈렸어", "내가 잘못 본 게 아니라 너가 잘못 본 거잖아" |
-| 코드 귀책 의도 발화 (자동) | "코드 탓해봐", "코드 잘못이야", "코드 헷갈리게 돼있어", "이거 코드 결함이지", "코드/문서 귀책" |
-| 명시 호출 (수동) | `/blame-code` |
+| 코드 귀책 명시 발화 | "blame code", "blame-code", "코드 탓해봐" |
+| 명시 호출 | `/blame-code` |
 | 프로젝트별 보완 | `<workspace>/.Codex/blame-code.toml`의 `extra_triggers` |
 
-자동 감지 시 *바로* 항목 추가하지 말고, 사용자 다음 발화 1턴 기다림 — *왜* 잘못 봤는지 사용자가 부연해줄 가능성. 부연 받고 항목 작성.
+"아니", "잘못 봤어", "헷갈렸어" 같은 일반 교정만으로는 발동하지 않는다.
+사용자가 원인을 context 주입·라우팅·lifetime·authority로 지목하면
+`blame-context`가 소유하며 본 스킬은 기록하지 않는다.
 
 ## 실행 절차
 
@@ -94,7 +95,7 @@ description: |
 
 | 스킬 | 활성화 시점 | 역할 | friction.md 동작 |
 |---|---|---|---|
-| `blame-code` (본 스킬) | ms (자동/수동) | 수집 | append |
+| `blame-code` (본 스킬) | ms (명시 호출) | 수집 | append |
 | `gc` | 분~일 (주기적) | 감사 | 카운트·top 카테고리·`code-clean=yes` 비율 surface |
 | `improve-codebase-architecture` (mat) | 의도 발동 | 처리 | Step 1 Explore에서 입력으로 합류 |
 
@@ -137,14 +138,3 @@ extra_triggers = ["방향이 틀렸어", "전제가 잘못됐어"]
 backlog_limit = 30
 code_clean_yes_ratio_min = 0.15
 ```
-
----
-
-## CONV-GATE 위임
-
-매핑 정본 → [`mine/CONV-GRAPH.md`](../../CONV-GRAPH.md).
-
-- friction.md 기록 직전 → [1C] 누더기 위 누더기 거부 (코드 귀책 합리화 도구화 방지)
-- 3-agent 판정 위임 → [2J] Evidence (격리 reader + judge 인용)
-
-신규 시점 추가 시 CONV-GRAPH.md 매핑 표 한 줄 갱신.
