@@ -26,16 +26,34 @@ what tells Codex which event should run which script.
 |---|---|---|---|
 | `wait_agent_timeout.py` | `PreToolUse` | `multi_agent_v1__wait_agent` | Raise omitted or short waits to 3,600,000 ms without issuing another wait |
 | `context_scenario_guard.py` | `PreToolUse` | `apply_patch` | Detect hot context targets mechanically and provide a placement self-check |
+| `worktree-advisory.py` | `SessionStart` | `startup|resume` | Show shared-checkout Git state with Codex-native ownership guidance |
+| `../common/worktree-cleanup.py` | `SessionStart` | `startup|resume` | Revalidate identity-bound retirement leases and remove only unchanged worktrees |
 
-The context scenario hook detects only patch headers for `AGENTS.md`, `SKILL.md`,
-`hooks.json`, or `.md`/`.toml` files under a `rules` or `agents` path. When it
-finds one, it gives an executable self-check: identify the reader and trigger,
+The context scenario hook detects patch and move headers for `AGENTS.md`,
+`SKILL.md`, `MEMORY.md`, `hooks.json`, and context-contract files under rules,
+agents, hooks, skills, or handoffs paths. When it finds one, it gives a
+post-edit self-check: verify the reader and trigger,
 choose the minimum global/project/subtree scope, check the existing SSOT and
 duplicates, and name the actual consumer/load path. Only when semantic placement
-remains ambiguous should the operator run `context-novelist` before editing.
+remains ambiguous should the operator run `context-novelist` before the next edit.
 The hook performs no automatic LLM invocation and does not replace Methodos
 planning, user approval, or risk review. Registration still requires a manual
 review of the copied configuration before activation.
+
+The cleanup queue is a terminal retirement approval, not a permanent path
+allowlist. New entries bind the worktree Git directory, HEAD, tracked/index
+diff, untracked content, base ref, and a lease marker. A queued worktree must
+not be reused. If new work is approved, dequeue it before dispatch:
+
+```powershell
+py -3 hooks/common/worktree-cleanup.py --dequeue "C:\absolute\worktree"
+```
+
+Startup or resume also cancels retirement when its own cwd is inside a queued
+worktree as a last-resort safety net; it does not authorize reuse. Reaping
+repeats identity, content, cleanliness, and integration checks. Legacy unbound
+entries remain pending until explicitly re-enqueued. Only an unchanged
+`discarded` lease may use forced removal.
 
 ## Optional Windows Desktop MCP Reaper
 

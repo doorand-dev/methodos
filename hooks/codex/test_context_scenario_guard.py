@@ -40,6 +40,8 @@ def test_multiple_hot_headers_emit_advisory_with_exact_normalized_paths() -> Non
                     "*** Delete File: src/agents/legacy.md",
                     "*** Update File: nested/SKILL.md",
                     "*** Add File: settings/hooks.json",
+                    "*** Update File: src/runtime.py",
+                    "*** Move to: hooks/runtime.py",
                     "*** End Patch",
                 ]
             )
@@ -60,14 +62,15 @@ def test_multiple_hot_headers_emit_advisory_with_exact_normalized_paths() -> Non
         "src/agents/legacy.md",
         "nested/SKILL.md",
         "settings/hooks.json",
+        "hooks/runtime.py",
     ):
         assert path in context
     for instruction in (
-        "identify reader+trigger",
+        "verify reader+trigger",
         "minimum global/project/subtree scope",
         "existing SSOT/duplicate",
         "actual consumer/load path",
-        "context-novelist before editing",
+        "context-novelist before the next edit",
     ):
         assert instruction in context
     assert "permissionDecision" not in hook_output
@@ -79,6 +82,22 @@ def test_ordinary_source_patch_is_silent() -> None:
         _run_hook(tool_input={"command": "*** Update File: src/example.py"})
         is None
     )
+
+
+def test_hook_implementation_and_memory_are_hot_targets() -> None:
+    output = _run_hook(
+        tool_input={
+            "command": "\n".join(
+                (
+                    "*** Update File: .codex/hooks/policy.py",
+                    "*** Update File: docs/MEMORY.md",
+                )
+            )
+        }
+    )
+    context = output["hookSpecificOutput"]["additionalContext"]
+    assert ".codex/hooks/policy.py" in context
+    assert "docs/MEMORY.md" in context
 
 
 def test_malformed_missing_and_non_apply_patch_inputs_are_silent() -> None:

@@ -9,10 +9,10 @@ import sys
 
 
 TOOL_NAME = "apply_patch"
-PATCH_HEADER = re.compile(r"\*\*\* (?:Add|Update|Delete) File: (.+)$")
-HOT_BASENAMES = {"AGENTS.md", "SKILL.md", "hooks.json"}
-HOT_SEGMENTS = {"rules", "agents"}
-HOT_SUFFIXES = {".md", ".toml"}
+PATCH_HEADER = re.compile(r"\*\*\* (?:(?:Add|Update|Delete) File|Move to): (.+)$")
+HOT_BASENAMES = {"AGENTS.md", "SKILL.md", "MEMORY.md", "hooks.json"}
+HOT_SEGMENTS = {"rules", "agents", "hooks", "skills", "handoffs"}
+HOT_SUFFIXES = {".md", ".toml", ".json", ".py"}
 
 
 def _hot_targets(patch: str) -> list[str]:
@@ -55,10 +55,11 @@ def main() -> int:
     advisory = (
         "Context-placement self-check for exact hot targets: "
         + ", ".join(targets)
-        + ". Before editing, identify reader+trigger; choose the minimum "
+        + ". This patch is proceeding. After it completes, verify reader+trigger; "
+        "choose the minimum "
         "global/project/subtree scope; check existing SSOT/duplicate; name the "
         "actual consumer/load path. Only if semantic placement remains ambiguous, "
-        "run context-novelist before editing."
+        "run context-novelist before the next edit."
     )
     print(
         json.dumps(
