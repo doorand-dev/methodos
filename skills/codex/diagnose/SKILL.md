@@ -15,9 +15,15 @@ focused oracle are already clear, and no high-risk boundary below applies.
 
 1. State the exact symptom and owner seam.
 2. Run the focused oracle once to reproduce the symptom.
-3. Apply the smallest owner-seam fix.
-4. Run the same oracle once to confirm the change.
-5. Report the changed paths, oracle result, and any remaining real risk.
+3. Find every caller, producer, and consumer of the owner seam with one grep
+   pass. A seam with no other reference needs no further check; a seam with
+   other references means the smallest fix must not silently change their
+   contract.
+4. Apply the smallest owner-seam fix that preserves the contract found in
+   step 3, or names the exact callers it intentionally changes.
+5. Run the same oracle once to confirm the change.
+6. Report the changed paths, the callers checked in step 3, the oracle
+   result, and any remaining real risk.
 
 The diagnostician may apply the fix directly only when it is also the current
 implementation owner for this closed one-slice packet. A delegated diagnosis

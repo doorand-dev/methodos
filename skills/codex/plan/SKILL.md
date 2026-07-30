@@ -94,6 +94,22 @@ and migrations as explicit decisions. Internal HOW choices remain with the
 implementer. Add a spike only for a concrete uncertainty whose failure would be
 costly; routine work does not need one.
 
+Before marking the plan `approved`, dispatch one fresh read-only
+`decision-reviewer` when the plan changes security, authority, public
+contracts, user data, or an irreversible operation, or has two or more
+`decision_needed: true` slices. It inherits the parent model and reasoning
+effort and checks only for a missed option or a symptom patch the planning
+owner may have rationalized; it does not review code or file structure. Skip
+it for a behavior-preserving structural change with no `decision_needed`
+slice. A `BLOCKED` finding returns to the user for the named decision before
+approval.
+
+For each slice that reuses or assumes an existing function, field, or
+contract ("call X", "existing Y", "reuse Z"), grep the actual path before
+marking the plan `approved`. A missing or mismatched signature blocks
+approval until the slice is corrected; do not approve a plan against an
+assumed contract.
+
 ## Verification and handoff
 
 Use the smallest relevant oracle: unit test, command, fixture comparison,
