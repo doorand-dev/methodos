@@ -27,5 +27,10 @@
   `C:\Users\hjcha\AppData\Local\Programs\Python\Python311\python.exe C:\Users\hjcha\.codex\hooks\worktree-cleanup.py --enqueue <path> --disposition merged`
 - 사용자가 "폐기"를 명시한 worktree는 미커밋 변경이 있어도 같은 명령에 `--disposition discarded`를 써 대기열에 넣는다. 추측으로 폐기 대기열에 넣지 않는다.
 - clean 검증 전용 worktree는 `--disposition verification`으로 대기열에 넣는다.
+- cleanup queue 항목은 terminal retirement authorization이다. queued worktree를 재사용하거나 새 lifecycle packet을 보내지 않는다.
+- 재사용이 새로 승인되면 root/owner가 먼저 다음 명령을 실행하고 성공을 확인한다.
+  `C:\Users\hjcha\AppData\Local\Programs\Python\Python311\python.exe C:\Users\hjcha\.codex\hooks\worktree-cleanup.py --dequeue "<absolute-worktree-path>"`
+  성공한 dequeue 뒤에만 해당 worktree에서 dispatch·resume한다.
+- 재사용한 lifecycle이 integration/release를 마치면 이전 queue 항목을 되살리지 않고 새 identity-bound lease로 enqueue한다.
 - SessionStart hook이 대기열을 다른 cwd에서 처리한다. 잠겨 있으면 항목을 유지하고 다음 시작에 재시도한다.
 - `cleanup.md`에 없는 worktree와 현재 cwd worktree는 자동 삭제하지 않는다.

@@ -40,6 +40,9 @@ changed master candidate, runtime/HITL release라는 별도 gate에만 허용한
   별도 owner로 라우팅한다. Packet이 스스로 새 lifecycle을 선언하면 그 자체가 별도
   lifecycle이며 기존 task에 누적하지 않는다. 이미 보낸 packet과 goal·scope가 같은
   packet은 재발주하지 않고 기존 packet의 terminal을 소비한다.
+- 기존 task/worktree binding을 재사용하기 전 활성 `~/.codex/rules/worktree.md`의
+  retirement queue 상태를 확인한다. queued worktree는 해당 규칙의 dequeue가 성공하기
+  전까지 새 lifecycle SEND·dispatch·resume 대상으로 쓰지 않는다.
 - 관련 owner가 없으면 앱의 thread 생성 권한을 따른다. 사용자 권한이 필요한 표면에서
   승인 없이 built-in worker로 대체하지 않고 `NEEDS_USER`를 반환한다.
 - one-shot operational recovery와 durable automation repair가 비용·범위·상태 수명에서
