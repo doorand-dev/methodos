@@ -29,7 +29,15 @@ Root controllers do not enter `/impl`; the global role gate routes them to the
 active `root-controller` contract. "Existing owner" below means a lifecycle or
 one-slice implementation owner, never a root controller.
 
-In `/impl`, choose one worker for exactly one declared closed slice:
+Immediately before creating an implementation worker, read
+`~/.codex/rules/model-routing.json` and select the route in its declared
+precedence order. Pass the selected route's explicit `agent_type`, `model`, and
+`reasoning_effort` fields that are present. For a Qwen failure, apply the JSON's
+`qwen_fallback` object exactly. Do not copy route or fallback values into this
+skill.
+
+Outside a selected Qwen route, choose one worker for exactly one declared
+closed slice:
 
 - `luna-high-worker` when implementation and verification are routine;
 - `luna-max-worker` before spawn when a concrete costly-to-recover uncertainty

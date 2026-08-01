@@ -51,6 +51,10 @@ worker는 `impl`을 따른다.
 독립 thread 생성 시 선택한 model·thinking을 실제 인수에 명시한다. 현재 owner가 닫힌
 packet을 직접 실행해도 session model은 바꾸지 않는다. True one-slice transition과
 model 왕복 금지는 `impl`이 정본이다.
+Implementation worker를 만들 때는 활성 `impl`이
+`~/.codex/rules/model-routing.json`을 생성 직전에 읽어 user-explicit·project·global
+우선순위 뒤의 전역 worker route를 선택한다. 모델 ID·시간 경계·fallback 값은 이 JSON만
+정본으로 두며 AGENTS나 skill에 복제하지 않는다.
 
 감독하는 built-in subagent의 결과가 다음 판단을 gate하면 live tool schema가 허용하는
 최대 `timeout_ms`로 `wait_agent`를 한 번 호출한다. 실행 wrapper가 재개 가능한 cell이나
