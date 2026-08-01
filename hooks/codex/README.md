@@ -26,6 +26,7 @@ what tells Codex which event should run which script.
 |---|---|---|---|
 | `wait_agent_timeout.py` | `PreToolUse` | `multi_agent_v1__wait_agent` | Raise omitted or short waits to 3,600,000 ms without issuing another wait |
 | `context_scenario_guard.py` | `PreToolUse` | `apply_patch` | Detect hot context targets mechanically and provide a placement self-check |
+| `spawn-resource-gate.py` | `PreToolUse` | Codex spawn and task creation | Block creation without explicit model resources or a resource-bearing fixed profile |
 | `worktree-advisory.py` | `SessionStart` | `startup|resume` | Show shared-checkout Git state with Codex-native ownership guidance |
 | `../common/worktree-cleanup.py` | `SessionStart` | `startup|resume` | Revalidate identity-bound retirement leases and remove only unchanged worktrees |
 
@@ -39,6 +40,13 @@ remains ambiguous should the operator run `context-novelist` before the next edi
 The hook performs no automatic LLM invocation and does not replace Methodos
 planning, user approval, or risk review. Registration still requires a manual
 review of the copied configuration before activation.
+
+The spawn resource gate checks only `multi_agent_v1__spawn_agent` and
+`codex_app__create_thread`. A subagent call must provide `model` and
+`reasoning_effort`, unless its named fixed profile declares `model` and
+`model_reasoning_effort`. A new task call must provide `model` and `thinking`.
+The gate does not choose a model or duplicate the routing contract; it only
+fails closed when the call reaches the creation boundary without those values.
 
 The cleanup queue is a terminal retirement approval, not a permanent path
 allowlist. New entries bind the worktree Git directory, HEAD, tracked/index

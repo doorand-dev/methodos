@@ -24,6 +24,18 @@
             "statusMessage": "Checking context scenario placement"
           }
         ]
+      },
+      {
+        "matcher": "^(multi_agent_v1__spawn_agent|codex_app__create_thread)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/absolute/path/to/methodos/hooks/codex/spawn-resource-gate.py\"",
+            "commandWindows": "py -3 \"C:\\absolute\\path\\to\\methodos\\hooks\\codex\\spawn-resource-gate.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking agent model resources"
+          }
+        ]
       }
     ],
     "SessionStart": [
