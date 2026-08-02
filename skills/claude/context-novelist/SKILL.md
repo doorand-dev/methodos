@@ -27,6 +27,16 @@ Read route-first, then point-of-use.
 4. Load contracts, schemas, tests, artifacts, or evidence only when the current task requires them.
 5. Do not read History, archives, long evidence, or prior conclusions unless stale-state or provenance is the target.
 
+### Controller-owned delegated task projection
+
+Any controller or distributed gate that chooses delegation owns selective
+projection into the delegated task packet. It must project the task intent,
+authority and write boundaries, required inputs, nested delegation/tool/model
+intent (or explicit none), output and verification contract, and stop or
+escalation behavior. An isolated worker must not be expected to infer omitted
+controller context. This is not full-session inheritance, a central router, a
+shared mutable pointer, or a new artifact schema.
+
 ## Case Packets
 
 Use the smallest matching packet. If several apply, start with the narrowest packet and add only named dependencies.
@@ -41,6 +51,7 @@ Use the smallest matching packet. If several apply, start with the narrowest pac
 | UI/design | Target URL or screenshots, design-system entrypoint, current component files, acceptance criteria | Old mock archives, unrelated design variants |
 | AGENTS/SKILL/knowledge | Target file, consumer trigger, point-of-use path, duplication/staleness checks | Mirror docs, long explanations of process history |
 | Runtime/session audit | User's current intent, injected routing context, explicitly loaded AGENTS/SKILL/handoff/plan/todo, recent tool actions, touched files, declared verification | Full chat history, unrelated global rules, old plans, stale evidence logs |
+| Delegated task | Task intent, authority/write bounds, required inputs, nested delegation/tool/model intent or none, output/verification, stop/escalation | Full controller session, unrelated evidence, implicit shared state |
 
 ## Audit Questions
 
@@ -56,6 +67,8 @@ Use the smallest matching packet. If several apply, start with the narrowest pac
 - Is the session following the user's current intent, or an older inferred goal?
 - Did a skill, plan, or handoff trigger fire from evidence, or from name association?
 - Is missing context blocking action, or is the agent over-reading to feel safer?
+- Did the dispatching controller project every delegated-task field, including
+  nested delegation/tool/model intent or explicit none?
 
 ## Mechanical vs LLM
 

@@ -91,6 +91,16 @@ archives, long evidence, or prior conclusions unless stale state or provenance
 is the target. Keep case-packet boundaries and fresh-context review principles
 when they remain compatible with the graph.
 
+### Controller-owned delegated task projection
+
+Any controller or distributed gate that chooses delegation owns selective
+projection into the delegated task packet. It must project the task intent,
+authority and write boundaries, required inputs, nested delegation/tool/model
+intent (or explicit none), output and verification contract, and stop or
+escalation behavior. An isolated worker must not be expected to infer omitted
+controller context. This is not full-session inheritance, a central router, a
+shared mutable pointer, or a new artifact schema.
+
 ## Case packets
 
 Use the smallest matching packet. If several apply, start with the narrowest
@@ -106,6 +116,7 @@ and add only named dependencies.
 | UI/design | Target URL or screenshots, design-system entrypoint, current component files, acceptance criteria | Old mock archives, unrelated variants |
 | AGENTS/SKILL/knowledge | Target, consumer trigger, POU path, duplication/staleness checks | Mirror docs, process history |
 | Runtime/session audit | Current intent, injected routing context, loaded routing artifacts, recent actions, touched files, verification | Full chat history, unrelated rules, stale evidence |
+| Delegated task | Task intent, authority/write bounds, required inputs, nested delegation/tool/model intent or none, output/verification, stop/escalation | Full controller session, unrelated evidence, implicit shared state |
 
 ## Audit questions
 
@@ -117,6 +128,8 @@ and add only named dependencies.
 - Did the session load context at the POU, or rely on memory?
 - Did a skill, plan, or handoff trigger fire from evidence rather than name association?
 - Is missing context blocking action, or is the agent over-reading to feel safer?
+- Did the dispatching controller project every delegated-task field, including
+  nested delegation/tool/model intent or explicit none?
 
 ## Mechanical vs. LLM judgment
 
