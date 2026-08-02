@@ -36,6 +36,11 @@ In `/impl`, choose one worker for exactly one declared closed slice:
   remains, including cross-restart state, concurrency/CAS, or exactly-once
   behavior. Use max also after Luna/high fails to converge.
 
+The controller that chooses the worker also owns the delegated task packet.
+Apply `context-novelist`'s controller-owned delegated task projection invariant,
+including nested delegation/tool/model intent or explicit none; do not expect an
+isolated worker to infer omitted controller context.
+
 This choice applies to a slice executor, not a planning, diagnosis,
 integration, or multi-slice owner. An existing owner may direct-execute one
 closed low-risk packet without changing its session model. Size, reach, and a
