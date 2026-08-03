@@ -1,19 +1,15 @@
 # AG Browse adapter
 
-Use this adapter only when the user selected `agbrowse`. Always pass
-`--vendor chatgpt --model pro`. Use `query` for a short foreground request. For
-long work, use `send`, keep the returned session and target binding, then use
-session-bound `poll` or `watch`.
+Use this adapter when the router selected `agbrowse`. Always pass
+`--vendor chatgpt --model pro`. Use `send`, keep the returned session and target
+binding, schedule the common heartbeat, and end the initiating turn. A
+heartbeat uses session-bound `poll` or `watch`; a recoverable poll timeout means
+the request is still generating, not that the request failed.
 
 ```powershell
-agbrowse web-ai query --vendor chatgpt --model pro --inline-only `
-  --system "<common proportional-verification instruction>" `
-  --prompt "<request>" --timeout 300
-
 agbrowse web-ai send --vendor chatgpt --model pro --inline-only `
   --new-tab --system "<common proportional-verification instruction>" `
   --prompt "<request>" --json
-agbrowse web-ai poll --session <session-id> --timeout 300 --json
 ```
 
 Continue an existing saved conversation only with its returned `--session`.
@@ -28,5 +24,6 @@ doctor` only for a missing/recovery target, and never navigate a live target to
 a bare provider origin. A failed recovery is a transport failure, not permission
 to switch adapters.
 
-The existing `scripts/pro-review.ps1` is an optional AG Browse helper, not a
-common router or authority for the other adapters.
+The existing `scripts/pro-review.ps1` is an optional AG Browse send helper, not
+a common router or collection owner. Use its no-watch send path only; never run
+its watcher alongside the common heartbeat. The heartbeat is the sole collector.

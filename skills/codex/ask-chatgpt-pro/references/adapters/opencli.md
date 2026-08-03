@@ -1,21 +1,24 @@
 # OpenCLI adapter
 
-Use this adapter only when the user selected `opencli`. Keep model selection and
-conversation operations in the same persistent site session and retained tab.
+Use this adapter when the router selected `opencli`. Isolate parallel jobs:
+use an ephemeral site session for each adapter command or a distinct named
+`opencli browser` session and exact target. Do not run parallel collection in
+one persistent site session; concurrent `detail` calls there can resolve the
+same default tab.
 
 ```powershell
 opencli chatgpt model pro --window background --site-session persistent --keep-tab true
-opencli chatgpt ask "<request>" --new true --wait true --timeout 300 `
-  --window background --site-session persistent --keep-tab true -f json
+opencli chatgpt ask "<request>" --new true --wait false `
+  --window background --site-session ephemeral --keep-tab true -f json
 ```
 
 For a known existing conversation, pass its ID or `/c/...` URL with
-`--conversation`. `ask --wait` is the preferred new-conversation path because it
-returns the conversation identity and response. For asynchronous continuation
-of a known conversation, use `send --conversation <id-or-url>` and then
-`detail <id-or-url> --wait true`; `Generating` must be false and the response
-stable before collection. `status` proves only page/login connectivity, not
-answer completion.
+`--conversation`. `ask --wait false` is the new-conversation send path because
+it returns the conversation identity without holding the initiating turn. Each
+heartbeat reads that identity with `detail <id-or-url> --wait false` in its own
+ephemeral site session. Collect only after the assistant turn exists and
+`Generating` is false. `status` proves only page/login connectivity, not answer
+completion.
 
 Current `ask` and `send` help exposes no ordinary conversation attachment
 option. `project-file-add` uploads project knowledge and is not a substitute.

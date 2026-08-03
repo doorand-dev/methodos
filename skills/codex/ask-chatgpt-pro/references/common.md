@@ -20,6 +20,16 @@ nonterminal. Do not interrupt generation or collect the answer until the
 selected adapter's completion signal is final. A timeout is not completion;
 preserve the selected conversation/target for that adapter's recovery path.
 
+Run every transport asynchronously. The initiating turn confirms one successful
+send and its exact conversation/session/target, schedules an accelerated
+heartbeat when available or a per-request five-minute heartbeat, then ends
+without waiting for the answer. Each heartbeat checks only that saved identity.
+If the result is still generating, end the heartbeat turn and leave the next
+heartbeat scheduled. On terminal completion or terminal failure, remove the
+heartbeat automation in that terminal heartbeat turn before returning the
+result. Never press or invoke `지금 답변 받기`, another
+early-answer action, or `답변 중지` while generation continues.
+
 Return the substantive answer, every requested downloaded file that actually
 exists, and the actual `/c/...` conversation URL. State when no file was
 produced or the URL is unavailable. Session IDs, target IDs, model labels,
