@@ -194,6 +194,21 @@ def candidate_summaries(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(candidates, key=lambda item: item["total_tokens"], reverse=True)
 
 
+def route_summaries(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    groups: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        provider = str(row.get("provider") or "__missing__")
+        model = str(row.get("model") or row.get("resolvedModel") or "__missing__")
+        effort = str(row.get("effectiveEffort") or row.get("requestedEffort") or "__none__")
+        groups[(provider, model, effort)].append(row)
+    routes = []
+    for (provider, model, effort), grouped in groups.items():
+        item = aggregate(grouped)
+        item.update({"provider": provider, "model": model, "effort": effort})
+        routes.append(item)
+    return sorted(routes, key=lambda item: item["total_tokens"], reverse=True)
+
+
 def finish_run(args: argparse.Namespace) -> int:
     data_dir = Path(args.data_dir).expanduser().resolve()
     runs_dir, records_path = data_paths(data_dir)
@@ -217,6 +232,16 @@ def finish_run(args: argparse.Namespace) -> int:
         return 2
     selected_conversation = args.conversation_id or candidates[0]["conversation_id"]
     selected = [row for row in rows if str(row.get("conversationId") or "__missing__") == selected_conversation]
+    routes = route_summaries(selected)
+    if len(routes) > 1:
+        emit({
+            "error": "mixed-route",
+            "run_id": args.run_id,
+            "conversation_id": selected_conversation,
+            "routes": routes,
+            "next": "rerun finish with --conversation-id, --provider, --model, and --effort for exactly one route",
+        })
+        return 2
     finished_at = now_ms()
     record_id = uuid.uuid4().hex[:12]
     record = {

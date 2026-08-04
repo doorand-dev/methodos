@@ -12,7 +12,7 @@ Measure the requested work without turning the work into a large benchmark proje
 1. Classify `task_type` as one of `exploration`, `diagnosis`, `implementation`, `review`, `data-organization`, or `image-understanding`. Also record `task_shape` (`retrieve|transform|synthesize|decide`), `context_state` (`packet_closed|selected_files|raw_corpus`), `judgment_level` (`apply|reconcile|authority_decision`), `execution_shape` (`read_only|isolated_candidate|canonical_single_writer`), and `dependency_span` (`single_file|bounded_multifile|cross_system`). Keep `task_subtype` as human-readable notes, not an aggregation key. Set size and modality using best judgment.
 2. Run `scripts/usage_test.py start` before substantial work. Include `--comparison-group` only when the user intends to repeat materially the same task. Include important input files with repeated `--input` arguments so their hashes can be checked.
 3. Perform the user's task normally. Do not weaken, truncate, or reshape it merely to improve the measurement.
-4. Near the end, run `scripts/usage_test.py finish`. Pass exact `--provider`, `--model`, and `--effort` when known. If multiple conversations are reported, select the current task's conversation ID from the candidates and rerun with `--conversation-id`; never silently combine unrelated tasks.
+4. Near the end, run `scripts/usage_test.py finish`. For every compared candidate, pass its exact `--provider`, `--model`, and `--effort`; spawned candidates may share the orchestrator's ledger conversation ID. If multiple conversations are reported, select the current task's conversation ID and rerun with `--conversation-id`; never silently combine unrelated tasks.
 5. Report one compact measurement line after the actual task result. Distinguish actual Credits/cost from unknown or estimated values.
 
 The final model response generated after `finish` may not yet be present in the usage log. Label the record `through_finish`; do not claim it is whole-thread billing.
@@ -41,7 +41,7 @@ Treat Luna effort levels such as `low`, `medium`, and `high` as different candid
 
 Records sharing a comparison group are strict comparisons only when their input hashes, task objective, tools, effort policy, and completion condition match. If they differ, present them as operational observations rather than controlled model rankings.
 
-For a same-job comparison, freeze one immutable common packet containing the prompt, input hashes, tools, timeout, and completion criteria. Run one fresh conversation per candidate and assign every run the same `comparison_group`. After all candidate outputs exist, the orchestration session judges quality and records the outcome, optional score or rank, evidence, and free-form notes. Workers do not self-rate.
+For a same-job comparison, freeze one immutable common packet containing the prompt, input hashes, tools, timeout, and completion criteria. Run one isolated candidate execution and create one measurement run per candidate; assign every run the same `comparison_group`. Ledger conversation IDs may be shared. After all candidate outputs exist, the orchestration session judges quality and records the outcome, optional score or rank, evidence, and free-form notes. Workers do not self-rate.
 
 For ordinary unmatched tasks, report task cost and outcome but do not infer model superiority. Recommend routing only after multiple relevant observations exist; otherwise state that evidence is insufficient.
 
@@ -59,7 +59,7 @@ Run two or three candidates:
 - Add `alibaba-token-plan-intl/qwen3.8-max/medium` only when contradiction detection, fact cross-checking, or supported image understanding is material.
 - Add `opencode-free/deepseek-v4-flash-free/high` only for text-only mechanical or retrieval slices; never send it direct images.
 
-Give every candidate the frozen packet in a fresh conversation and the same `comparison_group`; record `comparison_scope=bounded-slice`. Candidates must return isolated outputs and must not write the canonical artifact. The orchestration session judges quality before considering cost, records revision burden and notes, selects any useful result, and leaves canonical writing to one writer.
+Give every candidate the frozen packet in an isolated agent execution with its own measurement run and the same `comparison_group`; record `comparison_scope=bounded-slice`. Finish each run with its exact provider, model, and effort. If the orchestrator or another candidate uses that same route tuple, treat its tokens and cost as unattributable but still judge the isolated output's quality. Candidates must not write the canonical artifact. The orchestration session judges quality before considering cost, records revision burden and notes, selects any useful result, and leaves canonical writing to one writer.
 
 Do not add a challenger when the slice still contains an open authority decision, the candidates would mutate shared state, privacy or tool access differs materially, or duplicate cost is disproportionate. In those cases, record the operational run only.
 
