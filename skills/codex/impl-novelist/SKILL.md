@@ -42,8 +42,12 @@ auxiliary completion record, or separate proof document is required.
 
 ## Model selection
 
-The default execution profile is Sol/medium. When the user names a model, spawn
-this review with that model instead. Valid candidates are
-`alibaba-token-plan-intl/qwen3.8-max-preview`, `gpt-5.6-luna`, and
-`anthropic/claude-opus-5`. If the named model is not a valid slug, do not cancel
-the review: offer the closest valid slug and confirm before spawning.
+The execution profile is the route the owning lifecycle closes in the review
+packet. Resolve it against the live model catalog immediately before spawning:
+fetch `GET http://127.0.0.1:10100/v1/models?client_version=0.0.0`, accept only
+entries whose `visibility` is `"list"`, use each `slug` verbatim, and use only
+efforts listed in `supported_reasoning_levels[].effort`. If the packet names no
+route, stop and ask the owning lead instead of guessing. When the user names a
+model, spawn this review with that model instead. If the named model is not a
+visible slug, do not cancel the review: offer the closest visible slug and
+confirm before spawning.
