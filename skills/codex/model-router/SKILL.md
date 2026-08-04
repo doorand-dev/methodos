@@ -21,15 +21,7 @@ Use `--baseline-start-ms` and `--baseline-offset` only to recover a task whose t
 
 ## Discover eligible routes
 
-Before choosing a candidate, fetch `GET http://127.0.0.1:10100/v1/models?client_version=0.0.0`. Use only entries in `models[]` whose `visibility` is exactly `"list"`. Use each `slug` verbatim. Accepted efforts are only the values in `supported_reasoning_levels[].effort`; omit effort when it is absent. Do not infer routes or efforts from names or stale files.
-
-Current default examples, resolved against that catalog at execution time, are:
-
-- Luna: `medium`, `high`, `xhigh`, `max`.
-- Terra: `medium` for closed-context bounded synthesis or implementation candidates.
-- Qwen 3.8: `low`, `medium`, `high`.
-- Alibaba DeepSeek: `low`, `medium`, `high`.
-- OpenCode Free DeepSeek: `high` only.
+Before choosing a candidate, fetch `GET http://127.0.0.1:10100/v1/models?client_version=0.0.0`. Use only entries in `models[]` whose `visibility` is exactly `"list"`. Use each `slug` verbatim. Accepted efforts are only the values in `supported_reasoning_levels[].effort`; omit effort when it is absent. Do not infer routes or efforts from names or stale files. Candidates for explicit comparisons come from user-designated routes or accumulated routing-test records; keep this skill free of static route lists.
 
 ## Preserve route identity
 
