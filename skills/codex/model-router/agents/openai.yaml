@@ -1,0 +1,6 @@
+interface:
+  display_name: "Model Router"
+  short_description: "서브에이전트 모델을 선택하고 작업별 효율을 기록"
+  default_prompt: "Use $model-router to select a subagent route and measure its usage, cost, and outcome."
+policy:
+  allow_implicit_invocation: false

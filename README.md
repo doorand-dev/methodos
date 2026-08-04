@@ -13,7 +13,7 @@ changed-path checks. It is not an installer or a central router.
 | `core+novelists` | `core` plus `spec-novelist` | several actors or flows |
 | `continuity` | `handoff`, `snapshot`, `todo`, `context-novelist` | work across sessions |
 | `learning-loop` | `blame-code`, `blame-context`, `finding`, `gc`, `context-gc`, `improve-codebase-architecture`, `improve-context-architecture` | recurring code and context friction |
-| `optional` | `conditional-heartbeat`, `ask-chatgpt-pro`, `report-kit` | explicitly requested extensions |
+| `optional` | `conditional-heartbeat`, `ask-chatgpt-pro`, `report-kit`, `model-router` | explicitly requested extensions |
 | `hooks` | runtime-specific hook examples | after manual trust and registration |
 
 Codex skills live in `skills/codex/`; Claude skills and agents live in
@@ -47,7 +47,9 @@ direct calls and long monitoring is opt-in.
 Continuity skills preserve only the context needed to continue a real task.
 Learning-loop skills preserve durable external facts or friction when their
 explicit triggers apply. Hooks are reference scripts and remain inactive until
-the adopting runtime registers and trusts them.
+the adopting runtime registers and trusts them. `model-router` is an optional,
+explicitly invoked Codex skill for measuring and comparing subagent routes; it
+does not make Methodos itself a central router.
 
 ## Adoption
 
