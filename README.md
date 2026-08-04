@@ -57,12 +57,36 @@ the adopting runtime registers and trusts them.
 3. Register hooks manually after reviewing their scope.
 4. Run local tests and inspect the exact changed paths.
 
+### Codex active model projection
+
+Codex installations that use a generated OpenCodex catalog can install
+`contract/codex/rules/scripts/active-models-adapter.py` under
+`~/.codex/rules/scripts/`. Immediately before a `create_thread` or
+`spawn_agent` model choice that is not closed by a fixed registered profile,
+run:
+
+```powershell
+python "$env:USERPROFILE\.codex\rules\scripts\active-models-adapter.py" --ensure
+```
+
+The adapter projects only catalog entries whose `visibility` is `list` into
+`~/.codex/active-models.json`, preserving their Codex-facing slug and reasoning
+levels. It rewrites atomically only when the semantic projection changed and
+fails closed without replacing the previous output when the source is invalid.
+
+`opencodex-catalog.json` remains the source authority. The generated projection
+is local to each PC and should not be copied between machines or committed.
+Install the accompanying `contract/codex/AGENTS.md` point-of-use rule so future
+agents refresh the projection before model selection. This integration needs no
+OpenCodex package patch, file watcher, or SessionStart hook.
+
 ## Repository layout
 
 ```text
 skills/claude/         Claude skill realizations
 skills/codex/          Codex skill realizations
 agents/claude/         Claude reviewer and novelist definitions
+contract/codex/        Codex global contract and point-of-use helpers
 hooks/common/          Reference hooks shared by runtimes
 hooks/claude/          Claude hooks
 hooks/codex/           Codex hooks and registration example
