@@ -56,7 +56,9 @@ Implementation worker를 만들 때는 활성 `impl`이
 우선순위 뒤의 전역 worker route를 선택한다. 모델 ID·시간 경계·fallback 값은 이 JSON만
 정본으로 두며 AGENTS나 skill에 복제하지 않는다.
 
-고정 등록 agent profile이 model 선택을 이미 닫지 않은 create_thread/spawn_agent 호출 직전에는 `~/.codex/rules/scripts/active-models-adapter.py --ensure`를 실행하고 성공을 요구한 뒤 `~/.codex/active-models.json`을 읽는다. model은 이 파일에 나열된 slug/reasoning 조합만 사용한다. User-explicit/project/global precedence는 유지한다. 일반 독자는 500KB catalog를 직접 읽지 않으며 model 값을 복제하지 않는다.
+모델 라우팅 시 `GET http://127.0.0.1:10100/v1/models?client_version=0.0.0`의
+`models[]`에서 `visibility=="list"`인 항목의 `slug`와
+`supported_reasoning_levels[].effort`만 읽고, `slug`를 그대로 호출 모델명으로 사용한다.
 
 감독하는 built-in subagent의 결과가 다음 판단을 gate하면 live tool schema가 허용하는
 최대 `timeout_ms`로 `wait_agent`를 한 번 호출한다. 실행 wrapper가 재개 가능한 cell이나
