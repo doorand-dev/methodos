@@ -60,10 +60,13 @@ Implementation worker를 만들 때는 활성 `impl`이
 `models[]`에서 `visibility=="list"`인 항목의 `slug`와
 `supported_reasoning_levels[].effort`만 읽고, `slug`를 그대로 호출 모델명으로 사용한다.
 
-감독하는 built-in subagent의 결과가 다음 판단을 gate하면 live tool schema가 허용하는
-최대 `timeout_ms`로 `wait_agent`를 한 번 호출한다. 실행 wrapper가 재개 가능한 cell이나
-session을 반환하면 새 wait, status, transcript query를 발행하지 말고 같은 wait를 재개한다.
-Terminal wake는 recovery일 뿐이며 completion에는 역할이 선언한 evidence가 여전히 필요하다.
+감독하는 built-in subagent를 spawn한 직후 부모 세션에 그 결과와 겹치지 않는 작업이
+없으면 live tool schema가 허용하는 최대 `timeout_ms`로 `wait_agent`를 한 번 호출하고
+짧은 단위 재대기로 나누지 않는다. 비겹침 작업이 있으면 그 작업을 먼저 수행한 뒤,
+결과가 다음 판단을 gate하는 시점에 같은 단일 최대 wait를 발행한다. 실행 wrapper가
+재개 가능한 cell이나 session을 반환하면 새 wait, status, transcript query를 발행하지
+말고 같은 wait를 재개한다. Terminal wake는 recovery일 뿐이며 completion에는 역할이
+선언한 evidence가 여전히 필요하다.
 
 Explicit parent가 있는 delegated thread 발주는 parent, lifecycle identity, packet,
 terminal scope·대상, wake 경로를 닫고 `thread-orchestration.md`를 point-of-use로 따른다.
