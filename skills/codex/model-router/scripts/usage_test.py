@@ -31,6 +31,7 @@ TASK_SHAPES = ("retrieve", "transform", "synthesize", "decide")
 CONTEXT_STATES = ("packet_closed", "selected_files", "raw_corpus")
 JUDGMENT_LEVELS = ("apply", "reconcile", "authority_decision")
 EXECUTION_SHAPES = ("read_only", "isolated_candidate", "canonical_single_writer")
+EXECUTORS = ("orchestrator", "subagent", "unknown")
 DEPENDENCY_SPANS = ("single_file", "bounded_multifile", "cross_system")
 COMPARISON_SCOPES = ("full-task", "bounded-slice")
 OUTCOMES = (
@@ -87,6 +88,7 @@ def start_run(args: argparse.Namespace) -> int:
         "context_state": args.context_state,
         "judgment_level": args.judgment_level,
         "execution_shape": args.execution_shape,
+        "executor": args.executor,
         "dependency_span": args.dependency_span,
         "size": args.size,
         "modality": args.modality,
@@ -256,6 +258,7 @@ def finish_run(args: argparse.Namespace) -> int:
         "context_state": state.get("context_state"),
         "judgment_level": state.get("judgment_level"),
         "execution_shape": state.get("execution_shape"),
+        "executor": state.get("executor", "unknown"),
         "dependency_span": state.get("dependency_span"),
         "size": state["size"],
         "modality": state["modality"],
@@ -316,10 +319,10 @@ def summary(args: argparse.Namespace) -> int:
         rows = [row for row in rows if row.get("task_type") == args.task_type]
     if args.comparison_group:
         rows = [row for row in rows if row.get("comparison_group") == args.comparison_group]
-    for field in ("task_shape", "context_state", "judgment_level", "execution_shape", "dependency_span", "size", "modality"):
+    for field in ("task_shape", "context_state", "judgment_level", "execution_shape", "executor", "dependency_span", "size", "modality"):
         value = getattr(args, field)
         if value:
-            rows = [row for row in rows if row.get(field) == value]
+            rows = [row for row in rows if (row.get(field) or "unknown") == value]
     grouped: dict[tuple[str, ...], list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         provider = row.get("provider") if isinstance(row.get("provider"), str) else "mixed"
@@ -331,6 +334,7 @@ def summary(args: argparse.Namespace) -> int:
             str(row.get("context_state") or "unknown"),
             str(row.get("judgment_level") or "unknown"),
             str(row.get("execution_shape") or "unknown"),
+            str(row.get("executor") or "unknown"),
             provider,
             model,
             effort,
@@ -350,9 +354,10 @@ def summary(args: argparse.Namespace) -> int:
             "context_state": key[2],
             "judgment_level": key[3],
             "execution_shape": key[4],
-            "provider": key[5],
-            "model": key[6],
-            "effort": key[7],
+            "executor": key[5],
+            "provider": key[6],
+            "model": key[7],
+            "effort": key[8],
             "tasks": len(items),
             "rated_tasks": len(rated),
             "usable_rate": round(len(usable) / len(rated), 4) if rated else None,
@@ -382,6 +387,7 @@ def parser() -> argparse.ArgumentParser:
     start.add_argument("--context-state", required=True, choices=CONTEXT_STATES)
     start.add_argument("--judgment-level", required=True, choices=JUDGMENT_LEVELS)
     start.add_argument("--execution-shape", required=True, choices=EXECUTION_SHAPES)
+    start.add_argument("--executor", default="unknown", choices=EXECUTORS)
     start.add_argument("--dependency-span", required=True, choices=DEPENDENCY_SPANS)
     start.add_argument("--size", required=True, choices=SIZES)
     start.add_argument("--modality", default="text", choices=MODALITIES)
@@ -424,6 +430,7 @@ def parser() -> argparse.ArgumentParser:
     report.add_argument("--context-state", choices=CONTEXT_STATES)
     report.add_argument("--judgment-level", choices=JUDGMENT_LEVELS)
     report.add_argument("--execution-shape", choices=EXECUTION_SHAPES)
+    report.add_argument("--executor", choices=EXECUTORS)
     report.add_argument("--dependency-span", choices=DEPENDENCY_SPANS)
     report.add_argument("--size", choices=SIZES)
     report.add_argument("--modality", choices=MODALITIES)

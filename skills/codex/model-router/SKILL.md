@@ -9,7 +9,7 @@ Measure the requested work without turning the work into a large benchmark proje
 
 ## Record a task
 
-1. Classify `task_type` as one of `exploration`, `diagnosis`, `implementation`, `review`, `data-organization`, or `image-understanding`. Also record `task_shape` (`retrieve|transform|synthesize|decide`), `context_state` (`packet_closed|selected_files|raw_corpus`), `judgment_level` (`apply|reconcile|authority_decision`), `execution_shape` (`read_only|isolated_candidate|canonical_single_writer`), and `dependency_span` (`single_file|bounded_multifile|cross_system`). Keep `task_subtype` as human-readable notes, not an aggregation key. Set size and modality using best judgment.
+1. Classify `task_type` as one of `exploration`, `diagnosis`, `implementation`, `review`, `data-organization`, or `image-understanding`. Also record `task_shape` (`retrieve|transform|synthesize|decide`), `context_state` (`packet_closed|selected_files|raw_corpus`), `judgment_level` (`apply|reconcile|authority_decision`), `execution_shape` (`read_only|isolated_candidate|canonical_single_writer`), `executor` (`orchestrator|subagent`), and `dependency_span` (`single_file|bounded_multifile|cross_system`). Keep `task_subtype` as human-readable notes, not an aggregation key. Set size and modality using best judgment.
 2. Run `scripts/usage_test.py start` before substantial work. Include `--comparison-group` only when the user intends to repeat materially the same task. Include important input files with repeated `--input` arguments so their hashes can be checked.
 3. Perform the user's task normally. Do not weaken, truncate, or reshape it merely to improve the measurement.
 4. Near the end, run `scripts/usage_test.py finish`. For every compared candidate, pass its exact `--provider`, `--model`, and `--effort`; spawned candidates may share the orchestrator's ledger conversation ID. If multiple conversations are reported, select the current task's conversation ID and rerun with `--conversation-id`; never silently combine unrelated tasks.
@@ -45,21 +45,23 @@ For a same-job comparison, freeze one immutable common packet containing the pro
 
 For ordinary unmatched tasks, report task cost and outcome but do not infer model superiority. Recommend routing only after multiple relevant observations exist; otherwise state that evidence is insufficient.
 
+When the decision is whether to delegate at all, include the current orchestration session as an `executor=orchestrator` inline baseline and at least one `executor=subagent` candidate. This is an operational comparison, not a controlled model ranking: the inline baseline retains the parent's accumulated context, while delegation pays packet-transfer, review, and integration costs. Measure the inline slice in its own uninterrupted start/finish window and do not dispatch or review agents inside that window. If the inline and delegated candidate use the same route tuple, run them sequentially in separate measurement windows.
+
 ## Embed a challenger slice
 
 Distinguish recommendation from execution. If the user only asks which model fits, recommend routes and identify a testable slice without launching duplicates. If the user says to run models in parallel, try several models, or test the same work, execute one bounded duplicate slice during the real task.
 
 Choose a slice only when one immutable packet can define the same objective, inputs, tools, timeout, and completion criteria for every candidate. Prefer a useful unit already present in the workflow: one requirement item, one contradiction check, one bounded search query, one document section, or one isolated implementation plan. Do not duplicate the entire workflow when a representative slice is available.
 
-Run two or three candidates:
+Run the smallest comparison that answers the routing question. For a delegation decision, default to one inline baseline and one delegated challenger. For a model-only decision, use two delegated candidates. Add a third candidate only when a material uncertainty remains.
 
-- Include the incumbent route that would normally receive the slice.
+- Include the incumbent execution path: inline orchestration when the parent would normally do the slice, otherwise the incumbent delegated route.
 - Use `gpt-5.6-luna/medium` as the default text challenger for retrieval, transformation, and bounded review.
 - Use `gpt-5.6-terra/medium` when the authority and direction are closed, context is a bounded packet, judgment is `apply`, and the output is an isolated candidate or reversible bounded implementation.
 - Add `alibaba-token-plan-intl/qwen3.8-max/medium` only when contradiction detection, fact cross-checking, or supported image understanding is material.
 - Add `opencode-free/deepseek-v4-flash-free/high` only for text-only mechanical or retrieval slices; never send it direct images.
 
-Give every candidate the frozen packet in an isolated agent execution with its own measurement run and the same `comparison_group`; record `comparison_scope=bounded-slice`. Finish each run with its exact provider, model, and effort. If the orchestrator or another candidate uses that same route tuple, treat its tokens and cost as unattributable but still judge the isolated output's quality. Candidates must not write the canonical artifact. The orchestration session judges quality before considering cost, records revision burden and notes, selects any useful result, and leaves canonical writing to one writer.
+Give each delegated candidate the frozen packet in an isolated agent execution with its own measurement run and the same `comparison_group`; record `comparison_scope=bounded-slice` and `executor=subagent`. Give an inline baseline the same objective, inputs, tools, timeout, and completion criteria, but record `executor=orchestrator`; its extra conversational context is an intentional operational advantage. Finish every run with its exact provider, model, and effort. Candidates must not write the canonical artifact. The orchestration session judges quality before considering cost, records revision burden and notes, selects any useful result, and leaves canonical writing to one writer.
 
 Do not add a challenger when the slice still contains an open authority decision, the candidates would mutate shared state, privacy or tool access differs materially, or duplicate cost is disproportionate. In those cases, record the operational run only.
 
@@ -100,7 +102,7 @@ Use the outcome scale `ready`, `minor-revision`, `major-revision`, `failed`, `un
 Use the bundled standard-library script:
 
 ```powershell
-python scripts/usage_test.py start --task "작업명" --task-type diagnosis --task-subtype "단일 요구항목 검토" --task-shape decide --context-state selected_files --judgment-level reconcile --execution-shape isolated_candidate --dependency-span bounded_multifile --size medium --modality text --comparison-scope bounded-slice --comparison-group GROUP_ID
+python scripts/usage_test.py start --task "작업명" --task-type diagnosis --task-subtype "단일 요구항목 검토" --task-shape decide --context-state selected_files --judgment-level reconcile --execution-shape isolated_candidate --executor subagent --dependency-span bounded_multifile --size medium --modality text --comparison-scope bounded-slice --comparison-group GROUP_ID
 python scripts/usage_test.py finish --run-id RUN_ID --provider alibaba-token-plan-intl --model qwen3.8-max --effort medium --outcome not-rated --billing-mode subscription --estimated-standard-credits 243.06 --credit-promotion-factor 1.0 --estimated-credits 243.06 --estimated-subscription-usd 0.10096 --estimate-basis "Estimate: daytime Max Preview observation normalized by 0.10; assumes Preview and production Max standard coefficients match" --promotion-basis "qwen3.8-max daytime factor 1.0; limited-time night factor 0.5 at 22:00-08:00 UTC+8" --pricing-as-of 2026-08-04
 python scripts/usage_test.py summary --task-type diagnosis
 ```
