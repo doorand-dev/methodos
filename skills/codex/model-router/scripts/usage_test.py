@@ -73,6 +73,12 @@ def file_fingerprint(raw_path: str) -> dict[str, Any]:
 
 
 def start_run(args: argparse.Namespace) -> int:
+    if args.comparison_group and (not args.provider or not args.model):
+        emit({
+            "error": "route-required-at-start",
+            "next": "rerun start with the candidate's exact --provider and --model; include --effort when the route has one",
+        })
+        return 2
     usage_log = Path(args.usage_log).expanduser().resolve()
     data_dir = Path(args.data_dir).expanduser().resolve()
     runs_dir, _ = data_paths(data_dir)
@@ -95,6 +101,7 @@ def start_run(args: argparse.Namespace) -> int:
         "comparison_scope": args.comparison_scope,
         "comparison_group": args.comparison_group,
         "notes": args.notes,
+        "route_lock": {"provider": args.provider, "model": args.model, "effort": args.effort},
         "started_at_ms": args.baseline_start_ms if args.baseline_start_ms is not None else now_ms(),
         "usage_log": str(usage_log),
         "usage_offset": args.baseline_offset if args.baseline_offset is not None else (usage_log.stat().st_size if usage_log.exists() else 0),
@@ -140,7 +147,33 @@ def filtered_rows(rows: Iterable[dict[str, Any]], args: argparse.Namespace, star
         if args.effort and effort != args.effort:
             continue
         selected.append(row)
-    return selected
+    return sorted(selected, key=lambda row: int(row.get("timestamp") or 0))
+
+
+def chain_diagnostics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    ordered = sorted(rows, key=lambda row: int(row.get("timestamp") or 0))
+    overlaps = 0
+    input_decreases = 0
+    max_end = -1
+    previous_input: int | None = None
+    efforts: Counter[str] = Counter()
+    for row in ordered:
+        started = int(row.get("timestamp") or 0)
+        ended = started + int(row.get("durationMs") or 0)
+        if max_end >= 0 and started < max_end - 300:
+            overlaps += 1
+        max_end = max(max_end, ended)
+        input_tokens = int((row.get("usage") or {}).get("inputTokens") or 0)
+        if previous_input is not None and input_tokens < previous_input - 2000:
+            input_decreases += 1
+        previous_input = input_tokens
+        effort = row.get("effectiveEffort") or row.get("requestedEffort") or "__none__"
+        efforts[str(effort)] += 1
+    return {
+        "serial_overlap_count": overlaps,
+        "input_decrease_count": input_decreases,
+        "effort_counts": dict(efforts),
+    }
 
 
 def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -197,16 +230,15 @@ def candidate_summaries(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def route_summaries(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    groups: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    groups: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         provider = str(row.get("provider") or "__missing__")
         model = str(row.get("model") or row.get("resolvedModel") or "__missing__")
-        effort = str(row.get("effectiveEffort") or row.get("requestedEffort") or "__none__")
-        groups[(provider, model, effort)].append(row)
+        groups[(provider, model)].append(row)
     routes = []
-    for (provider, model, effort), grouped in groups.items():
+    for (provider, model), grouped in groups.items():
         item = aggregate(grouped)
-        item.update({"provider": provider, "model": model, "effort": effort})
+        item.update({"provider": provider, "model": model, **chain_diagnostics(grouped)})
         routes.append(item)
     return sorted(routes, key=lambda item: item["total_tokens"], reverse=True)
 
@@ -222,8 +254,26 @@ def finish_run(args: argparse.Namespace) -> int:
     if state.get("status") == "finished":
         emit({"error": "run-already-finished", "run_id": args.run_id, "record_id": state.get("record_id")})
         return 2
+    route_lock = state.get("route_lock") or {}
+    for field in ("provider", "model", "effort"):
+        locked = route_lock.get(field)
+        supplied = getattr(args, field)
+        if locked and supplied and locked != supplied:
+            emit({"error": "route-lock-mismatch", "run_id": args.run_id, "field": field, "locked": locked, "supplied": supplied})
+            return 2
+        if locked and not supplied:
+            setattr(args, field, locked)
     usage_log = Path(state["usage_log"])
     appended = read_appended_jsonl(usage_log, int(state["usage_offset"]))
+    if not args.provider or not args.model:
+        candidates = candidate_summaries(filtered_rows(appended, args, int(state["started_at_ms"])))
+        emit({
+            "error": "route-unverified",
+            "run_id": args.run_id,
+            "candidates": candidates,
+            "next": "rerun finish with the exact --provider, --model, and --effort; candidate ordering is not session identity",
+        })
+        return 2
     rows = filtered_rows(appended, args, int(state["started_at_ms"]))
     candidates = candidate_summaries(rows)
     if not rows:
@@ -242,6 +292,16 @@ def finish_run(args: argparse.Namespace) -> int:
             "conversation_id": selected_conversation,
             "routes": routes,
             "next": "rerun finish with --conversation-id, --provider, --model, and --effort for exactly one route",
+        })
+        return 2
+    diagnostics = chain_diagnostics(selected)
+    if diagnostics["serial_overlap_count"] or diagnostics["input_decrease_count"]:
+        emit({
+            "error": "concurrent-sessions-detected",
+            "run_id": args.run_id,
+            "conversation_id": selected_conversation,
+            **diagnostics,
+            "next": "narrow the measurement window or isolate the candidate; do not record this mixed chain",
         })
         return 2
     finished_at = now_ms()
@@ -267,6 +327,8 @@ def finish_run(args: argparse.Namespace) -> int:
         "notes": state.get("notes"),
         "inputs": state.get("inputs", []),
         "conversation_id": selected_conversation,
+        "attribution_status": "route-locked-chain-clean" if route_lock.get("provider") and route_lock.get("model") else "finish-route-only-chain-clean",
+        **diagnostics,
         "started_at_ms": state["started_at_ms"],
         "finished_at_ms": finished_at,
         "wall_duration_seconds": round((finished_at - int(state["started_at_ms"])) / 1000, 3),
@@ -393,6 +455,9 @@ def parser() -> argparse.ArgumentParser:
     start.add_argument("--modality", default="text", choices=MODALITIES)
     start.add_argument("--comparison-scope", default="full-task", choices=COMPARISON_SCOPES)
     start.add_argument("--comparison-group")
+    start.add_argument("--provider")
+    start.add_argument("--model")
+    start.add_argument("--effort")
     start.add_argument("--notes")
     start.add_argument("--input", action="append", default=[])
     start.add_argument("--usage-log", default=os.fspath(DEFAULT_USAGE_LOG))

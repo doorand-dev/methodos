@@ -10,9 +10,9 @@ Measure the requested work without turning the work into a large benchmark proje
 ## Record a task
 
 1. Classify `task_type` as one of `exploration`, `diagnosis`, `implementation`, `review`, `data-organization`, or `image-understanding`. Also record `task_shape` (`retrieve|transform|synthesize|decide`), `context_state` (`packet_closed|selected_files|raw_corpus`), `judgment_level` (`apply|reconcile|authority_decision`), `execution_shape` (`read_only|isolated_candidate|canonical_single_writer`), `executor` (`orchestrator|subagent`), and `dependency_span` (`single_file|bounded_multifile|cross_system`). Keep `task_subtype` as human-readable notes, not an aggregation key. Set size and modality using best judgment.
-2. Run `scripts/usage_test.py start` before substantial work. Include `--comparison-group` only when the user intends to repeat materially the same task. Include important input files with repeated `--input` arguments so their hashes can be checked.
+2. Run `scripts/usage_test.py start` immediately before substantial work. Lock the intended route with exact `--provider` and `--model`; include `--effort` for a fixed-effort candidate. A comparison run will refuse to start without provider and model. Include `--comparison-group` only when the user intends to repeat materially the same task. Include important input files with repeated `--input` arguments so their hashes can be checked.
 3. Perform the user's task normally. Do not weaken, truncate, or reshape it merely to improve the measurement.
-4. Near the end, run `scripts/usage_test.py finish`. For every compared candidate, pass its exact `--provider`, `--model`, and `--effort`; spawned candidates may share the orchestrator's ledger conversation ID. If multiple conversations are reported, select the current task's conversation ID and rerun with `--conversation-id`; never silently combine unrelated tasks.
+4. Near the end, run `scripts/usage_test.py finish`; it inherits the route locked at start and rejects a conflicting route. Spawned candidates may share the orchestrator's ledger conversation ID. If multiple conversations are reported, do not choose the largest or newest candidate. Select a conversation only from a known task boundary, then rerun with `--conversation-id`; never silently combine unrelated tasks.
 5. Report one compact measurement line after the actual task result. Distinguish actual Credits/cost from unknown or estimated values.
 
 The final model response generated after `finish` may not yet be present in the usage log. Label the record `through_finish`; do not claim it is whole-thread billing.
@@ -29,7 +29,7 @@ Use `provider + model + effort + modality` as the candidate identity. Never merg
 
 For this user's benchmark policy, treat every DeepSeek route as text-only even if catalog modality metadata says otherwise. Mark a direct image job `unsupported`; a separately measured vision/OCR step followed by a DeepSeek text job is allowed and must be recorded as a `pipeline`.
 
-Treat Luna effort levels such as `low`, `medium`, and `high` as different candidates. Do not infer a fixed reasoning surcharge when the provider does not publish one.
+Treat Luna effort levels such as `low`, `medium`, and `high` as different fixed-effort candidates. For an interactive inline run whose effort may change, omit the effort lock and retain the recorded `effort_counts`; do not collapse a transition into one invented value. Do not infer a fixed reasoning surcharge when the provider does not publish one.
 
 ## Handle images
 
@@ -77,7 +77,9 @@ Treat Terra medium as a conditional candidate, not a general implementation defa
 - When no Git repository exists, use isolated temporary copies.
 - Parallel writes are allowed only for mechanically disjoint write sets.
 
-Use native `spawn_agent`. If it rejects a route, report the rejection and do not substitute another route. OpenCodex-proxied UI and subagent requests land in `~/.opencodex/usage.jsonl`.
+Use native `spawn_agent`. Start its measurement immediately before spawning and finish it immediately after completion. If it rejects a route, report the rejection and do not substitute another route. OpenCodex-proxied UI and subagent requests land in the shared `~/.opencodex/usage.jsonl`.
+
+Treat ledger `timestamp` as request start time and sort rows before attribution because append order follows completion, not request start. In loopback traffic, `conversationId` may multiplex the parent and spawned agents and is not session identity. The recorder therefore checks route lock, serial request intervals, and monotonic input context. Any overlap or material input decrease fails closed as `concurrent-sessions-detected`. A clean chain is still only a bounded attribution check; two sequential sessions using the same route tuple remain indistinguishable, so keep each candidate's measurement window narrow.
 
 ## Cost reporting
 
@@ -104,7 +106,7 @@ Use the outcome scale `ready`, `minor-revision`, `major-revision`, `failed`, `un
 Use the bundled standard-library script:
 
 ```powershell
-python scripts/usage_test.py start --task "작업명" --task-type diagnosis --task-subtype "단일 요구항목 검토" --task-shape decide --context-state selected_files --judgment-level reconcile --execution-shape isolated_candidate --executor subagent --dependency-span bounded_multifile --size medium --modality text --comparison-scope bounded-slice --comparison-group GROUP_ID
+python scripts/usage_test.py start --task "작업명" --task-type diagnosis --task-subtype "단일 요구항목 검토" --task-shape decide --context-state selected_files --judgment-level reconcile --execution-shape isolated_candidate --executor subagent --dependency-span bounded_multifile --size medium --modality text --comparison-scope bounded-slice --comparison-group GROUP_ID --provider alibaba-token-plan-intl --model qwen3.8-max --effort medium
 python scripts/usage_test.py finish --run-id RUN_ID --provider alibaba-token-plan-intl --model qwen3.8-max --effort medium --outcome not-rated --billing-mode subscription --estimated-standard-credits 243.06 --credit-promotion-factor 1.0 --estimated-credits 243.06 --estimated-subscription-usd 0.10096 --estimate-basis "Estimate: daytime Max Preview observation normalized by 0.10; assumes Preview and production Max standard coefficients match" --promotion-basis "qwen3.8-max daytime factor 1.0; limited-time night factor 0.5 at 22:00-08:00 UTC+8" --pricing-as-of 2026-08-04
 python scripts/usage_test.py summary --task-type diagnosis
 ```
