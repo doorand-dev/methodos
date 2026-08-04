@@ -55,11 +55,13 @@ Choose a slice only when one immutable packet can define the same objective, inp
 
 Run the smallest comparison that answers the routing question. For a delegation decision, default to one inline baseline and one delegated challenger. For a model-only decision, use two delegated candidates. Add a third candidate only when a material uncertainty remains.
 
+Do not treat the routes below as an allowlist. Honor user-named candidates first; otherwise choose any eligible live-catalog route using task fit and accumulated observations. The following are only starting heuristics:
+
 - Include the incumbent execution path: inline orchestration when the parent would normally do the slice, otherwise the incumbent delegated route.
-- Use `gpt-5.6-luna/medium` as the default text challenger for retrieval, transformation, and bounded review.
-- Use `gpt-5.6-terra/medium` when the authority and direction are closed, context is a bounded packet, judgment is `apply`, and the output is an isolated candidate or reversible bounded implementation.
-- Add `alibaba-token-plan-intl/qwen3.8-max/medium` only when contradiction detection, fact cross-checking, or supported image understanding is material.
-- Add `opencode-free/deepseek-v4-flash-free/high` only for text-only mechanical or retrieval slices; never send it direct images.
+- Consider `gpt-5.6-luna/medium` as a text challenger for retrieval, transformation, and bounded review.
+- Consider `gpt-5.6-terra/medium` when the authority and direction are closed, context is a bounded packet, judgment is `apply`, and the output is an isolated candidate or reversible bounded implementation.
+- Consider `alibaba-token-plan-intl/qwen3.8-max/medium` when contradiction detection, fact cross-checking, or supported image understanding is material.
+- Consider `opencode-free/deepseek-v4-flash-free/high` for text-only mechanical or retrieval slices; never send it direct images.
 
 Give each delegated candidate the frozen packet in an isolated agent execution with its own measurement run and the same `comparison_group`; record `comparison_scope=bounded-slice` and `executor=subagent`. Give an inline baseline the same objective, inputs, tools, timeout, and completion criteria, but record `executor=orchestrator`; its extra conversational context is an intentional operational advantage. Finish every run with its exact provider, model, and effort. Candidates must not write the canonical artifact. The orchestration session judges quality before considering cost, records revision burden and notes, selects any useful result, and leaves canonical writing to one writer.
 
