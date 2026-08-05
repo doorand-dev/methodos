@@ -55,6 +55,26 @@ def now_ms() -> int:
     return int(time.time() * 1000)
 
 
+def parse_plan_consumption(values: list[str], credits_used: float | None) -> dict[str, float]:
+    parsed: dict[str, float] = {}
+    for raw in values:
+        if "=" not in raw:
+            raise ValueError(f"expected UNIT=VALUE, got {raw!r}")
+        unit, raw_value = raw.split("=", 1)
+        unit = unit.strip()
+        if not unit or unit in parsed:
+            raise ValueError(f"missing or duplicate plan-consumption unit: {unit!r}")
+        value = float(raw_value)
+        if value < 0:
+            raise ValueError(f"plan-consumption value must be >= 0: {raw!r}")
+        parsed[unit] = value
+    if credits_used is not None:
+        if "credits" in parsed and parsed["credits"] != credits_used:
+            raise ValueError("credits_used conflicts with plan-consumption credits")
+        parsed["credits"] = credits_used
+    return parsed
+
+
 def data_paths(data_dir: Path) -> tuple[Path, Path]:
     runs_dir = data_dir / "runs"
     runs_dir.mkdir(parents=True, exist_ok=True)
@@ -308,6 +328,11 @@ def finish_run(args: argparse.Namespace) -> int:
     if args.tool_rounds is not None and args.tool_rounds < 0:
         emit({"error": "tool-rounds-out-of-range", "run_id": args.run_id, "expected": ">=0"})
         return 2
+    try:
+        plan_consumption = parse_plan_consumption(args.plan_consumption, args.credits_used)
+    except ValueError as exc:
+        emit({"error": "invalid-plan-consumption", "run_id": args.run_id, "detail": str(exc)})
+        return 2
     route_lock = state.get("route_lock") or {}
     for field in ("provider", "model", "effort"):
         locked = route_lock.get(field)
@@ -408,6 +433,7 @@ def finish_run(args: argparse.Namespace) -> int:
         **usage_summary,
         "billing_mode": args.billing_mode,
         "credits_used": args.credits_used,
+        "plan_consumption": plan_consumption,
         "usd_cost": args.usd_cost,
         "api_equivalent_usd": args.api_equivalent_usd,
         "estimated_standard_credits": args.estimated_standard_credits,
@@ -540,7 +566,16 @@ def summary(args: argparse.Namespace) -> int:
         ]
         usable = [item for item in rated if item.get("outcome") in ("ready", "minor-revision")]
         known_credits = [float(item["credits_used"]) for item in items if item.get("credits_used") is not None]
+        known_usd_cost = [float(item["usd_cost"]) for item in items if item.get("usd_cost") is not None]
         known_api_equivalent = [float(item["api_equivalent_usd"]) for item in items if item.get("api_equivalent_usd") is not None]
+        plan_consumption_totals: dict[str, float] = defaultdict(float)
+        plan_consumption_tasks = 0
+        for item in items:
+            consumption = item.get("plan_consumption") or {}
+            if consumption:
+                plan_consumption_tasks += 1
+            for unit, value in consumption.items():
+                plan_consumption_totals[str(unit)] += float(value)
         known_estimated_standard_credits = [float(item["estimated_standard_credits"]) for item in items if item.get("estimated_standard_credits") is not None]
         known_estimated_credits = [float(item["estimated_credits"]) for item in items if item.get("estimated_credits") is not None]
         known_estimated_subscription = [float(item["estimated_subscription_usd"]) for item in items if item.get("estimated_subscription_usd") is not None]
@@ -566,6 +601,10 @@ def summary(args: argparse.Namespace) -> int:
             "no_usage_failures": sum(1 for item in items if int(item.get("requests") or 0) == 0 and item.get("failure_reason")),
             "total_tokens": sum(int(item.get("total_tokens") or 0) for item in items),
             "total_credits_known": round(sum(known_credits), 9) if known_credits else None,
+            "total_plan_consumption_known": {unit: round(value, 9) for unit, value in sorted(plan_consumption_totals.items())},
+            "plan_consumption_unknown_tasks": len(items) - plan_consumption_tasks,
+            "total_usd_cost_known": round(sum(known_usd_cost), 9) if known_usd_cost else None,
+            "usd_cost_unknown_tasks": len(items) - len(known_usd_cost),
             "total_api_equivalent_usd_known": round(sum(known_api_equivalent), 9) if known_api_equivalent else None,
             "api_equivalent_unknown_tasks": len(items) - len(known_api_equivalent),
             "total_estimated_standard_credits_known": round(sum(known_estimated_standard_credits), 9) if known_estimated_standard_credits else None,
@@ -620,6 +659,7 @@ def parser() -> argparse.ArgumentParser:
     finish.add_argument("--outcome", required=True, choices=OUTCOMES)
     finish.add_argument("--billing-mode", default="unknown", choices=BILLING_MODES)
     finish.add_argument("--credits-used", type=float)
+    finish.add_argument("--plan-consumption", action="append", default=[], metavar="UNIT=VALUE", help="Observed plan debit; repeat for credits or quota windows")
     finish.add_argument("--usd-cost", type=float)
     finish.add_argument("--api-equivalent-usd", type=float)
     finish.add_argument("--estimated-standard-credits", type=float)

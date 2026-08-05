@@ -38,7 +38,7 @@ Use `executor + provider + model + effort + modality` as candidate identity. Nev
    - `dependency_span`: `single_file|bounded_multifile|cross_system`
 2. Run `scripts/usage_test.py start` immediately before execution. Prefer `--route-slug`; use explicit `--provider --model` only for recovery or a route that cannot be expressed by the current slug rule. Include `--effort` for a fixed-effort candidate.
 3. Run `scripts/usage_test.py finish` immediately after execution. It inherits the locked route and rejects a conflicting route.
-4. Let the orchestration session judge the result. Record outcome, optional 0-100 quality score or rank, revision burden, evidence, finish notes, tool rounds, and cost. Workers do not self-rate.
+4. Let the orchestration session judge the result. Record outcome, optional 0-100 quality score or rank, revision burden, evidence, finish notes, tool rounds, API-equivalent cost, and observed plan consumption. Keep either unavailable cost axis null or empty; never substitute one for the other. Workers do not self-rate.
 5. Report one compact measurement line after the real task result.
 
 The record scope is `through_finish`; the response generated after finish is not included. Use baseline overrides only for a recovery whose trustworthy start markers were already captured.
@@ -67,13 +67,13 @@ Use outcomes `ready|minor-revision|major-revision|failed|unsupported|not-rated`.
 
 The summary uses only the latest record per run, excludes explicit superseded records, and rejects `through_finish` records whose usage extends past finish. Controlled and operational observations remain separate. Availability failures remain visible but do not enter the quality success-rate denominator.
 
-Read [pricing.md](references/pricing.md) only when finishing a measured run or comparing costs. Keep actual API charge, subscription Credits, free usage, API-equivalent cost, and estimated subscription allocation separate.
+Read [pricing.md](references/pricing.md) only when finishing a measured run or comparing costs. Always show API-equivalent cost and actual plan consumption as separate axes. Keep actual API charge, subscription Credits, free usage, and estimated subscription allocation separate as well.
 
 ## Commands
 
 ```powershell
 python scripts/usage_test.py start --task "작업명" --task-type diagnosis --task-shape decide --context-state selected_files --judgment-level reconcile --execution-shape isolated_candidate --executor subagent --dependency-span bounded_multifile --size medium --modality text --comparison-scope bounded-slice --comparison-group GROUP_ID --packet COMMON_PACKET.md --route-slug alibaba-token-plan-intl/qwen3.8-max --effort medium
-python scripts/usage_test.py finish --run-id RUN_ID --outcome minor-revision --revision-burden minor --quality-score 82 --rank 2 --evidence "사실 모순 1건 발견" --finish-notes "표 제목 수정 필요" --tool-rounds 6 --billing-mode subscription --pricing-as-of 2026-08-05
+python scripts/usage_test.py finish --run-id RUN_ID --outcome minor-revision --revision-burden minor --quality-score 82 --rank 2 --evidence "사실 모순 1건 발견" --finish-notes "표 제목 수정 필요" --tool-rounds 6 --billing-mode subscription --api-equivalent-usd 0.14 --plan-consumption credits=0.67 --plan-consumption quota_7d_percent=0.02 --pricing-as-of 2026-08-05
 python scripts/usage_test.py finish --run-id RUN_ID --outcome failed --availability rate-limited --failure-reason "429 Too Many Requests; retry limit exceeded"
 python scripts/usage_test.py summary --comparison-group GROUP_ID
 ```

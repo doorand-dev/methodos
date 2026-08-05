@@ -10,15 +10,21 @@ Calculate `api_equivalent_usd` only when a rate basis is available. Use:
 
 Do not double-count reasoning output. When cache creation is not exposed separately, omit that term and state the limitation.
 
-Keep these values separate:
+Always expose both comparison axes when reporting cost. Keep the unavailable axis null or empty rather than substituting the other:
+
+- `api_equivalent_usd`: what the same tokens would cost at the stated standard API rates.
+- `plan_consumption`: observed plan debit as one or more `unit: value` pairs, such as `credits`, `quota_5h_percent`, or `quota_7d_percent`.
+
+Keep these supporting values separate:
 
 - `usd_cost`: observed actual API charge.
 - `credits_used`: observed subscription Credits.
 - `estimated_credits` and `estimated_subscription_usd`: estimated subscription allocation.
-- `api_equivalent_usd`: what the same tokens would cost at the stated API rates.
 - Free routes: actual cost remains $0 even when an API-equivalent value is recorded.
 
-Judge cost in this order: observed actual charge or Credits, estimated subscription cost from an observed quota rule, then API-equivalent cost.
+Pass observed plan values as repeated `--plan-consumption UNIT=VALUE` arguments. `--credits-used` remains supported and is mirrored to `plan_consumption.credits`. Promotions and night discounts affect plan consumption, not API-equivalent cost.
+
+Do not collapse the two axes into one ranking. Report quality per API-equivalent dollar and quality per observed plan debit separately when enough observations exist. Use actual cash charge as a third operational view.
 
 ## Rates as of 2026-08-04
 
