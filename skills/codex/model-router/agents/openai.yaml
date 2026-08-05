@@ -1,0 +1,6 @@
+interface:
+  display_name: "Model Router"
+  short_description: "업무별 인라인·서브에이전트 경로를 측정하고 추천"
+  default_prompt: "Use $model-router to observe this task, compare inline or subagent routes only when requested, and record usage, quality, revision burden, and cost."
+policy:
+  allow_implicit_invocation: false
