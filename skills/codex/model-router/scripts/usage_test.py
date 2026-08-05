@@ -43,6 +43,7 @@ OUTCOMES = (
     "not-rated",
 )
 BILLING_MODES = ("subscription", "paid-api", "free", "unknown")
+REVISION_BURDENS = ("none", "minor", "major", "unknown")
 
 
 def emit(value: Any) -> None:
@@ -72,12 +73,32 @@ def file_fingerprint(raw_path: str) -> dict[str, Any]:
     return result
 
 
+def route_parts(slug: str) -> tuple[str, str]:
+    if "/" in slug:
+        provider, model = slug.split("/", 1)
+        return provider, model
+    return "openai", slug
+
+
 def start_run(args: argparse.Namespace) -> int:
+    if args.route_slug:
+        slug_provider, slug_model = route_parts(args.route_slug)
+        if args.provider and args.provider != slug_provider:
+            emit({"error": "route-slug-mismatch", "field": "provider", "slug_value": slug_provider, "supplied": args.provider})
+            return 2
+        if args.model and args.model != slug_model:
+            emit({"error": "route-slug-mismatch", "field": "model", "slug_value": slug_model, "supplied": args.model})
+            return 2
+        args.provider = slug_provider
+        args.model = slug_model
     if args.comparison_group and (not args.provider or not args.model):
         emit({
             "error": "route-required-at-start",
             "next": "rerun start with the candidate's exact --provider and --model; include --effort when the route has one",
         })
+        return 2
+    if args.comparison_group and args.executor == "unknown":
+        emit({"error": "executor-required-at-start", "next": "rerun start with --executor orchestrator or --executor subagent"})
         return 2
     usage_log = Path(args.usage_log).expanduser().resolve()
     data_dir = Path(args.data_dir).expanduser().resolve()
@@ -101,11 +122,12 @@ def start_run(args: argparse.Namespace) -> int:
         "comparison_scope": args.comparison_scope,
         "comparison_group": args.comparison_group,
         "notes": args.notes,
-        "route_lock": {"provider": args.provider, "model": args.model, "effort": args.effort},
+        "route_lock": {"slug": args.route_slug, "provider": args.provider, "model": args.model, "effort": args.effort},
         "started_at_ms": args.baseline_start_ms if args.baseline_start_ms is not None else now_ms(),
         "usage_log": str(usage_log),
         "usage_offset": args.baseline_offset if args.baseline_offset is not None else (usage_log.stat().st_size if usage_log.exists() else 0),
         "inputs": [file_fingerprint(item) for item in args.input],
+        "comparison_packet": file_fingerprint(args.packet) if args.packet else None,
     }
     state_path = runs_dir / f"{run_id}.json"
     state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -254,6 +276,15 @@ def finish_run(args: argparse.Namespace) -> int:
     if state.get("status") == "finished":
         emit({"error": "run-already-finished", "run_id": args.run_id, "record_id": state.get("record_id")})
         return 2
+    if args.quality_score is not None and not 0 <= args.quality_score <= 100:
+        emit({"error": "quality-score-out-of-range", "run_id": args.run_id, "expected": "0..100"})
+        return 2
+    if args.rank is not None and args.rank < 1:
+        emit({"error": "rank-out-of-range", "run_id": args.run_id, "expected": ">=1"})
+        return 2
+    if args.tool_rounds is not None and args.tool_rounds < 0:
+        emit({"error": "tool-rounds-out-of-range", "run_id": args.run_id, "expected": ">=0"})
+        return 2
     route_lock = state.get("route_lock") or {}
     for field in ("provider", "model", "effort"):
         locked = route_lock.get(field)
@@ -325,8 +356,11 @@ def finish_run(args: argparse.Namespace) -> int:
         "comparison_scope": state.get("comparison_scope", "full-task"),
         "comparison_group": state.get("comparison_group"),
         "notes": state.get("notes"),
+        "finish_notes": args.finish_notes,
         "inputs": state.get("inputs", []),
+        "comparison_packet": state.get("comparison_packet"),
         "conversation_id": selected_conversation,
+        "route_slug": route_lock.get("slug"),
         "attribution_status": "route-locked-chain-clean" if route_lock.get("provider") and route_lock.get("model") else "finish-route-only-chain-clean",
         **diagnostics,
         "started_at_ms": state["started_at_ms"],
@@ -347,8 +381,14 @@ def finish_run(args: argparse.Namespace) -> int:
         "pricing_as_of": args.pricing_as_of,
         "charge_source": args.charge_source,
         "outcome": args.outcome,
+        "quality_score": args.quality_score,
+        "rank": args.rank,
+        "revision_burden": args.revision_burden,
+        "evidence": args.evidence,
+        "tool_rounds": args.tool_rounds,
         "retries": args.retries,
         "artifacts": [str(Path(item).expanduser().resolve()) for item in args.artifact],
+        "supersedes": args.supersedes,
     }
     records_path.parent.mkdir(parents=True, exist_ok=True)
     with records_path.open("a", encoding="utf-8", newline="\n") as handle:
@@ -374,9 +414,35 @@ def load_records(path: Path) -> list[dict[str, Any]]:
     return records
 
 
+def canonical_records(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    superseded = {
+        str(record_id)
+        for row in rows
+        for record_id in (row.get("supersedes") or [])
+        if record_id
+    }
+    latest_by_run: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        key = str(row.get("run_id") or row.get("record_id") or id(row))
+        latest_by_run[key] = row
+    latest = [row for row in latest_by_run.values() if str(row.get("record_id")) not in superseded]
+    valid = []
+    invalid_scope = 0
+    for row in latest:
+        if row.get("measurement_scope") == "through_finish" and int(row.get("last_usage_at_ms") or 0) > int(row.get("finished_at_ms") or 0):
+            invalid_scope += 1
+            continue
+        valid.append(row)
+    return valid, {
+        "raw_records": len(rows),
+        "superseded_records": len(rows) - len(latest),
+        "invalid_scope_records": invalid_scope,
+    }
+
+
 def summary(args: argparse.Namespace) -> int:
     _, records_path = data_paths(Path(args.data_dir).expanduser().resolve())
-    rows = load_records(records_path)
+    rows, record_health = canonical_records(load_records(records_path))
     if args.task_type:
         rows = [row for row in rows if row.get("task_type") == args.task_type]
     if args.comparison_group:
@@ -385,11 +451,32 @@ def summary(args: argparse.Namespace) -> int:
         value = getattr(args, field)
         if value:
             rows = [row for row in rows if (row.get(field) or "unknown") == value]
+    packet_hashes: dict[str, set[str]] = defaultdict(set)
+    packet_counts: Counter[str] = Counter()
+    group_counts: Counter[str] = Counter()
+    control_signatures: dict[str, set[tuple[str, ...]]] = defaultdict(set)
+    group_executors: dict[str, set[str]] = defaultdict(set)
+    for row in rows:
+        group = row.get("comparison_group")
+        packet_hash = (row.get("comparison_packet") or {}).get("sha256")
+        if group:
+            group_counts[str(group)] += 1
+            group_executors[str(group)].add(str(row.get("executor") or "unknown"))
+            control_signatures[str(group)].add(tuple(str(row.get(field) or "unknown") for field in (
+                "task_type", "task_shape", "context_state", "judgment_level", "execution_shape",
+                "dependency_span", "size", "modality", "comparison_scope",
+            )))
+            if packet_hash:
+                packet_counts[str(group)] += 1
+                packet_hashes[str(group)].add(str(packet_hash))
     grouped: dict[tuple[str, ...], list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         provider = row.get("provider") if isinstance(row.get("provider"), str) else "mixed"
         model = row.get("model") if isinstance(row.get("model"), str) else "mixed"
         effort = row.get("effort") if isinstance(row.get("effort"), str) else "mixed"
+        group = row.get("comparison_group")
+        packet_hash = (row.get("comparison_packet") or {}).get("sha256")
+        comparison_validity = "controlled" if group and group_counts[str(group)] >= 2 and packet_counts[str(group)] == group_counts[str(group)] and len(packet_hashes[str(group)]) == 1 and group_executors[str(group)] == {"subagent"} and len(control_signatures[str(group)]) == 1 else "operational"
         grouped[(
             str(row.get("task_type") or "unknown"),
             str(row.get("task_shape") or "unknown"),
@@ -397,6 +484,7 @@ def summary(args: argparse.Namespace) -> int:
             str(row.get("judgment_level") or "unknown"),
             str(row.get("execution_shape") or "unknown"),
             str(row.get("executor") or "unknown"),
+            comparison_validity,
             provider,
             model,
             effort,
@@ -410,6 +498,9 @@ def summary(args: argparse.Namespace) -> int:
         known_estimated_standard_credits = [float(item["estimated_standard_credits"]) for item in items if item.get("estimated_standard_credits") is not None]
         known_estimated_credits = [float(item["estimated_credits"]) for item in items if item.get("estimated_credits") is not None]
         known_estimated_subscription = [float(item["estimated_subscription_usd"]) for item in items if item.get("estimated_subscription_usd") is not None]
+        known_quality = [float(item["quality_score"]) for item in items if item.get("quality_score") is not None]
+        known_tool_rounds = [int(item["tool_rounds"]) for item in items if item.get("tool_rounds") is not None]
+        revision_burdens = Counter(str(item.get("revision_burden") or "unknown") for item in items)
         result.append({
             "task_type": key[0],
             "task_shape": key[1],
@@ -417,9 +508,10 @@ def summary(args: argparse.Namespace) -> int:
             "judgment_level": key[3],
             "execution_shape": key[4],
             "executor": key[5],
-            "provider": key[6],
-            "model": key[7],
-            "effort": key[8],
+            "comparison_validity": key[6],
+            "provider": key[7],
+            "model": key[8],
+            "effort": key[9],
             "tasks": len(items),
             "rated_tasks": len(rated),
             "usable_rate": round(len(usable) / len(rated), 4) if rated else None,
@@ -430,9 +522,12 @@ def summary(args: argparse.Namespace) -> int:
             "total_estimated_standard_credits_known": round(sum(known_estimated_standard_credits), 9) if known_estimated_standard_credits else None,
             "total_estimated_credits_known": round(sum(known_estimated_credits), 9) if known_estimated_credits else None,
             "total_estimated_subscription_usd_known": round(sum(known_estimated_subscription), 9) if known_estimated_subscription else None,
+            "mean_quality_score": round(sum(known_quality) / len(known_quality), 3) if known_quality else None,
+            "revision_burdens": dict(revision_burdens),
+            "median_tool_rounds": sorted(known_tool_rounds)[len(known_tool_rounds) // 2] if known_tool_rounds else None,
             "median_wall_seconds": sorted(float(item.get("wall_duration_seconds") or 0) for item in items)[len(items) // 2],
         })
-    emit({"records": len(rows), "routes": sorted(result, key=lambda item: (-item["tasks"], item["provider"], item["model"]))})
+    emit({"records": len(rows), **record_health, "routes": sorted(result, key=lambda item: (-item["tasks"], item["provider"], item["model"]))})
     return 0
 
 
@@ -455,10 +550,12 @@ def parser() -> argparse.ArgumentParser:
     start.add_argument("--modality", default="text", choices=MODALITIES)
     start.add_argument("--comparison-scope", default="full-task", choices=COMPARISON_SCOPES)
     start.add_argument("--comparison-group")
+    start.add_argument("--route-slug")
     start.add_argument("--provider")
     start.add_argument("--model")
     start.add_argument("--effort")
     start.add_argument("--notes")
+    start.add_argument("--packet")
     start.add_argument("--input", action="append", default=[])
     start.add_argument("--usage-log", default=os.fspath(DEFAULT_USAGE_LOG))
     start.add_argument("--baseline-start-ms", type=int, help="Recovery only: override the captured start time")
@@ -485,8 +582,15 @@ def parser() -> argparse.ArgumentParser:
     finish.add_argument("--pricing-basis")
     finish.add_argument("--pricing-as-of")
     finish.add_argument("--charge-source", choices=("dashboard", "api", "cli", "estimated", "unknown"), default="unknown")
+    finish.add_argument("--quality-score", type=float)
+    finish.add_argument("--rank", type=int)
+    finish.add_argument("--revision-burden", choices=REVISION_BURDENS, default="unknown")
+    finish.add_argument("--evidence", action="append", default=[])
+    finish.add_argument("--finish-notes")
+    finish.add_argument("--tool-rounds", type=int)
     finish.add_argument("--retries", type=int, default=0)
     finish.add_argument("--artifact", action="append", default=[])
+    finish.add_argument("--supersedes", action="append", default=[])
     finish.set_defaults(func=finish_run)
 
     report = sub.add_parser("summary")

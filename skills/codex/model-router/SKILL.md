@@ -1,117 +1,81 @@
 ---
 name: model-router
-description: Explicitly measure and record a real task's provider, model, reasoning effort, task conditions, token usage, quota charge, latency, and outcome; also run the same bounded slice across isolated model candidates when the user asks for parallel model testing. Use only when the user explicitly invokes `$model-router`, says to use the model-routing skill, asks to instrument a task while doing it, assigns a comparison group, asks several models to try the same work, or asks for recommendations from accumulated routing-test records. Distinguish providers even when they expose the same model, and treat image-capable and text-only routes separately.
+description: Select, observe, compare, and recommend inline or subagent model routes using task-scoped token, quota, latency, quality, and revision records. Use only when the user explicitly invokes `$model-router`, asks to instrument a task while doing it, asks several models or inline execution to try the same bounded work, assigns a comparison group, or requests a routing recommendation from accumulated records. Preserve provider, effort, modality, and executor identity.
 ---
 
-# Test Model Routing
+# Model Router
 
-Measure the requested work without turning the work into a large benchmark project. Preserve the user's task as the primary objective; instrumentation is secondary.
+Keep the user's real task primary. Measure only enough to decide whether the work belongs inline or on a particular subagent route.
 
-## Record a task
+## Choose the mode
 
-1. Classify `task_type` as one of `exploration`, `diagnosis`, `implementation`, `review`, `data-organization`, or `image-understanding`. Also record `task_shape` (`retrieve|transform|synthesize|decide`), `context_state` (`packet_closed|selected_files|raw_corpus`), `judgment_level` (`apply|reconcile|authority_decision`), `execution_shape` (`read_only|isolated_candidate|canonical_single_writer`), `executor` (`orchestrator|subagent`), and `dependency_span` (`single_file|bounded_multifile|cross_system`). Keep `task_subtype` as human-readable notes, not an aggregation key. Set size and modality using best judgment.
-2. Run `scripts/usage_test.py start` immediately before substantial work. Lock the intended route with exact `--provider` and `--model`; include `--effort` for a fixed-effort candidate. A comparison run will refuse to start without provider and model. Include `--comparison-group` only when the user intends to repeat materially the same task. Include important input files with repeated `--input` arguments so their hashes can be checked.
-3. Perform the user's task normally. Do not weaken, truncate, or reshape it merely to improve the measurement.
-4. Near the end, run `scripts/usage_test.py finish`; it inherits the route locked at start and rejects a conflicting route. Spawned candidates may share the orchestrator's ledger conversation ID. If multiple conversations are reported, do not choose the largest or newest candidate. Select a conversation only from a known task boundary, then rerun with `--conversation-id`; never silently combine unrelated tasks.
-5. Report one compact measurement line after the actual task result. Distinguish actual Credits/cost from unknown or estimated values.
+- **Observe**: When the user says to use the router while doing one task, execute normally and record that run. Do not launch duplicate workers.
+- **Compare**: When the user asks several models to try the same work, run the smallest bounded comparison that answers the question.
+- **Recommend**: When the user asks which route fits, summarize relevant valid records. Do not launch candidates unless the user also asks to test them.
 
-The final model response generated after `finish` may not yet be present in the usage log. Label the record `through_finish`; do not claim it is whole-thread billing.
+## Select a route
 
-Use `--baseline-start-ms` and `--baseline-offset` only to recover a task whose trustworthy start markers were captured before the script could run, such as dogfooding this skill's own creation.
+Honor current user instruction, then project role/model contracts, then global defaults for the incumbent execution path. Resolve challenger eligibility through the project's model-catalog adapter when one is mandated; otherwise fetch `GET http://127.0.0.1:10100/v1/models?client_version=0.0.0` and use only `models[]` with `visibility=="list"`. Invoke the exact live `slug` and only a listed reasoning effort.
 
-## Discover eligible routes
+Static examples are not an allowlist. Use accumulated records and task fit first. Useful seed challengers, only when still eligible, include:
 
-Before choosing a candidate, fetch `GET http://127.0.0.1:10100/v1/models?client_version=0.0.0`. Use only entries in `models[]` whose `visibility` is exactly `"list"`. Use each `slug` verbatim. Accepted efforts are only the values in `supported_reasoning_levels[].effort`; omit effort when it is absent. Do not infer routes or efforts from names or stale files. Candidates for explicit comparisons come from user-designated routes or accumulated routing-test records; keep this skill free of static route lists.
+- Luna medium for retrieval, transformation, and bounded review.
+- Terra medium for closed-context `synthesize + apply` work.
+- Qwen 3.8 when contradiction detection, fact cross-checking, or supported image understanding matters.
+- OpenCode Free DeepSeek high for text-only mechanical or retrieval slices.
 
-## Preserve route identity
+Use `executor + provider + model + effort + modality` as candidate identity. Never merge providers exposing the same model family. Treat DeepSeek routes as text-only for this benchmark policy; record direct image work as `unsupported`, or record a separate vision/OCR-to-text flow as `pipeline`.
 
-Use `provider + model + effort + modality` as the candidate identity. Never merge routes from different providers merely because they expose the same model family. Record free routes with `billing_mode=free`; still retain latency, retries, failures, and rate-limit effects.
+## Record one run
 
-For this user's benchmark policy, treat every DeepSeek route as text-only even if catalog modality metadata says otherwise. Mark a direct image job `unsupported`; a separately measured vision/OCR step followed by a DeepSeek text job is allowed and must be recorded as a `pipeline`.
+1. Classify:
+   - `task_type`: `exploration|diagnosis|implementation|review|data-organization|image-understanding`
+   - `task_shape`: `retrieve|transform|synthesize|decide`
+   - `context_state`: `packet_closed|selected_files|raw_corpus`
+   - `judgment_level`: `apply|reconcile|authority_decision`
+   - `execution_shape`: `read_only|isolated_candidate|canonical_single_writer`
+   - `executor`: `orchestrator|subagent`
+   - `dependency_span`: `single_file|bounded_multifile|cross_system`
+2. Run `scripts/usage_test.py start` immediately before execution. Prefer `--route-slug`; use explicit `--provider --model` only for recovery or a route that cannot be expressed by the current slug rule. Include `--effort` for a fixed-effort candidate.
+3. Run `scripts/usage_test.py finish` immediately after execution. It inherits the locked route and rejects a conflicting route.
+4. Let the orchestration session judge the result. Record outcome, optional 0-100 quality score or rank, revision burden, evidence, finish notes, tool rounds, and cost. Workers do not self-rate.
+5. Report one compact measurement line after the real task result.
 
-Treat Luna effort levels such as `low`, `medium`, and `high` as different fixed-effort candidates. For an interactive inline run whose effort may change, omit the effort lock and retain the recorded `effort_counts`; do not collapse a transition into one invented value. Do not infer a fixed reasoning surcharge when the provider does not publish one.
-
-## Handle images
-
-- Set `modality=image` when the candidate directly receives images.
-- Mark a text-only model asked to directly inspect an image as `unsupported`, not `failed`.
-- Set `modality=pipeline` when a vision/OCR stage converts images before a text model processes the result. Record the pipeline description in `--notes`; do not present this as the text model's standalone vision quality.
+The record scope is `through_finish`; the response generated after finish is not included. Use baseline overrides only for a recovery whose trustworthy start markers were already captured.
 
 ## Compare fairly
 
-Records sharing a comparison group are strict comparisons only when their input hashes, task objective, tools, effort policy, and completion condition match. If they differ, present them as operational observations rather than controlled model rankings.
+Freeze one common packet containing the objective, prompt, input references or hashes, allowed tools, timeout, and completion criteria. Pass the same packet file with `--packet` and the same `--comparison-group` to every candidate. A group is `controlled` only when at least two delegated candidates carry the same packet hash and task-condition signature; otherwise treat it as `operational`.
 
-For a same-job comparison, freeze one immutable common packet containing the prompt, input hashes, tools, timeout, and completion criteria. Run one isolated candidate execution and create one measurement run per candidate; assign every run the same `comparison_group`. Ledger conversation IDs may be shared. After all candidate outputs exist, the orchestration session judges quality and records the outcome, optional score or rank, evidence, and free-form notes. Workers do not self-rate.
+For a delegation decision, default to one inline baseline and one delegated challenger. For a model-only decision, use two delegated candidates. Add a third only when material uncertainty remains. Inline keeps the parent's accumulated context; therefore inline versus delegated is an operational routing comparison, not a pure model ranking.
 
-For ordinary unmatched tasks, report task cost and outcome but do not infer model superiority. Recommend routing only after multiple relevant observations exist; otherwise state that evidence is insufficient.
+Use isolated read-only candidates for research, review, and plans. Candidates must not write the canonical artifact. Use one canonical writer after judging outputs. Use worktrees only when implementation ability itself is under test; otherwise use plans or isolated temporary copies.
 
-When the decision is whether to delegate at all, include the current orchestration session as an `executor=orchestrator` inline baseline and at least one `executor=subagent` candidate. This is an operational comparison, not a controlled model ranking: the inline baseline retains the parent's accumulated context, while delegation pays packet-transfer, review, and integration costs. Measure the inline slice in its own uninterrupted start/finish window and do not dispatch or review agents inside that window. If the inline and delegated candidate use the same route tuple, run them sequentially in separate measurement windows.
+Do not add a challenger when authority is still open, shared-state mutation cannot be isolated, privacy or tool access differs materially, or duplicate cost is disproportionate.
 
-## Embed a challenger slice
+## Attribute usage safely
 
-Distinguish recommendation from execution. If the user only asks which model fits, recommend routes and identify a testable slice without launching duplicates. If the user says to run models in parallel, try several models, or test the same work, execute one bounded duplicate slice during the real task.
+OpenCodex-proxied sessions share `~/.opencodex/usage.jsonl`. Treat ledger `timestamp` as request start time and do not treat `conversationId` as session identity. Start each measurement immediately before the inline slice or `spawn_agent`, and finish immediately after completion.
 
-Choose a slice only when one immutable packet can define the same objective, inputs, tools, timeout, and completion criteria for every candidate. Prefer a useful unit already present in the workflow: one requirement item, one contradiction check, one bounded search query, one document section, or one isolated implementation plan. Do not duplicate the entire workflow when a representative slice is available.
+The recorder sorts rows and fails closed when route lock conflicts, request intervals overlap, or input context materially decreases. If several conversation IDs remain, select one only from a known task boundary; never choose the largest or newest candidate. A clean chain cannot distinguish two sequential sessions using the same route tuple, so keep measurement windows narrow.
 
-Run the smallest comparison that answers the routing question. For a delegation decision, default to one inline baseline and one delegated challenger. For a model-only decision, use two delegated candidates. Add a third candidate only when a material uncertainty remains.
+## Judge records
 
-Do not treat the routes below as an allowlist. Honor user-named candidates first; otherwise choose any eligible live-catalog route using task fit and accumulated observations. The following are only starting heuristics:
+Use outcomes `ready|minor-revision|major-revision|failed|unsupported|not-rated`. Prefer user judgment; otherwise use `not-rated`. Compare routes in this order: quality, revision burden, request/tool rounds and wall time, then actual or estimated cost.
 
-- Include the incumbent execution path: inline orchestration when the parent would normally do the slice, otherwise the incumbent delegated route.
-- Consider `gpt-5.6-luna/medium` as a text challenger for retrieval, transformation, and bounded review.
-- Consider `gpt-5.6-terra/medium` when the authority and direction are closed, context is a bounded packet, judgment is `apply`, and the output is an isolated candidate or reversible bounded implementation.
-- Consider `alibaba-token-plan-intl/qwen3.8-max/medium` when contradiction detection, fact cross-checking, or supported image understanding is material.
-- Consider `opencode-free/deepseek-v4-flash-free/high` for text-only mechanical or retrieval slices; never send it direct images.
+The summary uses only the latest record per run, excludes explicit superseded records, and rejects `through_finish` records whose usage extends past finish. Controlled and operational observations remain separate.
 
-Give each delegated candidate the frozen packet in an isolated agent execution with its own measurement run and the same `comparison_group`; record `comparison_scope=bounded-slice` and `executor=subagent`. Give an inline baseline the same objective, inputs, tools, timeout, and completion criteria, but record `executor=orchestrator`; its extra conversational context is an intentional operational advantage. Finish every run with its exact provider, model, and effort. Candidates must not write the canonical artifact. The orchestration session judges quality before considering cost, records revision burden and notes, selects any useful result, and leaves canonical writing to one writer.
-
-Do not add a challenger when the slice still contains an open authority decision, the candidates would mutate shared state, privacy or tool access differs materially, or duplicate cost is disproportionate. In those cases, record the operational run only.
-
-Treat Terra medium as a conditional candidate, not a general implementation default. Its current observed sweet spot is `packet_closed + synthesize/apply + isolated_candidate or canonical_single_writer + bounded_multifile`; escalate open authority, raw-corpus contract design, or cross-system reconciliation to the appropriate lead.
-
-## Decide how to execute
-
-- Use parallel read-only work for design, research, and review.
-- For shared-file changes, use read-only plans first, then one canonical writer.
-- Use worktrees only when implementation ability itself is being benchmarked and a Git repository exists.
-- When no Git repository exists, use isolated temporary copies.
-- Parallel writes are allowed only for mechanically disjoint write sets.
-
-Use native `spawn_agent`. Start its measurement immediately before spawning and finish it immediately after completion. If it rejects a route, report the rejection and do not substitute another route. OpenCodex-proxied UI and subagent requests land in the shared `~/.opencodex/usage.jsonl`.
-
-Treat ledger `timestamp` as request start time and sort rows before attribution because append order follows completion, not request start. In loopback traffic, `conversationId` may multiplex the parent and spawned agents and is not session identity. The recorder therefore checks route lock, serial request intervals, and monotonic input context. Any overlap or material input decrease fails closed as `concurrent-sessions-detected`. A clean chain is still only a bounded attribution check; two sequential sessions using the same route tuple remain indistinguishable, so keep each candidate's measurement window narrow.
-
-## Cost reporting
-
-Calculate and record `api_equivalent_usd`, `pricing_basis`, and `pricing_as_of` for every measured run. Use `uncached_input*base_rate + cache_read*read_rate + cache_creation*write_rate + output*output_rate`, dividing token counts by 1M; never double-count reasoning. When the log does not expose cache creation separately, omit that term and state the limitation. Keep API-equivalent cost separate from actual API cost, subscription Credits, and free usage.
-
-Judge routing cost in this order: observed `usd_cost` or `credits_used`; estimated subscription cost based on an observed quota rule; then API-equivalent cost. Never call API-equivalent cost the actual charge for a subscription or free route. Compare quality-adjusted cost only across materially equivalent tasks; otherwise report each run's cost without ranking efficiency.
-
-Use these rates per 1M tokens as of 2026-08-04:
-
-- OpenAI standard API: Sol $5/$0.50/$30, Terra $2/$0.20/$12, Luna $0.20/$0.02/$1.20 for uncached input/cache read/output. For each request above 272K input tokens, apply 2x input and 1.5x output to that whole request before summing the run. Price separately reported cache creation at 1.25x uncached input. Basis: official [OpenAI model comparison](https://developers.openai.com/api/docs/models/compare).
-- Anthropic standard API: Fable 5 $10/$1/$50 and Opus 5 $5/$0.50/$25 for uncached input/cache read/output. Sonnet 5 uses its introductory $2/$0.20/$10 rates through 2026-08-31, then $3/$0.30/$15. Price cache creation at 1.25x input for the default 5-minute write or 2x for an explicitly requested 1-hour write. Basis: official [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing).
-- Alibaba DeepSeek: DeepSeek standard API rates, currently uncached input $0.14/M, cached input $0.0028/M, output $0.28/M.
-- OpenCode Free DeepSeek: one-sixth of the DeepSeek standard API-equivalent result; actual cost remains $0.
-- Qwen 3.8: keep API-equivalent cost `null`, but record an explicitly estimated Token Plan cost. Calibrate absolute Credits from the daytime Max Preview observation `193 uncached + 15,360 cached + 47 output = 0.674736697 promotional Credits`; use the nearest official Qwen Max relative ratio `uncached:cached:output = 1:0.2:3`. Because Max Preview's daytime promotion charges 10% of its standard rate, divide that observation by `0.10` before estimating standard Credits. This also assumes Preview and production Max share the same underlying standard Credit coefficients; state that assumption.
-
-Apply promotions separately after calculating `estimated_standard_credits`: production `qwen3.8-max` uses factor `1.0` normally and `0.5` from 22:00 through 08:00 UTC+8; `qwen3.8-max-preview` uses factor `0.10` normally and `0.02` during that window because its additional night discount stacks on the 90% promotion. Record `credit_promotion_factor`, `promotion_basis`, and `estimated_credits = estimated_standard_credits × credit_promotion_factor`. If a run crosses the boundary, split by request timestamp when possible; otherwise label the estimate uncertain. Convert estimated Credits to subscription allocation with `$18/month × 12/52 ÷ 10,000 weekly Credits`.
-
-Label the Qwen result and all promotion factors as estimates or time-limited terms, not an official permanent price. Record the page's terms and observation date in `estimate_basis`/`promotion_basis`. Replace them when the promotion changes, an official Qwen 3.8 API price is published, or exact per-run quota deltas provide enough equations to fit cached-input, uncached-input, and output coefficients. Include API-equivalent or estimated subscription USD in the task result table and record the basis and date used.
-
-Use the outcome scale `ready`, `minor-revision`, `major-revision`, `failed`, `unsupported`, or `not-rated`. Prefer the user's judgment. If no judgment is available, use `not-rated` rather than inventing a quality score. Compare routes in this order: quality, revision burden, request/tool rounds and wall time, then cost.
+Read [pricing.md](references/pricing.md) only when finishing a measured run or comparing costs. Keep actual API charge, subscription Credits, free usage, API-equivalent cost, and estimated subscription allocation separate.
 
 ## Commands
 
-Use the bundled standard-library script:
-
 ```powershell
-python scripts/usage_test.py start --task "작업명" --task-type diagnosis --task-subtype "단일 요구항목 검토" --task-shape decide --context-state selected_files --judgment-level reconcile --execution-shape isolated_candidate --executor subagent --dependency-span bounded_multifile --size medium --modality text --comparison-scope bounded-slice --comparison-group GROUP_ID --provider alibaba-token-plan-intl --model qwen3.8-max --effort medium
-python scripts/usage_test.py finish --run-id RUN_ID --provider alibaba-token-plan-intl --model qwen3.8-max --effort medium --outcome not-rated --billing-mode subscription --estimated-standard-credits 243.06 --credit-promotion-factor 1.0 --estimated-credits 243.06 --estimated-subscription-usd 0.10096 --estimate-basis "Estimate: daytime Max Preview observation normalized by 0.10; assumes Preview and production Max standard coefficients match" --promotion-basis "qwen3.8-max daytime factor 1.0; limited-time night factor 0.5 at 22:00-08:00 UTC+8" --pricing-as-of 2026-08-04
-python scripts/usage_test.py summary --task-type diagnosis
+python scripts/usage_test.py start --task "작업명" --task-type diagnosis --task-shape decide --context-state selected_files --judgment-level reconcile --execution-shape isolated_candidate --executor subagent --dependency-span bounded_multifile --size medium --modality text --comparison-scope bounded-slice --comparison-group GROUP_ID --packet COMMON_PACKET.md --route-slug alibaba-token-plan-intl/qwen3.8-max --effort medium
+python scripts/usage_test.py finish --run-id RUN_ID --outcome minor-revision --revision-burden minor --quality-score 82 --rank 2 --evidence "사실 모순 1건 발견" --finish-notes "표 제목 수정 필요" --tool-rounds 6 --billing-mode subscription --pricing-as-of 2026-08-05
+python scripts/usage_test.py summary --comparison-group GROUP_ID
 ```
 
-Default sources and outputs:
+Defaults:
 
 - Usage source: `~/.opencodex/usage.jsonl`
 - Run states: `~/.codex/usage-tests/runs/`
