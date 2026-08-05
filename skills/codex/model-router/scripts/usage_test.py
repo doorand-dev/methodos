@@ -44,6 +44,7 @@ OUTCOMES = (
 )
 BILLING_MODES = ("subscription", "paid-api", "free", "unknown")
 REVISION_BURDENS = ("none", "minor", "major", "unknown")
+AVAILABILITIES = ("available", "rate-limited", "provider-unavailable", "rejected", "unknown")
 
 
 def emit(value: Any) -> None:
@@ -239,6 +240,28 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def empty_aggregate(provider: str, model: str, effort: str | None) -> dict[str, Any]:
+    return {
+        "requests": 0,
+        "provider": provider,
+        "model": model,
+        "effort": effort or "none",
+        "first_usage_at_ms": None,
+        "last_usage_at_ms": None,
+        "input_tokens": 0,
+        "cached_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "uncached_input_tokens": 0,
+        "cache_rate": None,
+        "output_tokens": 0,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 0,
+        "reported_request_duration_ms": 0,
+        "statuses": {},
+    }
+
+
 def candidate_summaries(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
@@ -306,35 +329,51 @@ def finish_run(args: argparse.Namespace) -> int:
         })
         return 2
     rows = filtered_rows(appended, args, int(state["started_at_ms"]))
-    candidates = candidate_summaries(rows)
     if not rows:
-        emit({"error": "no-matching-usage", "run_id": args.run_id})
-        return 2
-    if not args.conversation_id and len(candidates) > 1:
-        emit({"error": "ambiguous-conversation", "run_id": args.run_id, "candidates": candidates})
-        return 2
-    selected_conversation = args.conversation_id or candidates[0]["conversation_id"]
-    selected = [row for row in rows if str(row.get("conversationId") or "__missing__") == selected_conversation]
-    routes = route_summaries(selected)
-    if len(routes) > 1:
-        emit({
-            "error": "mixed-route",
-            "run_id": args.run_id,
-            "conversation_id": selected_conversation,
-            "routes": routes,
-            "next": "rerun finish with --conversation-id, --provider, --model, and --effort for exactly one route",
-        })
-        return 2
-    diagnostics = chain_diagnostics(selected)
-    if diagnostics["serial_overlap_count"] or diagnostics["input_decrease_count"]:
-        emit({
-            "error": "concurrent-sessions-detected",
-            "run_id": args.run_id,
-            "conversation_id": selected_conversation,
-            **diagnostics,
-            "next": "narrow the measurement window or isolate the candidate; do not record this mixed chain",
-        })
-        return 2
+        no_usage_failure = bool(args.failure_reason) and (
+            args.outcome == "unsupported"
+            or (args.outcome == "failed" and args.availability not in ("available", "unknown"))
+        )
+        if not no_usage_failure:
+            emit({
+                "error": "no-matching-usage",
+                "run_id": args.run_id,
+                "next": "for a pre-admission failure, rerun with --outcome failed, a non-available --availability, and --failure-reason",
+            })
+            return 2
+        selected_conversation = None
+        diagnostics = {"serial_overlap_count": 0, "input_decrease_count": 0, "effort_counts": {}}
+        usage_summary = empty_aggregate(args.provider, args.model, args.effort)
+        attribution_status = "no-usage-provider-failure"
+    else:
+        candidates = candidate_summaries(rows)
+        if not args.conversation_id and len(candidates) > 1:
+            emit({"error": "ambiguous-conversation", "run_id": args.run_id, "candidates": candidates})
+            return 2
+        selected_conversation = args.conversation_id or candidates[0]["conversation_id"]
+        selected = [row for row in rows if str(row.get("conversationId") or "__missing__") == selected_conversation]
+        routes = route_summaries(selected)
+        if len(routes) > 1:
+            emit({
+                "error": "mixed-route",
+                "run_id": args.run_id,
+                "conversation_id": selected_conversation,
+                "routes": routes,
+                "next": "rerun finish with --conversation-id, --provider, --model, and --effort for exactly one route",
+            })
+            return 2
+        diagnostics = chain_diagnostics(selected)
+        if diagnostics["serial_overlap_count"] or diagnostics["input_decrease_count"]:
+            emit({
+                "error": "concurrent-sessions-detected",
+                "run_id": args.run_id,
+                "conversation_id": selected_conversation,
+                **diagnostics,
+                "next": "narrow the measurement window or isolate the candidate; do not record this mixed chain",
+            })
+            return 2
+        usage_summary = aggregate(selected)
+        attribution_status = "route-locked-chain-clean" if route_lock.get("provider") and route_lock.get("model") else "finish-route-only-chain-clean"
     finished_at = now_ms()
     record_id = uuid.uuid4().hex[:12]
     record = {
@@ -361,12 +400,12 @@ def finish_run(args: argparse.Namespace) -> int:
         "comparison_packet": state.get("comparison_packet"),
         "conversation_id": selected_conversation,
         "route_slug": route_lock.get("slug"),
-        "attribution_status": "route-locked-chain-clean" if route_lock.get("provider") and route_lock.get("model") else "finish-route-only-chain-clean",
+        "attribution_status": attribution_status,
         **diagnostics,
         "started_at_ms": state["started_at_ms"],
         "finished_at_ms": finished_at,
         "wall_duration_seconds": round((finished_at - int(state["started_at_ms"])) / 1000, 3),
-        **aggregate(selected),
+        **usage_summary,
         "billing_mode": args.billing_mode,
         "credits_used": args.credits_used,
         "usd_cost": args.usd_cost,
@@ -381,6 +420,8 @@ def finish_run(args: argparse.Namespace) -> int:
         "pricing_as_of": args.pricing_as_of,
         "charge_source": args.charge_source,
         "outcome": args.outcome,
+        "availability": args.availability,
+        "failure_reason": args.failure_reason,
         "quality_score": args.quality_score,
         "rank": args.rank,
         "revision_burden": args.revision_burden,
@@ -491,7 +532,12 @@ def summary(args: argparse.Namespace) -> int:
         )].append(row)
     result = []
     for key, items in grouped.items():
-        rated = [item for item in items if item.get("outcome") != "not-rated"]
+        availability_counts = Counter(str(item.get("availability") or "unknown") for item in items)
+        rated = [
+            item for item in items
+            if (item.get("availability") or "unknown") in ("available", "unknown")
+            and item.get("outcome") not in ("not-rated", "unsupported")
+        ]
         usable = [item for item in rated if item.get("outcome") in ("ready", "minor-revision")]
         known_credits = [float(item["credits_used"]) for item in items if item.get("credits_used") is not None]
         known_api_equivalent = [float(item["api_equivalent_usd"]) for item in items if item.get("api_equivalent_usd") is not None]
@@ -515,6 +561,9 @@ def summary(args: argparse.Namespace) -> int:
             "tasks": len(items),
             "rated_tasks": len(rated),
             "usable_rate": round(len(usable) / len(rated), 4) if rated else None,
+            "availability_counts": dict(availability_counts),
+            "unavailable_tasks": sum(count for status, count in availability_counts.items() if status not in ("available", "unknown")),
+            "no_usage_failures": sum(1 for item in items if int(item.get("requests") or 0) == 0 and item.get("failure_reason")),
             "total_tokens": sum(int(item.get("total_tokens") or 0) for item in items),
             "total_credits_known": round(sum(known_credits), 9) if known_credits else None,
             "total_api_equivalent_usd_known": round(sum(known_api_equivalent), 9) if known_api_equivalent else None,
@@ -582,13 +631,15 @@ def parser() -> argparse.ArgumentParser:
     finish.add_argument("--pricing-basis")
     finish.add_argument("--pricing-as-of")
     finish.add_argument("--charge-source", choices=("dashboard", "api", "cli", "estimated", "unknown"), default="unknown")
+    finish.add_argument("--availability", choices=AVAILABILITIES, default="available")
+    finish.add_argument("--failure-reason")
     finish.add_argument("--quality-score", type=float)
     finish.add_argument("--rank", type=int)
     finish.add_argument("--revision-burden", choices=REVISION_BURDENS, default="unknown")
     finish.add_argument("--evidence", action="append", default=[])
     finish.add_argument("--finish-notes")
     finish.add_argument("--tool-rounds", type=int)
-    finish.add_argument("--retries", type=int, default=0)
+    finish.add_argument("--retries", type=int)
     finish.add_argument("--artifact", action="append", default=[])
     finish.add_argument("--supersedes", action="append", default=[])
     finish.set_defaults(func=finish_run)

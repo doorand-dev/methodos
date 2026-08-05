@@ -43,6 +43,8 @@ Use `executor + provider + model + effort + modality` as candidate identity. Nev
 
 The record scope is `through_finish`; the response generated after finish is not included. Use baseline overrides only for a recovery whose trustworthy start markers were already captured.
 
+If a route is rejected before any usage row exists, still finish the locked run with `--outcome failed`, `--availability rate-limited|provider-unavailable|rejected`, and `--failure-reason`. Use `unsupported` for a known capability mismatch. The recorder writes a zero-token failure instead of dropping the candidate.
+
 ## Compare fairly
 
 Freeze one common packet containing the objective, prompt, input references or hashes, allowed tools, timeout, and completion criteria. Pass the same packet file with `--packet` and the same `--comparison-group` to every candidate. A group is `controlled` only when at least two delegated candidates carry the same packet hash and task-condition signature; otherwise treat it as `operational`.
@@ -63,7 +65,7 @@ The recorder sorts rows and fails closed when route lock conflicts, request inte
 
 Use outcomes `ready|minor-revision|major-revision|failed|unsupported|not-rated`. Prefer user judgment; otherwise use `not-rated`. Compare routes in this order: quality, revision burden, request/tool rounds and wall time, then actual or estimated cost.
 
-The summary uses only the latest record per run, excludes explicit superseded records, and rejects `through_finish` records whose usage extends past finish. Controlled and operational observations remain separate.
+The summary uses only the latest record per run, excludes explicit superseded records, and rejects `through_finish` records whose usage extends past finish. Controlled and operational observations remain separate. Availability failures remain visible but do not enter the quality success-rate denominator.
 
 Read [pricing.md](references/pricing.md) only when finishing a measured run or comparing costs. Keep actual API charge, subscription Credits, free usage, API-equivalent cost, and estimated subscription allocation separate.
 
@@ -72,6 +74,7 @@ Read [pricing.md](references/pricing.md) only when finishing a measured run or c
 ```powershell
 python scripts/usage_test.py start --task "작업명" --task-type diagnosis --task-shape decide --context-state selected_files --judgment-level reconcile --execution-shape isolated_candidate --executor subagent --dependency-span bounded_multifile --size medium --modality text --comparison-scope bounded-slice --comparison-group GROUP_ID --packet COMMON_PACKET.md --route-slug alibaba-token-plan-intl/qwen3.8-max --effort medium
 python scripts/usage_test.py finish --run-id RUN_ID --outcome minor-revision --revision-burden minor --quality-score 82 --rank 2 --evidence "사실 모순 1건 발견" --finish-notes "표 제목 수정 필요" --tool-rounds 6 --billing-mode subscription --pricing-as-of 2026-08-05
+python scripts/usage_test.py finish --run-id RUN_ID --outcome failed --availability rate-limited --failure-reason "429 Too Many Requests; retry limit exceeded"
 python scripts/usage_test.py summary --comparison-group GROUP_ID
 ```
 
