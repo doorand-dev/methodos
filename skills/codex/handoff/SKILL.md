@@ -1,24 +1,30 @@
 ---
 name: handoff
 description: |
-  Split part of the current session's work into a **new session** by capturing only the *minimal* context that specific task needs as JSON, and recommend a starting prompt to use as the new session's first message.
+  Split part of the current session's work into a **new session** by capturing only the *minimal* context that specific task needs as JSON, then create that session directly with `create_thread` and bootstrap it from the JSON.
 
-  Trigger on these natural-language cues (confirm with the user first before saving — see body):
+  Trigger on these natural-language cues (confirm with the user first before saving or creating anything — see body):
   - "이거 새 세션에서 하는 게 낫지 않을까", "다음 세션에서 마저 하자"
   - "여기서 끊자", "별도 세션으로 빼자", "이거 길어질 것 같으니까 나눠서"
-  - "handoff 만들어", "다음 세션에 넘길 거 정리해줘", "새 세션 시작 프롬프트"
+  - "handoff 만들어", "다음 세션에 넘길 거 정리해줘", "새 세션 만들어서 넘겨"
 
   For same-session preservation right before `/compact`, use the `snapshot` skill — do not confuse them. To add a persistent to-do, use `todo`.
 ---
 
 # Handoff
 
-작업을 새 세션으로 넘길 때 쓰는 **task-scoped** 핸드오프 스킬.
+작업을 새 세션으로 넘길 때 쓰는 **task-scoped** 핸드오프 스킬. 산출물은 handoff
+JSON 하나와, 그 JSON으로 부트스트랩되는 **새 스레드**다.
 
 저장 위치: `<workspace>/.claude_context/handoff/<short-task-id>.json` (세션 스냅샷용
 `sessions/`와 분리).
 
-**즉시 저장 금지 — 먼저 확인** (아래 §Trigger Behavior 대사 그대로 사용).
+**즉시 저장·즉시 스레드 생성 금지 — 먼저 확인** (아래 §Trigger Behavior 대사 그대로 사용).
+
+**cold start + JSON 부트스트랩이지 대화 이어붙이기가 아니다.** 새 스레드는 현재
+세션의 대화 히스토리를 물려받지 않는다. fork가 아니다. 넘어가는 것은 오직 handoff
+JSON과 그것을 읽으라는 짧은 프롬프트뿐이다. 대화 맥락이 필요하면 그 맥락을 JSON
+필드로 옮기고, 그래도 안 되면 handoff 대상이 아니다.
 
 ---
 
@@ -30,7 +36,11 @@ description: |
 
 ## When NOT to use
 
-- **같은 세션 /compact 직전 보존** → `snapshot`. 판별: 새 세션은 cwd·env·dev 서버를 못 물려받으니 — *시작 프롬프트에 환경 전제조건을 적어줘야 하면* handoff, 환경이 그대로 살아있어 "읽고 이어가" 한 줄이면 snapshot.
+- **같은 세션 /compact 직전 보존** → `snapshot`. 판별 기준은 환경이 아니라 **대화
+  맥락**이다. `create_thread`가 프로젝트·워크트리를 지정하므로 cwd·env는 새 스레드가
+  이어받는다(살아 있는 dev 서버·터미널 상태는 여전히 안 따라온다). 그러니
+  *현재까지의 대화 흐름 없이 JSON만으로 성립하면* handoff, 그 흐름 자체를 남겨야
+  이어갈 수 있으면 snapshot.
 - 그냥 이번 세션에서 계속 진행 가능 → handoff 불필요
 - 영속 할 일 추가 → `todo`
 - **한 todo의 맥락을 todo 일생 동안** 남기기 → `todo-ctx` 사이드카. 같은 JSON schema 가족이나 별개: handoff=세션 분리·프롬프트 有·age-out / todo-ctx=todo 일생·프롬프트 無·close시 삭제.
@@ -44,14 +54,16 @@ description: |
 - "다음 세션에서 이어가자"
 - "여기서 끊고 별도로"
 
-→ **즉시 저장하지 말고 먼저 확인:**
+→ **즉시 저장하거나 스레드를 만들지 말고 먼저 확인:**
 
 ```
 handoff 스킬 구동할까요? 새 세션에서 어떤 작업 하실 건지 알려주시면
-그에 맞는 컨텍스트만 골라서 JSON으로 남기고 시작 프롬프트도 추천드릴게요.
+그에 맞는 컨텍스트만 골라서 JSON으로 남기고, 그 JSON을 읽는 새 스레드까지
+제가 바로 만들어 드릴게요.
 ```
 
-사용자 동의 → 진행. 거부/모호 → 그냥 답변 계속.
+사용자 동의 → 진행. 거부/모호 → 그냥 답변 계속. **사용자 동의 없이 스레드를 만들지
+않는다.**
 
 ---
 
@@ -149,40 +161,74 @@ grep 지시로. 새 세션 Codex가 cold start 시 `rg`/`Read`로 직접 가져�
 3. UTF-8, indent=2로 작성
 4. 작성 후 다시 읽어 JSON 파싱 확인
 
-### 4. 시작 프롬프트 추천
+### 4. 새 스레드 생성 (`create_thread`)
 
-새 세션 첫 발화로 쓸 한국어 프롬프트를 생성. 형식 예시:
+JSON 저장이 끝나면 **직접** 새 스레드를 만든다. 사용자에게 프롬프트를 복사시키지
+않는다. 도구가 안 보이면 `tool_search`로 스레드 도구를 먼저 로드한다.
+
+#### 4a. target 결정
+
+`list_projects`로 현재 workspace에 해당하는 project를 찾고 `projectId`와
+`isGitRepository`를 읽는다. 도구 인자는 기억으로 쓰지 말고 로드된 스키마를 확인해
+맞춘다.
+
+| 상황 | target |
+|---|---|
+| 등록된 project, git repo, 새 브랜치/격리 필요 | `{type:"project", projectId, environment:{type:"worktree", ...}}` |
+| 등록된 project, 같은 체크아웃에서 계속 | `{type:"project", projectId, environment:{type:"local"}}` |
+| project 미등록 / repo 아님 | `{type:"projectless", directoryName:"<작업 폴더>"}` |
+
+cwd·env는 이 target 선택으로 넘어간다 — 프롬프트에 경로 이동 지시를 쓰지 않는다.
+예외는 *새로 만든 워크트리*의 gitignored 런타임 파일(`.env.local` 등)뿐이며, 그때만
+"메인에서 복사" 한 줄을 프롬프트에 넣는다.
+
+#### 4b. model / thinking 명시
+
+`create_thread` 호출에 `model`과 `thinking`을 **반드시 명시**한다. 값은 호출 직전에
+라우팅 정본에서 읽는다: 사용자 명시 지시 → 프로젝트 role/model 계약 → 전역
+`~/.codex/rules/model-routing.json` 및 활성 `plan`/`impl` 계약. **이 문서에 모델 ID를
+적지 않는다.** 어떤 역할로 넘기는지(계획/진단/통합 리드인지 one-slice 실행자인지)를
+먼저 정하고, 그 역할에 해당하는 route를 그대로 쓴다.
+
+#### 4c. 첫 프롬프트 = JSON 경로 + 역할 + POU 진입점
+
+새 스레드는 대화 맥락이 아니라 **point-of-use 계약**으로 역할을 받는다. 프롬프트는
+반드시 이 셋을 담는다:
+
+1. **handoff JSON 경로** — `.claude_context/handoff/<id>.json`
+2. **새 세션이 맡을 역할** — 한 문장 (예: "이 슬라이스의 구현 담당")
+3. **그 역할의 POU 진입점** — 프로젝트에 역할 crosswalk(`AGENTS.md` 등)가 있으면 그
+   파일을 가리키고 "거기서 이 역할 계약을 읽어라"라고 지시한다. crosswalk가 없으면
+   역할만 명시하고 없다는 사실을 적는다.
+
+형식 예시:
 
 ```
-[task summary]를 진행하려고 해.
+[task summary]를 진행해. 이 세션의 역할은 [역할 한 문장]이다.
 
-먼저 `.claude_context/handoff/<id>.json` 읽어줘. 그 안에 must_read_first 파일
-경로와 grep_pointers 명령어가 있으니 그것부터 확인하고 컨텍스트 적재 끝나면
-[첫 단계]부터 시작하면 돼.
+먼저 `.claude_context/handoff/<id>.json` 읽어줘. must_read_first 경로와
+grep_pointers 명령어가 있으니 그것부터 확인하고 컨텍스트 적재 끝나면
+[첫 단계]부터 시작하면 돼. `do_not_redo`에 있는 건 다시 시도하지 마.
 
-`do_not_redo`에 있는 건 다시 시도하지 마.
+역할 계약은 [crosswalk 경로]에서 읽어라. (crosswalk 없으면 이 줄 생략)
 
-작업 끝나면(JSON의 `done_when` 조건 충족 시) 끝낸 `referenced_todos` 항목을
-커밋 메시지에 `closes todo #NNN`으로 닫아줘 (단위 status는 그렇게 자동 갱신됨 —
-별도 문서 손대지 마). 그다음 이 handoff JSON 알아서 삭제. 코드 task면 커밋 직후가 자연스러운 시점.
+작업 끝나면(JSON의 `done_when` 충족 시) 끝낸 `referenced_todos` 항목을 커밋
+메시지에 `closes todo #NNN`으로 닫고, 이 handoff JSON은 삭제해.
 ```
 
-프롬프트는 짧고 구체적으로. JSON 내용을 다시 inline으로 풀어 쓰지 않는다.
-
-**위치 한 줄 (환경이 새 세션 기본 cwd와 다를 때만)**: 환경은 폴더에 붙어다닌다 —
-재현 대상이 아니라 *위치* 문제. 워크트리·별도 폴더에서 작업했으면 프롬프트 첫 줄에
-`EnterWorktree <path>`(또는 메인 체크아웃으로 cd) 한 줄이면 env(.env.local·dev 설정)가
-따라온다. 예외: *새로 만든* 워크트리는 gitignored 런타임 파일(.env.local 등)이 안
-따라오니 "메인에서 복사" 한 줄 더. 그 외엔 불필요 — 구조화 필드로 만들지 말 것.
+프롬프트는 짧고 구체적으로. JSON 내용을 다시 inline으로 풀어 쓰지 않고, 이전 세션의
+대화 요약도 넣지 않는다.
 
 `referenced_todos`가 있으면 프롬프트에 한 줄 추가:
-> *"`.Codex/todos.md`의 #001, #007 항목과 연결된 작업이야. 첫 발화 후 그 항목들도 같이 surface해."* (단, SessionStart hook이 이미 모든 open todo inject하므로 중복일 수 있음 — 짧게)
+> *"`.Codex/todos.md`의 #001, #007 항목과 연결된 작업이야. 그 항목들도 같이 surface해."* (단, SessionStart hook이 이미 모든 open todo inject하므로 중복일 수 있음 — 짧게)
+
+`title`은 task summary 기반 짧은 라벨로 준다.
 
 ### 4.5 execution trace (FORCE)
 
 §5 출력 *직전*, 위 단계 중 건너뛰기 쉬운 것의 **결과를 한 줄씩** 먼저 출력한다. 빈
 체크박스(`[ ]`)가 아니라 *결과 기입형* — 결과가 없으면(`skip`/`해당없음`) 그 이유도 한 줄.
-trace 없이 JSON·시작 프롬프트로 직행 금지 (이게 단계 skip 차단의 본체 — 산문 지시가 아니라
+trace 없이 JSON·스레드 생성으로 직행 금지 (이게 단계 skip 차단의 본체 — 산문 지시가 아니라
 증거 강제, methodos 게이트 "Evidence (FORCE)"와 동일 정신).
 
 ```
@@ -194,23 +240,19 @@ trace 없이 JSON·시작 프롬프트로 직행 금지 (이게 단계 skip 차�
 
 ### 5. 사용자에게 출력
 
-다음 둘을 한 번에 보고. **프롬프트는 반드시 마크다운 fenced code block(` ``` `)으로 감싼다** — 사용자가 코드블록 우상단 복사 버튼으로 한 번에 가져갈 수 있도록.
+최종 응답에 다음만 간결히 보고한다:
 
-````
-저장됨: .claude_context/handoff/<id>.json (top-level keys: N)
+- 저장 경로 `.claude_context/handoff/<id>.json`
+- 생성된 스레드의 제목, 선택한 model·thinking과 그 근거(어느 라우팅 정본을 따랐는지)
+- 새 세션이 맡은 역할과 POU 진입점
 
-새 세션 시작 프롬프트 (아래 코드블록 복사 버튼으로 가져가서 새 세션 첫 발화로 붙여넣기):
+생성이 성공하면 그 응답에 `::created-thread{threadId="..."}`를 한 줄로 emit한다.
+워크트리 준비가 진행 중이라 `clientThreadId`만 돌아왔으면
+`::created-thread{clientThreadId="..."}`를 대신 쓴다.
 
-```
-[추천 프롬프트 텍스트 — 여러 줄이어도 fence 안에 그대로]
-```
-````
-
-- **언어 태그 붙이지 말 것** (` ```text`, ` ```md` 등 X) — 새 세션이 그걸 코드로 오해할 수 있음. 그냥 빈 ` ``` ` 만.
-- 프롬프트 안에 백틱 3개(` ``` `)가 들어가야 하면 fence를 4개 백틱(` ```` `)으로 늘려서 충돌 회피.
-- 프롬프트 외 안내 문구는 fence 밖에 둔다 — fence 안엔 *복붙할 본문만*.
-
-사용자가 복사 → 새 Codex 세션 시작 → 붙여넣으면 컨텍스트 자동 적재.
+프롬프트 본문을 복사용 코드블록으로 다시 내보내지 않는다 — 이미 스레드에 주입됐다.
+생성이 실패했을 때만 프롬프트 본문을 fenced code block(언어 태그 없이 ` ``` `)으로
+보여주고 수동 시작을 안내한다.
 
 ---
 
@@ -221,7 +263,9 @@ trace 없이 JSON·시작 프롬프트로 직행 금지 (이게 단계 skip 차�
 | 사용자 발화·AI 응답을 통째로 옮김 | task에 필요한 결정만 inline |
 | 이미 코드에 있는 정보 inline | grep 명령어만 기록 |
 | task scope 모호한데 그냥 진행 | 묻기 |
-| 시작 프롬프트 생략 | JSON + 프롬프트 둘 다 필수 |
+| JSON만 저장하고 스레드는 사용자에게 떠넘김 | 동의 확인 후 `create_thread`까지 수행 |
+| 새 스레드에 이전 대화 요약·히스토리 주입 | JSON + 역할 + POU 진입점만 |
+| model·thinking 생략하거나 본문에 모델 ID 하드코딩 | 호출 시 명시하되 값은 라우팅 정본에서 |
 | snapshot과 혼동해 풀 dump | handoff는 lean, 풀 dump는 snapshot |
 | 1a/1b 건너뛰고 JSON·프롬프트 직행 | §4.5 execution trace로 단계 결과 강제 출력 |
 
@@ -240,6 +284,6 @@ trace 없이 JSON·시작 프롬프트로 직행 금지 (이게 단계 skip 차�
 
 매핑 정본 → [`mine/CONV-GRAPH.md`](../../CONV-GRAPH.md).
 
-- 시작 프롬프트 추천 직전 → [WHAT/HOW] 분리 (사용자 체감 시나리오로 핸드오프 형식 강제)
+- `create_thread` 호출 직전 → [WHAT/HOW] 분리 (사용자 체감 시나리오로 핸드오프 형식 강제)
 
 신규 시점 추가 시 CONV-GRAPH.md 매핑 표 한 줄 갱신.
