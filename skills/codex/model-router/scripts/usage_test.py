@@ -45,6 +45,9 @@ OUTCOMES = (
 BILLING_MODES = ("subscription", "paid-api", "free", "unknown")
 REVISION_BURDENS = ("none", "minor", "major", "unknown")
 AVAILABILITIES = ("available", "rate-limited", "provider-unavailable", "rejected", "unknown")
+RECOMMENDATIONS_NAME = "routing-recommendations.json"
+CONDITION_FIELDS = ("task_type", "task_shape", "context_state", "judgment_level", "execution_shape")
+REVISION_ORDER = {"none": 0, "minor": 1, "major": 2, "unknown": 3}
 
 
 def emit(value: Any) -> None:
@@ -53,6 +56,14 @@ def emit(value: Any) -> None:
 
 def now_ms() -> int:
     return int(time.time() * 1000)
+
+
+def recommendations_path(data_dir: Path) -> Path:
+    return Path(data_dir).expanduser().resolve() / RECOMMENDATIONS_NAME
+
+
+def condition_key(row: dict[str, Any]) -> tuple[str, ...]:
+    return tuple(str(row.get(field) or "unknown") for field in CONDITION_FIELDS)
 
 
 def parse_plan_consumption(values: list[str], credits_used: float | None) -> dict[str, float]:
@@ -619,6 +630,141 @@ def summary(args: argparse.Namespace) -> int:
     return 0
 
 
+def refresh_run(args: argparse.Namespace) -> int:
+    data_dir = Path(args.data_dir).expanduser().resolve()
+    _, records_path = data_paths(data_dir)
+    rows, record_health = canonical_records(load_records(records_path))
+    groups: dict[tuple[str, ...], list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        groups[condition_key(row)].append(row)
+    group_results = []
+    for condition, items in sorted(groups.items()):
+        route_items: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+        for item in items:
+            provider = str(item.get("provider") or "unknown")
+            model = str(item.get("model") or "unknown")
+            effort = str(item.get("effort") or "unknown")
+            route_items[(provider, model, effort)].append(item)
+        route_results = []
+        for (provider, model, effort), selected in route_items.items():
+            availability_counts = Counter(str(item.get("availability") or "unknown") for item in selected)
+            rated = [
+                item for item in selected
+                if (item.get("availability") or "unknown") in ("available", "unknown")
+                and item.get("outcome") not in ("not-rated", "unsupported")
+            ]
+            usable = [item for item in rated if item.get("outcome") in ("ready", "minor-revision")]
+            outcomes = Counter(str(item.get("outcome") or "unknown") for item in selected)
+            revision_burdens = Counter(str(item.get("revision_burden") or "unknown") for item in selected)
+            tool_rounds = sorted(int(item.get("tool_rounds") or 0) for item in selected)
+            wall_seconds = sorted(float(item.get("wall_duration_seconds") or 0) for item in selected)
+            api_costs = [float(item["api_equivalent_usd"]) for item in selected if item.get("api_equivalent_usd") is not None]
+            plan_totals: dict[str, float] = defaultdict(float)
+            for item in selected:
+                for unit, value in (item.get("plan_consumption") or {}).items():
+                    plan_totals[str(unit)] += float(value)
+            samples = len(selected)
+            confidence = "high" if samples >= 5 else ("medium" if samples >= 2 else "low")
+            dominant_revision = revision_burdens.most_common(1)[0][0] if revision_burdens else "unknown"
+            route_results.append({
+                "route": f"{provider}/{model}" if effort == "unknown" else f"{provider}/{model}/{effort}",
+                "provider": provider,
+                "model": model,
+                "effort": effort,
+                "samples": samples,
+                "confidence": confidence,
+                "rated_tasks": len(rated),
+                "usable_rate": round(len(usable) / len(rated), 4) if rated else None,
+                "outcomes": dict(outcomes),
+                "availability_counts": dict(availability_counts),
+                "dominant_revision": dominant_revision,
+                "revision_burdens": dict(revision_burdens),
+                "median_tool_rounds": tool_rounds[len(tool_rounds) // 2] if tool_rounds else None,
+                "median_wall_seconds": wall_seconds[len(wall_seconds) // 2] if wall_seconds else None,
+                "total_tokens": sum(int(item.get("total_tokens") or 0) for item in selected),
+                "total_api_equivalent_usd": round(sum(api_costs), 9) if api_costs else None,
+                "plan_consumption": {unit: round(value, 9) for unit, value in sorted(plan_totals.items())} if plan_totals else None,
+            })
+
+        def route_rank(item: dict[str, Any]) -> tuple[float, int, float, float]:
+            rate = item["usable_rate"] if item["usable_rate"] is not None else -1.0
+            revision = REVISION_ORDER.get(item["dominant_revision"], 3)
+            rounds = float(item["median_tool_rounds"] if item["median_tool_rounds"] is not None else 0)
+            cost = item["total_api_equivalent_usd"] if item["total_api_equivalent_usd"] is not None else float("inf")
+            return (-rate, revision, rounds, cost)
+
+        route_results.sort(key=route_rank)
+        recommended = None
+        if route_results:
+            best = route_results[0]
+            basis = [f"samples={best['samples']}", f"usable_rate={best['usable_rate']}"]
+            if best["dominant_revision"] != "unknown":
+                basis.append(f"revision={best['dominant_revision']}")
+            if best["total_api_equivalent_usd"] is not None:
+                basis.append(f"api_equivalent_usd={best['total_api_equivalent_usd']}")
+            recommended = {
+                "route": best["route"],
+                "provider": best["provider"],
+                "model": best["model"],
+                "effort": best["effort"],
+                "samples": best["samples"],
+                "confidence": best["confidence"],
+                "basis": basis,
+            }
+        group_results.append({
+            "conditions": dict(zip(CONDITION_FIELDS, condition)),
+            "samples": len(items),
+            "sufficient": len(items) >= args.min_samples,
+            "recommended": recommended,
+            "routes": route_results,
+        })
+    doc = {
+        "schema_version": 1,
+        "generated_at_ms": now_ms(),
+        "min_samples": args.min_samples,
+        "record_health": record_health,
+        "groups": group_results,
+    }
+    target = recommendations_path(data_dir)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
+    emit(doc)
+    return 0
+
+
+def route_run(args: argparse.Namespace) -> int:
+    data_dir = Path(args.data_dir).expanduser().resolve()
+    target = recommendations_path(data_dir)
+    if not target.exists():
+        emit({"error": "recommendations-missing", "next": "run refresh first", "path": str(target)})
+        return 2
+    doc = json.loads(target.read_text(encoding="utf-8"))
+    query = tuple(str(getattr(args, field) or "unknown") for field in CONDITION_FIELDS)
+    matches = [
+        group for group in doc.get("groups", [])
+        if tuple(str(group.get("conditions", {}).get(field) or "unknown") for field in CONDITION_FIELDS) == query
+    ]
+    if not matches:
+        emit({
+            "error": "no-matching-recommendation",
+            "conditions": dict(zip(CONDITION_FIELDS, query)),
+            "next": "run refresh after collecting enough records, or adjust the conditions",
+        })
+        return 2
+    group = matches[0]
+    recommended = group.get("recommended")
+    result: dict[str, Any] = {
+        "conditions": group.get("conditions"),
+        "group_samples": group.get("samples"),
+        "generated_at_ms": doc.get("generated_at_ms"),
+        "recommended": recommended,
+    }
+    if recommended and int(recommended.get("samples") or 0) < args.min_samples:
+        result["warning"] = "low-sample"
+    emit(result)
+    return 0
+
+
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description=__doc__)
     root.add_argument("--data-dir", default=os.fspath(DEFAULT_DATA_DIR))
@@ -696,6 +842,19 @@ def parser() -> argparse.ArgumentParser:
     report.add_argument("--modality", choices=MODALITIES)
     report.add_argument("--comparison-group")
     report.set_defaults(func=summary)
+
+    refresh = sub.add_parser("refresh")
+    refresh.add_argument("--min-samples", type=int, default=2)
+    refresh.set_defaults(func=refresh_run)
+
+    route = sub.add_parser("route")
+    route.add_argument("--task-type", choices=TASK_TYPES)
+    route.add_argument("--task-shape", choices=TASK_SHAPES)
+    route.add_argument("--context-state", choices=CONTEXT_STATES)
+    route.add_argument("--judgment-level", choices=JUDGMENT_LEVELS)
+    route.add_argument("--execution-shape", choices=EXECUTION_SHAPES)
+    route.add_argument("--min-samples", type=int, default=2)
+    route.set_defaults(func=route_run)
     return root
 
 
