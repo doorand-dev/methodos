@@ -51,11 +51,11 @@ description: |
 요약으로, 자가 판정을 judge verdict로 **위조 금지** (footer 인용 요구만으론 위조를 못 막음 —
 호출 실재가 본체. self-judge 우회를 막는 게 바로 이 자리).
 
-**Step 3a — reader×2 병렬 호출** (`blame-code-reader` agent, Haiku):
+**Step 3a — reader×2 병렬 호출** (`blame-code-reader` agent, `nvidia/deepseek-ai-deepseek-v4-flash`):
 - 두 agent에 *같은* 입력: `유발 (path:line)` + ±15줄 컨텍스트. **원본 misread는 전달하지 않음** (leading 방지).
 - 각자 한 줄 요약 반환: `SUMMARY: <verb + object>` 또는 `UNCERTAIN: <reason>`.
 
-**Step 3b — judge 1회 호출** (`blame-code-judge` agent, Haiku):
+**Step 3b — judge 1회 호출** (`blame-code-judge` agent, `nvidia/deepseek-ai-deepseek-v4-flash`):
 - 입력: `reader_a` 요약, `reader_b` 요약, `original_misread` (controller가 *지금까지의 대화 맥락에서* 추출한 misread 한 줄).
 - 반환: JSON `{ reader_a_equivalent, reader_b_equivalent, verdict, reasoning }`.
 
