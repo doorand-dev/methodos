@@ -1,7 +1,6 @@
 ---
 name: gc
-description: |
-  Project GC scan + cleanup. Delete pycache/temp files, detect finished .plans and stale handoffs, report ruff violations, find dead code and duplication, surface the friction.md backlog, and surface obvious broken context references. Route scoped/full stale context-contract or workflow audits to context-gc. On first run, auto-detects large folders and prompts to exclude them from the scan. **Explicit trigger only** — fires only when the user directly says "gc" or "/gc". A general word like "정리" does not trigger it (prevents misfires).
+description: "사용자가 “gc”나 “/gc”라고 말할 때만 프로젝트의 임시 파일·끝난 계획·죽은 코드·중복·깨진 문맥 참조를 점검하고 정리한다. “정리” 같은 일반 표현에는 쓰지 않는다."
 ---
 
 # /gc (전역 스킬)
@@ -78,42 +77,31 @@ py -3 ~/.agents/skills/gc/gc_audit.py
 - `file_lines`: 400
 - `function_lines`: 80
 
-### 5. friction.md 백로그 surface
+### 5. 기록과 현재 코드의 종합 감사
 
-`<workspace>/.Codex/friction.md` 있으면 한 줄 통계 보고 (없으면 skip — 생성은 안 함, [blame-code](../blame-code/SKILL.md) 스킬이 lazy 생성 담당):
+`.Codex/friction.md`가 있으면 현재 코드·호출부·위 검사 결과와 대조해 반복 원인, 미해결 문제, 해결 이후 재발을 확인한다. 항목 수·비율만으로 문제를 판정하거나 다음 스킬 실행을 요구하지 않는다. 기록이 없어도 요청 범위의 죽은 코드·중복·현재 오류를 감사하며, 정적 분석 후보는 실제 사용 여부를 확인한다.
 
-- **누적 카운트** — 항목 수 (예: "friction 12개")
-- **top 3 카테고리** — 빈도순 (예: "상위: stale-comment 5, naming 4, dead-code 2")
-- **code-clean=yes 비율** — escape valve 모니터링 (예: "code-clean=yes 비율 18%")
-
-**alert 임계치**:
-- 누적 카운트 > 20: *"처리할 시점 — /improve-codebase-architecture 호출 권장"*
-- code-clean=yes 비율 < 10%: *"모든 걸 코드 탓하는 패턴 — 합리화 도구화 점검 필요"*
-
-본 단계는 *읽기 전용 surface*, friction.md 수정 안 함.
-
-3-layer trio 흐름: blame-code(수집, ms) → **gc(감사, 본 단계)** → improve-codebase-architecture(처리, 의도 발동). 관련 결정: `docs/adr/0001-conv-friction-trio.md` (워크스페이스 기준).
+감사만 요청하면 근거와 권고를 반환한다. 정리까지 맡겼으면 승인 범위의 확인된 국소 문제와 참조를 수정하고 관련 최소 검증까지 수행한다. 기록 형식을 보존해 처리 결과를 반영하며 불확실한 후보는 삭제하지 않는다. 큰 구조 변경은 영향과 권고를 제시하되 GC만으로 임의 재설계하지 않는다. 기록에 맞추려고 규칙·훅·검수 절차를 추가하지 않는다.
 
 ### 6. 컨텍스트 표면 신호
 
 AGENTS.md·SKILL.md·MEMORY.md·settings.json에서 명백히 존재하지 않는 파일이나
-경로 참조만 읽기 전용으로 surface한다. 범용 `gc`는 문서 계약·작업 절차의
+경로 참조를 읽기 전용으로 surface한다. 점검 범위의 큰 JSON·JSONL 등 구조화 상태는 `py -3 ~/.agents/skills/gc/gc_check.py --state-files`로 크기·변경 시점과 파일명을 참조하는 코드 위치를 먼저 보고 후보를 찾는다. 이 검색은 skip_dirs 안의 데이터도 크기만 확인하고 본문은 읽지 않는다. 경로를 조립하거나 glob으로 읽는 코드는 찾지 못하므로, 참조 미발견은 미사용 확정이 아니다. 반복 실행의 입력으로 쓰이는지 확인하기 전에는 본문 전체를 읽거나 정리 대상으로 확정하지 않는다. 큰 원자료·설정 파일은 그 자체로 결함이 아니다. 과거 기록 때문에 매회 조회 결과가 커지는 후보는 `improve-context`로 연결하고 크기만으로 자동 삭제·분리하거나 새 예약을 만들지 않는다. 범용 `gc`는 문서 계약·작업 절차의
 실제 consumer, runtime ingress, authority, lifetime, stale 의미를 전수 감사하지
 않는다.
 
 `<workspace>/.Codex/context-friction.md`가 있으면 전체 항목 수와 `status: open`,
 `context-fault: uncertain` 개수만 한 줄로 보고한다. open 또는 uncertain이 하나라도
-있으면 `/context-gc --incidents`를 권장한다. 파일이 없으면 생성하지 않는다.
+있으면 `improve-context`에서 해당 사건과 실제 소비 경로를 함께 확인할 후보로 알린다. 파일이 없으면 생성하지 않는다.
 
-다음 중 하나면 후보 수와 대표 경로만 보고하고 `/context-gc <scope>`를 권장한다:
+다음 중 하나면 후보 수와 대표 경로만 보고하고 `/improve-context <scope>`를 권장한다:
 
 - 깨진 참조가 여러 context surface에 걸쳐 있음
 - 문서 절차와 현재 runtime/code가 다르다는 증거가 있음
 - 중복 authority, 죽은 trigger, orphan target, stale workflow 조사가 필요함
 - 사용자가 범위 지정 또는 전수 context 감사를 원함
 
-수정·삭제는 하지 않는다. context mark-and-sweep의 정본 절차와 분류는
-`context-gc`가 소유한다.
+이 표면 검사만으로 컨텍스트를 수정·삭제하지 않는다. 사용자가 컨텍스트 종합 감사·정리도 요청했다면 [improve-context](../improve-context/SKILL.md)의 기준으로 해당 범위를 처리하며 별도 재승인 단계를 만들지 않는다.
 
 ## 환경별 호출
 
@@ -129,6 +117,8 @@ AGENTS.md·SKILL.md·MEMORY.md·settings.json에서 명백히 존재하지 않�
 | `work_temp_prefixes` | `work_temp_dir` 안에서 자동 삭제할 파일 접두사 (예: `["_test_", "_tmp_"]`) |
 | `[thresholds] file_lines` | 임계치 — 파일 줄 수 초과 시 리포트. 디폴트 `400` |
 | `[thresholds] function_lines` | 임계치 — 함수 줄 수 초과 시 리포트. 디폴트 `80` |
+| `[thresholds] state_file_mb` | `--state-files` 후보 크기 하한(MB). 디폴트 `1` |
+| `[thresholds] state_file_limit` | `--state-files`가 큰 순서로 보고할 최대 개수. 디폴트 `40` |
 
 예시 (`gc.toml`):
 ```toml

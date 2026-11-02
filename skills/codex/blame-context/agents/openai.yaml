@@ -1,4 +1,4 @@
 interface:
   display_name: "Blame Context"
-  short_description: "현재 세션의 컨텍스트 오독 원인을 즉시 기록합니다"
-  default_prompt: "Use $blame-context to judge whether this misread was context-caused and record the result."
+  short_description: "현재 오독의 문맥 원인을 판별하고 최소 수정을 반영합니다"
+  default_prompt: "Use $blame-context to diagnose this incident, apply the smallest supported repair within scope, verify it, and record the outcome."

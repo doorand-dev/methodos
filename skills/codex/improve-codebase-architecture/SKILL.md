@@ -1,89 +1,16 @@
 ---
 name: improve-codebase-architecture
-description: Find deepening opportunities in a codebase — turn shallow modules into deep ones, informed by CONTEXT.md domain language and docs/adr/ decisions. **명시 트리거 전용** — 사용자가 "improve code", "improve codebase", "improve-codebase-architecture", "/improve-codebase-architecture" 라고 직접 말할 때만 발동. 자연어 자동 감지 안 함(분석 비용 큰 스캔이라 의도된 호출만 받음).
+description: 사용자가 improve codebase, improve-codebase-architecture 또는 코드 아키텍처 개선을 명시적으로 요청할 때 실제 변경 부담을 조사하고 깊은 모듈로 개선한다. 일반 구현에 자동 절차로 붙이지 않는다.
 ---
 
 # Improve Codebase Architecture
 
-Surface architectural friction and propose **deepening opportunities** — refactors that turn shallow modules into deep ones. The aim is testability and AI-navigability.
+호출자가 알아야 하는 내부 사정과 변경 시 함께 고쳐야 하는 곳을 줄인다. 코드량이나 파일 수 감소만으로 개선을 판단하지 않는다.
 
-## Glossary
+- 사용자가 지정한 범위를 우선한다. 범위가 없으면 Git 변경 이력에서 자주 바뀌는 영역과 실제 마찰을 먼저 찾고, 뚜렷한 집중 영역이 없을 때 넓힌다. 기존 도메인 용어집과 관련 ADR, `.Codex/friction.md`가 있으면 활용한다. 문서 이름을 강제하거나 새 용어집을 자동 생성하지 않는다.
+- 실제 호출부에서 반복되는 순서·예외 처리·설정과 함께 바뀌는 코드를 추적한다. 모듈을 없앴을 때 복잡성이 사라지는지, 호출자들에게 되돌아가는지 비교한다. 변경 이유가 다른 기능까지 합쳐 옵션과 결합이 늘어나는 통합은 피한다.
+- 깊이는 작은 인터페이스가 감추는 유용한 책임으로 판단한다. 인터페이스에는 타입뿐 아니라 호출 순서·불변 조건·오류·설정도 포함된다. 상세 설계 판단에는 [LANGUAGE.md](LANGUAGE.md), 외부 의존성과 검증 경계를 바꿀 때는 [DEEPENING.md](DEEPENING.md)를 읽는다.
+- 유지·삭제·국소 수정·통합 중 가장 작은 유효 변경을 비교한다. 근거가 있는 후보만 제시하고, 호출자가 더 이상 몰라도 되는 것과 유지 비용·행동 보존을 설명한다. 실제 대안 설계가 필요할 때만 [INTERFACE-DESIGN.md](INTERFACE-DESIGN.md)를 참고한다.
+- 구조 변경은 [HTML 보고서](HTML-REPORT.md)로 전후 호출 관계와 외부에 드러나는 책임, 내부로 이동하는 책임을 보여준다. 단순 국소 수정은 짧은 설명으로 충분하다.
 
-Use these terms exactly in every suggestion. Consistent language is the point — don't drift into "component," "service," "API," or "boundary." Full definitions in [LANGUAGE.md](LANGUAGE.md).
-
-- **Module** — anything with an interface and an implementation (function, class, package, slice).
-- **Interface** — everything a caller must know to use the module: types, invariants, error modes, ordering, config. Not just the type signature.
-- **Implementation** — the code inside.
-- **Depth** — leverage at the interface: a lot of behaviour behind a small interface. **Deep** = high leverage. **Shallow** = interface nearly as complex as the implementation.
-- **Seam** — where an interface lives; a place behaviour can be altered without editing in place. (Use this, not "boundary.")
-- **Adapter** — a concrete thing satisfying an interface at a seam.
-- **Leverage** — what callers get from depth.
-- **Locality** — what maintainers get from depth: change, bugs, knowledge concentrated in one place.
-
-Key principles (see [LANGUAGE.md](LANGUAGE.md) for the full list):
-
-- **Deletion test**: imagine deleting the module. If complexity vanishes, it was a pass-through. If complexity reappears across N callers, it was earning its keep.
-- **The interface is the test surface.**
-- **One adapter = hypothetical seam. Two adapters = real seam.**
-
-This skill is _informed_ by the project's domain model. The domain language gives names to good seams; ADRs record decisions the skill should not re-litigate.
-
-## Process
-
-### 1. Explore
-
-Read the project's domain glossary and any ADRs in the area you're touching first, and entries from `<workspace>/.Codex/friction.md` if present (friction observations recorded during AI/user sessions, maintained by the companion `blame-code` skill — same 3-layer trio).
-
-Then use the Agent tool with `subagent_type=Explore` to walk the codebase. Don't follow rigid heuristics — explore organically and note where you experience friction:
-
-- Where does understanding one concept require bouncing between many small modules?
-- Where are modules **shallow** — interface nearly as complex as the implementation?
-- Where have pure functions been extracted just for testability, but the real bugs hide in how they're called (no **locality**)?
-- Where do tightly-coupled modules leak across their seams?
-- Which parts of the codebase are untested, or hard to test through their current interface?
-
-Apply the **deletion test** to anything you suspect is shallow: would deleting it concentrate complexity, or just move it? A "yes, concentrates" is the signal you want.
-
-### 2. Present candidates as an HTML report
-
-Write a self-contained HTML file to the OS temp directory so nothing lands in the repo. Resolve the temp dir from `$TMPDIR`, falling back to `/tmp` (or `%TEMP%` on Windows), and write to `<tmpdir>/architecture-review-<timestamp>.html` so each run gets a fresh file. Open it for the user — `xdg-open <path>` on Linux, `open <path>` on macOS, `start <path>` on Windows — and tell them the absolute path.
-
-The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams where a graph/flow/sequence reliably communicates the structure. Mix Mermaid with hand-crafted CSS/SVG visuals — use Mermaid when relationships are graph-shaped (call graphs, dependencies, sequences), and hand-built divs/SVG when you want something more editorial (mass diagrams, cross-sections, collapse animations). Each candidate gets a **before/after visualisation**. Be visual.
-
-For each candidate, the same template as before, but rendered as a card:
-
-- **Files** — which files/modules are involved
-- **Problem** — why the current architecture is causing friction
-- **Solution** — plain English description of what would change
-- **Benefits** — explained in terms of locality and leverage, and how tests would improve
-- **Before / After diagram** — side-by-side, custom-drawn, illustrating the shallowness and the deepening
-- **Recommendation strength** — one of `Strong`, `Worth exploring`, `Speculative`, rendered as a badge
-
-End the report with a **Top recommendation** section: which candidate you'd tackle first and why.
-
-**Use CONTEXT.md vocabulary for the domain, and [LANGUAGE.md](LANGUAGE.md) vocabulary for the architecture.** If `CONTEXT.md` defines "Order," talk about "the Order intake module" — not "the FooBarHandler," and not "the Order service."
-
-**ADR conflicts**: if a candidate contradicts an existing ADR, only surface it when the friction is real enough to warrant revisiting the ADR. Mark it clearly in the card (e.g. a warning callout: _"contradicts ADR-0007 — but worth reopening because…"_). Don't list every theoretical refactor an ADR forbids.
-
-See [HTML-REPORT.md](HTML-REPORT.md) for the full HTML scaffold, diagram patterns, and styling guidance.
-
-Do NOT propose interfaces yet. After the file is written, ask the user: "Which of these would you like to explore?"
-
-### 3. Grilling loop
-
-Once the user picks a candidate, drop into a grilling conversation. Walk the design tree with them — constraints, dependencies, the shape of the deepened module, what sits behind the seam, what tests survive.
-
-Side effects happen inline as decisions crystallize:
-
-- **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md` — same discipline as `/grill-with-docs` (`## Language` section: bold term + 1-2 sentence definition + `_Avoid_` aliases; create the file lazily if it doesn't exist).
-- **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
-- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing — skip ephemeral reasons ("not worth it right now") and self-evident ones. ADR format: `docs/adr/0001-why-<slug>.md`; template = title + 1-3 sentences (context, decision, why); offer only when all three hold: hard-to-reverse + surprising-without-context + result-of-real-trade-off.
-- **Want to explore alternative interfaces for the deepened module?** See [INTERFACE-DESIGN.md](INTERFACE-DESIGN.md).
-
-## CONV-GATE 위임
-
-매핑 정본 → [`mine/CONV-GRAPH.md`](../../CONV-GRAPH.md).
-
-- candidate 선정 시 → [3I] 코드 가드 promote 가능성 / [3J] 섣부른 *재사용* 추상화 차단 (rule-of-three; ≠ 크기·응집 분해 — 그건 권장. 진짜 YAGNI-기능은 [0])
-
-신규 시점 추가 시 CONV-GRAPH.md 매핑 표 한 줄 갱신.
+제안만 요청받으면 근거와 권고안을 반환한다. 구현까지 맡겼으면 기존 호출부·대체 경로·참조까지 반영하고 바뀐 행동을 확인할 최소 검증을 수행한다. HTML은 결과 검토 화면이며 중간 승인 관문이 아니다. 필요한 사용자 선택만 묻고 고정 질문 루프·스킬 연쇄·후보 수·의무 reviewer를 붙이지 않는다.

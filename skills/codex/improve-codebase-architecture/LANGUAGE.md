@@ -1,53 +1,9 @@
-# Language
+# 설계 판단 기준
 
-Shared vocabulary for every suggestion this skill makes. Use these terms exactly — don't substitute "component," "service," "API," or "boundary." Consistent language is the whole point.
-
-## Terms
-
-**Module**
-Anything with an interface and an implementation. Deliberately scale-agnostic — applies equally to a function, class, package, or tier-spanning slice.
-_Avoid_: unit, component, service.
-
-**Interface**
-Everything a caller must know to use the module correctly. Includes the type signature, but also invariants, ordering constraints, error modes, required configuration, and performance characteristics.
-_Avoid_: API, signature (too narrow — those refer only to the type-level surface).
-
-**Implementation**
-What's inside a module — its body of code. Distinct from **Adapter**: a thing can be a small adapter with a large implementation (a Postgres repo) or a large adapter with a small implementation (an in-memory fake). Reach for "adapter" when the seam is the topic; "implementation" otherwise.
-
-**Depth**
-Leverage at the interface — the amount of behaviour a caller (or test) can exercise per unit of interface they have to learn. A module is **deep** when a large amount of behaviour sits behind a small interface. A module is **shallow** when the interface is nearly as complex as the implementation.
-
-**Seam** _(from Michael Feathers)_
-A place where you can alter behaviour without editing in that place. The *location* at which a module's interface lives. Choosing where to put the seam is its own design decision, distinct from what goes behind it.
-_Avoid_: boundary (overloaded with DDD's bounded context).
-
-**Adapter**
-A concrete thing that satisfies an interface at a seam. Describes *role* (what slot it fills), not substance (what's inside).
-
-**Leverage**
-What callers get from depth. More capability per unit of interface they have to learn. One implementation pays back across N call sites and M tests.
-
-**Locality**
-What maintainers get from depth. Change, bugs, knowledge, and verification concentrate at one place rather than spreading across callers. Fix once, fixed everywhere.
-
-## Principles
-
-- **Depth is a property of the interface, not the implementation.** A deep module can be internally composed of small, mockable, swappable parts — they just aren't part of the interface. A module can have **internal seams** (private to its implementation, used by its own tests) as well as the **external seam** at its interface.
-- **The deletion test.** Imagine deleting the module. If complexity vanishes, the module wasn't hiding anything (it was a pass-through). If complexity reappears across N callers, the module was earning its keep.
-- **The interface is the test surface.** Callers and tests cross the same seam. If you want to test *past* the interface, the module is probably the wrong shape.
-- **One adapter means a hypothetical seam. Two adapters means a real one.** Don't introduce a seam unless something actually varies across it.
-
-## Relationships
-
-- A **Module** has exactly one **Interface** (the surface it presents to callers and tests).
-- **Depth** is a property of a **Module**, measured against its **Interface**.
-- A **Seam** is where a **Module**'s **Interface** lives.
-- An **Adapter** sits at a **Seam** and satisfies the **Interface**.
-- **Depth** produces **Leverage** for callers and **Locality** for maintainers.
-
-## Rejected framings
-
-- **Depth as ratio of implementation-lines to interface-lines** (Ousterhout): rewards padding the implementation. We use depth-as-leverage instead.
-- **"Interface" as the TypeScript `interface` keyword or a class's public methods**: too narrow — interface here includes every fact a caller must know.
-- **"Boundary"**: overloaded with DDD's bounded context. Say **seam** or **interface**.
+- 모듈은 함수·클래스·패키지 등 인터페이스와 구현을 가진 단위다. 프로젝트에서 쓰는 자연스러운 용어를 유지한다.
+- 인터페이스는 올바르게 사용하기 위해 알아야 하는 모든 사실이다. 타입뿐 아니라 순서·오류·불변 조건·설정·성능 제약을 포함한다.
+- 깊이는 호출자가 배워야 하는 부담에 비해 얻는 기능이다. 구현 줄 수를 늘리거나 함수 수를 줄이는 것으로 측정하지 않는다.
+- 변경·오류·지식이 실제 책임 한 곳에 모이는지 살핀다. 외부 인터페이스가 단순해도 내부 구현은 여러 작은 부분으로 구성할 수 있다.
+- 모듈을 지웠을 때 복잡성이 사라지면 불필요한 중간 단계일 수 있다. 복잡성이 여러 호출자에게 흩어지면 그 모듈이 책임을 감추고 있었다.
+- 교체 지점과 어댑터는 실제로 달라지는 의존성이나 구체적인 테스트 필요에 맞춘다. 가상 확장성을 위해 새 계층을 만들지 않는다.
+- 통합은 같은 변경 이유와 책임에 근거한다. 독립적인 기능을 묶어 호출자의 옵션·순서 부담이 늘면 깊어진 것이 아니다.

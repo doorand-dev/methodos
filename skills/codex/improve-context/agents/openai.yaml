@@ -1,0 +1,6 @@
+interface:
+  display_name: "컨텍스트 정리·개선"
+  short_description: "쌓인 지침을 정리하고 다음 AI가 헤매는 문맥 구조를 개선합니다"
+  default_prompt: "Use $improve-context to simplify this context and fix its structure where needed, including references and scoped verification."
+policy:
+  allow_implicit_invocation: true

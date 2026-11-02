@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product Novelist"
+  short_description: "실제 사용자 흐름에서 빠진 요구를 찾아 초기 스펙을 다듬습니다"
+  default_prompt: "Use $product-novelist to find missing requirements from the product user's journey and shape a minimal actionable spec without unnecessary questions."

@@ -1,4 +1,4 @@
 interface:
   display_name: "Context Novelist"
-  short_description: "Audit minimal context packets"
-  default_prompt: "Use $context-novelist to audit this task packet for minimal sufficient context and progressive disclosure."
+  short_description: "다음 신규 AI 세션에 필요한 최소 충분 문맥을 검증합니다"
+  default_prompt: "Use $context-novelist to test what a fresh AI session can decide from this context and improve the minimum sufficient packet."

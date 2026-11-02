@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow Reuse"
+  short_description: "개별 작업의 실행을 공통화해 다음 작업에서도 그대로 재사용합니다"
+  default_prompt: "Use $workflow-reuse to turn this one-off workflow into reusable project capabilities, keeping task-specific data and AI judgment separate."

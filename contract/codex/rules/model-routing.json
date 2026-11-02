@@ -1,63 +1,29 @@
 {
-  "schema_version": 1,
-  "scope": "global_implementation_worker_selection",
-  "timezone": "Asia/Seoul",
-  "precedence": [
-    "current_user_explicit_qwen",
-    "existing_luna_max_risk_route",
-    "automatic_night_qwen",
-    "default_luna_high"
-  ],
-  "routes": {
-    "qwen38_high": {
-      "agent_type": "worker",
-      "model": "alibaba-token-plan-intl/qwen3.8-max-preview",
-      "reasoning_effort": "high"
+  "schema_version": 2,
+  "scope": "new_owners_and_subagents",
+  "precedence": "Current user instruction, then project contract, then this file. Do not replace a running owner.",
+  "support_check": "Use only models and efforts listed by the current spawn/create tool. Do not silently substitute.",
+  "worker_agent_type": "task-worker",
+  "tiers": {
+    "main": {
+      "model": "<supported-execution-model>",
+      "parent_effort": "<supported-effort>",
+      "worker_effort": "<supported-effort>"
     },
-    "luna_high": {
-      "agent_type": "luna-high-worker"
+    "judgment": {
+      "model": "<supported-judgment-model>",
+      "parent_effort": "<supported-effort>"
     },
-    "luna_max": {
-      "agent_type": "luna-max-worker"
+    "fast": {
+      "model": "<supported-fast-model>",
+      "worker_effort": "<supported-effort>"
     },
-    "existing_impl_risk_route": {
-      "agent_type": "luna-max-worker",
-      "note": "qwen_fallback 대상 — lifecycle에 선언된 위험 라우트(luna_max)로 폴백"
+    "external_review": {
+      "model": "<supported-other-provider-model>",
+      "effort": "<supported-effort>"
     }
   },
-  "conditions": {
-    "current_user_explicit_qwen": {
-      "time_restriction": false,
-      "route": "qwen38_high"
-    },
-    "automatic_night_qwen": {
-      "start": "23:00",
-      "end": "09:00",
-      "start_inclusive": true,
-      "end_exclusive": true,
-      "route": "qwen38_high"
-    },
-    "existing_luna_max_risk_route": {
-      "route": "luna_max",
-      "when": "현재 lifecycle/packet에 이미 luna-max 위험 라우트가 선언되어 있으면 유지"
-    },
-    "default_luna_high": {
-      "route": "luna_high",
-      "when": "위 조건이 모두 아니면 기본값"
-    }
-  },
-  "qwen_fallback": {
-    "triggers": [
-      "quota_exhausted",
-      "rate_limited",
-      "provider_unavailable"
-    ],
-    "requires": [
-      "failure_before_worker_execution",
-      "no_changed_paths"
-    ],
-    "max_attempts": 1,
-    "route": "existing_impl_risk_route",
-    "otherwise": "return_to_owner"
-  }
+  "selection": "Start with main; use fast for bounded easily checked work; raise effort only for diagnosed difficulty. Calibrate using measured outcomes.",
+  "spawn_args": "Pass supported model and effort explicitly when authorized; fork_context=false with only necessary context.",
+  "configured": false
 }

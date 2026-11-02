@@ -1,7 +1,6 @@
 ---
 name: blame-code
-description: |
-  Attribute the moment an AI (or human) misread code/docs to the code's structure, accumulating one line at a time into .Codex/friction.md. **Explicit trigger only** — fires only when the user directly says "blame code", "blame-code", "/blame-code", "코드 탓해봐". No auto-detection from generic corrections. If the stated cause is context injection, routing, lifetime, or authority rather than code structure, use blame-context instead. Pairs with gc (audit) and improve-codebase-architecture (processing).
+description: "사용자가 “blame code”, “blame-code”, “코드 탓해봐”라고 말할 때만, AI가 코드·문서를 잘못 읽은 원인을 코드 구조에서 찾아 기록한다. 원인이 문맥·지침·권한 쪽이면 blame-context를 쓴다."
 ---
 
 # /blame-code (전역 스킬)
@@ -46,16 +45,18 @@ description: |
 
 `code-clean`은 controller(=Codex 본인)가 결정하지 않음 — 격리 agent 3개에 위임.
 
-**dispatch 실재 (FORCE)**: reader×2 + judge는 *반드시* Task로 실제 호출 — 이 대화에
-그 3개 Task 호출이 없으면 friction 항목·footer 작성 금지. controller 자가 요약을 reader
+**실제 호출**: reader×2 + judge는 기본 subagent로 실제 호출한다. 이 대화에
+그 3개 호출이 없으면 friction 항목·footer를 작성하지 않는다. controller 자가 요약을 reader
 요약으로, 자가 판정을 judge verdict로 **위조 금지** (footer 인용 요구만으론 위조를 못 막음 —
 호출 실재가 본체. self-judge 우회를 막는 게 바로 이 자리).
 
-**Step 3a — reader×2 병렬 호출** (`blame-code-reader` agent, `nvidia/deepseek-ai-deepseek-v4-flash`):
+모델·effort는 사용자·프로젝트 지시와 `~/.codex/rules/model-routing.json`에서 선택한다. 두 reader는 같은 선택값과 원자료를 사용하며 모델명을 이 스킬에 고정하지 않는다.
+
+**Step 3a — reader×2 병렬 호출** (`blame-code-reader` agent):
 - 두 agent에 *같은* 입력: `유발 (path:line)` + ±15줄 컨텍스트. **원본 misread는 전달하지 않음** (leading 방지).
 - 각자 한 줄 요약 반환: `SUMMARY: <verb + object>` 또는 `UNCERTAIN: <reason>`.
 
-**Step 3b — judge 1회 호출** (`blame-code-judge` agent, `nvidia/deepseek-ai-deepseek-v4-flash`):
+**Step 3b — judge 1회 호출** (`blame-code-judge` agent):
 - 입력: `reader_a` 요약, `reader_b` 요약, `original_misread` (controller가 *지금까지의 대화 맥락에서* 추출한 misread 한 줄).
 - 반환: JSON `{ reader_a_equivalent, reader_b_equivalent, verdict, reasoning }`.
 
@@ -96,8 +97,8 @@ description: |
 | 스킬 | 활성화 시점 | 역할 | friction.md 동작 |
 |---|---|---|---|
 | `blame-code` (본 스킬) | ms (명시 호출) | 수집 | append |
-| `gc` | 분~일 (주기적) | 감사 | 카운트·top 카테고리·`code-clean=yes` 비율 surface |
-| `improve-codebase-architecture` (mat) | 의도 발동 | 처리 | Step 1 Explore에서 입력으로 합류 |
+| [gc](../gc/SKILL.md) | 명시 호출 | 프로젝트 청소·감사 | friction 기록을 감사 입력으로 확인 |
+| [improve-codebase-architecture](../improve-codebase-architecture/SKILL.md) | 아키텍처 개선 명시 요청 | 구조 개선 | 실제 변경 부담을 조사할 때 기존 friction을 활용 |
 
 활성화 시점이 다른 게 트리오 분리의 근거. 한 스킬로 합치면 모델 깨짐 — `docs/adr/0001-conv-friction-trio.md` 게이트 ④ 참조.
 
@@ -107,7 +108,7 @@ description: |
 |---|---|
 | 추가 | 본 스킬 |
 | 잠복 | `code-clean=no` 항목이 friction.md에 누적 |
-| 응축 | `/improve-codebase-architecture` grilling으로 distilled rule 도출 → `docs/adr/NNNN-why-<slug>.md` 또는 코드 가드 |
+| 응축 | [improve-codebase-architecture](../improve-codebase-architecture/SKILL.md)의 현재 절차로 실제 마찰과 호출부를 조사하고 최소 유효 변경을 판단. 제안·구현 범위는 요청에 따름 |
 | 제거 | refactor 완료 시 해당 friction 항목 삭제 또는 `resolved: <date>` 한 줄 추가 |
 
 ## 안 하는 것

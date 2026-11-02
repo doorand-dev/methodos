@@ -1,6 +1,6 @@
 """GC 체크 — 프로젝트 내 불필요 파일/패턴 탐지 및 안전 정리.
 
-전역/프로젝트 스킬의 bundled script. 본 레포 의존 0 — 어느 워크스페이스에서든 동작.
+전역 스킬 (~/.claude/skills/gc/). 본 레포 의존 0 — 어느 워크스페이스에서든 동작.
 
 2등급 분리:
 - safe-fix: __pycache__, .pyc, *.tmp, .DS_Store 등 → 무조건 삭제 OK
@@ -14,6 +14,7 @@
 - --review-only: review 카테고리만 체크 (/gc 스킬 §1 수동 호출용 — 자동 Stop 훅 없음)
 - --report-json: JSON 출력
 - --detect-large-dirs: top-level 큰 폴더 후보 보고 (SKILL.md 첫 실행 유도용)
+- --state-files: 큰 JSON·JSONL 상태 파일과 파일명을 참조하는 코드 후보 보고 (SKILL.md §6)
 """
 import argparse
 import json
@@ -55,6 +56,13 @@ TODO_CTX_FILE_RE = re.compile(r"^(\d{3})\.json$")
 
 # 큰 폴더 감지 임계 (SKILL.md 첫 실행 유도)
 LARGE_DIR_THRESHOLD_MB = 100
+
+# 큰 상태 파일 후보 (SKILL.md §6). 크기만 보고 본문은 읽지 않는다.
+STATE_FILE_SUFFIXES = {".json", ".jsonl"}
+STATE_FILE_THRESHOLD_MB = 1
+STATE_FILE_LIMIT = 40
+STATE_CODE_GLOBS = ("*.py", "*.js", "*.mjs", "*.ts")
+STATE_REF_LIMIT = 5
 
 
 def _find_project_root() -> Path:
@@ -324,6 +332,77 @@ def _detect_large_dirs(root: Path, threshold_mb: int = LARGE_DIR_THRESHOLD_MB) -
     return items
 
 
+def _find_code_refs(root: Path, needle: str, skip_dirs: set[str]) -> list[str]:
+    """코드 파일에서 needle 문자열을 찾은 위치(path:line). rg가 없으면 빈 목록."""
+    rg = shutil.which("rg")
+    if not rg:
+        return []
+    cmd = [rg, "-n", "-F", "--no-heading", "--max-count", "2"]
+    for glob in STATE_CODE_GLOBS:
+        cmd += ["-g", glob]
+    for d in sorted(skip_dirs):
+        cmd += ["-g", f"!{d}/**"]
+    cmd += ["--", needle, "."]
+    try:
+        result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8",
+                                errors="replace", timeout=30)
+    except (subprocess.TimeoutExpired, OSError):
+        return []
+    refs = []
+    for line in result.stdout.splitlines():
+        match = re.match(r"^(.+?):(\d+):", line)
+        if not match:
+            continue
+        rel = match.group(1).removeprefix(".\\").removeprefix("./")
+        refs.append(f"{rel}:{match.group(2)}")
+        if len(refs) >= STATE_REF_LIMIT:
+            break
+    return refs
+
+
+def _scan_state_files(root: Path, toml_cfg: dict, threshold_mb: float, limit: int) -> dict:
+    """큰 JSON·JSONL 상태 파일과 그 파일명을 참조하는 코드 후보.
+
+    skip_dirs 안의 데이터도 크기만 확인한다(본문은 읽지 않는다). 참조 검색은 코드 파일에서만
+    하며, 경로를 조립하거나 glob으로 읽는 코드는 찾지 못한다. 결과는 improve-context가 실제
+    소비 경로를 확인할 후보이지 정리 대상 확정이 아니다.
+    """
+    threshold = threshold_mb * 1024 * 1024
+    found = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in DEFAULT_SKIP_DIRS and d not in SAFE_DIR_NAMES]
+        for name in filenames:
+            if Path(name).suffix.lower() not in STATE_FILE_SUFFIXES:
+                continue
+            fp = Path(dirpath) / name
+            try:
+                st = fp.stat()
+            except OSError:
+                continue
+            if st.st_size >= threshold:
+                found.append((fp, st))
+    found.sort(key=lambda x: x[1].st_size, reverse=True)
+    code_skip = _resolved_skip_dirs(toml_cfg)
+    cache: dict[str, list[str]] = {}
+    items = []
+    now = time.time()
+    for fp, st in found[:limit]:
+        if fp.name not in cache:
+            cache[fp.name] = _find_code_refs(root, fp.name, code_skip)
+        refs = cache[fp.name]
+        try:
+            rel = str(fp.relative_to(root))
+        except ValueError:
+            rel = str(fp)
+        items.append({
+            "path": rel,
+            "size_mb": round(st.st_size / (1024 * 1024), 1),
+            "age_days": int((now - st.st_mtime) // 86400),
+            "refs": refs,
+        })
+    return {"threshold_mb": threshold_mb, "total": len(found), "items": items}
+
+
 def _delete_safe(items: list[dict], root: Path) -> int:
     """safe 항목 삭제. 삭제 건수 반환."""
     count = 0
@@ -353,11 +432,28 @@ def main():
     parser.add_argument("--review-only", action="store_true", help="review 카테고리만 체크")
     parser.add_argument("--report-json", action="store_true", help="JSON 출력")
     parser.add_argument("--detect-large-dirs", action="store_true", help="top-level 큰 폴더 후보 보고")
+    parser.add_argument("--state-files", action="store_true", help="큰 JSON·JSONL과 참조 코드 후보 보고")
     parser.add_argument("--root", type=str, default=None, help="프로젝트 루트 지정 (기본: .git 탐색)")
     args = parser.parse_args()
 
     root = Path(args.root).resolve() if args.root else _find_project_root()
     toml_cfg = _load_gc_toml(root)
+
+    if args.state_files:
+        thresholds = toml_cfg.get("thresholds", {})
+        report = _scan_state_files(root, toml_cfg,
+                                   thresholds.get("state_file_mb", STATE_FILE_THRESHOLD_MB),
+                                   thresholds.get("state_file_limit", STATE_FILE_LIMIT))
+        if args.report_json:
+            print(json.dumps(report, ensure_ascii=False))
+        else:
+            print(f"[gc] {report['threshold_mb']}MB 이상 JSON·JSONL {report['total']}개 "
+                  f"(큰 순서 {len(report['items'])}개 표시, 본문 미확인):")
+            for item in report["items"]:
+                refs = item["refs"]
+                where = ", ".join(refs) if refs else "파일명 참조 미발견"
+                print(f"  {item['path']} ({item['size_mb']} MB, {item['age_days']}일 전 변경) {where}")
+        sys.exit(0)
 
     if args.detect_large_dirs:
         large = _detect_large_dirs(root)

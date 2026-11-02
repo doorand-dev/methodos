@@ -1,0 +1,4 @@
+interface:
+  display_name: "세션 돌아보고 개선하기"
+  short_description: "세션의 반복 삽질과 도구 낭비를 찾아 필요한 부분만 개선합니다"
+  default_prompt: "Use $retro to find repeated rework and tool waste in this session and apply the smallest evidence-backed improvements within scope."

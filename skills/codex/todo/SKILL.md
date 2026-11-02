@@ -1,11 +1,7 @@
 ---
 name: todo
-description: |
-  Per-project persistent to-do list — `.Codex/todos.md` (persists across sessions).
+description: Manage a project's persistent `.Codex/todos.md` when the user asks to save, list, update or complete tasks across sessions. A status question about current work or a deferral remark alone does not invoke this skill.
 
-  Triggers (automatic): "todo", "할 일", "할일", "해야 할 거", "뭐 해야 돼", "뭐 남았어"; operations "작업 추가/목록/빼/완료", "TODO 정리"; deferral remarks "나중에 하자", "이건 다음에", "지금은 X만", "후순위", "일단 이거부터", "TODO로", "미뤄두자", "지금 말고", "별도로 빼서".
-
-  Do not append on a deferral remark immediately — wait one turn to confirm *which item* before adding (avoids false positives). Coexists with TodoWrite (volatile, within-session steps) — this skill is only for to-dos that cross sessions.
 ---
 
 # Todo 스킬
@@ -40,12 +36,10 @@ description: |
 4. **삭제**: 가급적 X (backlink). 필요시 `## Archive`로 이동.
 5. **정리**: `- [x]` 전부 `## Archive`로.
 
-## 보류 발화 1턴 대기
+## 호출과 기록 범위
 
-보류 패턴 감지 → **즉시 append 금지.** 1턴 기다려:
-> *"이거 todo로 박을까요? 한 줄 알려주세요."*
-
-받으면 `#NNN` 부여 append. "아니" → skip. (false positive 방지 — WHY는 METHODOLOGY.)
+사용자가 다음 세션에도 남길 할 일을 저장·조회·수정·완료하도록 요청했을 때 사용한다.
+현재 작업의 진행 상황이나 남은 단계 질문은 현재 대화로 답한다. “나중에”, “지금은 X만” 같은 보류만으로 파일을 만들거나 추가하지 않고, 자동으로 기록 여부를 묻는 다음 턴도 예약하지 않는다. 사용자가 기록할 항목을 명시하면 그 항목만 저장한다.
 
 ## 파일 없을 때
 
@@ -61,15 +55,8 @@ description: |
 | 스킬/훅 | 연동 |
 |---|---|
 | `handoff` | open todo surface → `referenced_todos` |
-| `decision`(ADR) | ADR 작성 시 "작업화 todo?" → `#NNN` + ADR header `Tracking todo:` |
-| `todo-auto-close` (hook) | 커밋 `closes todo #NNN` → `[x]` 자동 + 미close 시 same-session 넛지 |
-| `session-trio-load` (hook) | SessionStart open todo **카운트** 주입(리스트 덤프 X) |
 
 ## 더 깊이 (설계할 때만)
 
 단위 묶음(산문 토큰)·사이드카·합성회상·정비·grep발견성 설계와 WHY →
 **[METHODOLOGY.md](METHODOLOGY.md)**.
-
-## CONV-GATE 위임
-
-[CONV-GRAPH.md](../../CONV-GRAPH.md). 추가 직전 → [0] 안 만들면 / 보류 감지 직후 → [WHAT/HOW] 1턴 확인.

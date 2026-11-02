@@ -11,7 +11,7 @@ measurement snapshot, control A/B diff, verdict form) in 3 families. **STATUS:
 prototype v0.**
 
 프로젝트 상태·데이터흐름·측정·판정을 **자기완결 단일 HTML 한 장**으로 시각화하는 공유 키트.
-5개 정본 산출물(Poncou·youtube-edit)에서 추출한 시각 DNA를 재사용해, 매번 CSS를 재발명하지
+여러 프로젝트의 정본 산출물에서 추출한 시각 DNA를 재사용해, 매번 CSS를 재발명하지
 않고 *한 가족으로 보이는* 양식을 빠르게 찍는다.
 
 > **STATUS: prototype v0 — 진화 전제.** 실사용 마찰을 쌓아 evolve. 정합되면 정식 ceremony
@@ -43,7 +43,7 @@ prototype v0.**
 
 - **단일 라이트 테마.** 축 구분은 테마 아닌 **좌측 스트라이프**: 보라=작업물(A, 작업과 함께 졸업) / 파랑=reference(B, 영속).
 - **9 컴포넌트**: flow-diagram · cascade-ladder · stage-matrix · case-card · diff-table · verdict-card · stat-cards · pending-note · provenance-footer. (kit.html에 실렌더)
-- **OneDrive 공유 (share_ai 정본)**: AI 산출물은 OneDrive 루트 말고 **프로젝트별 폴더** `OneDrive - KIAS/share_ai/<프로젝트>/`에, 파일명 `<설명>-<날짜>.html` (폴더 없으면 만들어 그 안에). 루트·플랫이 난잡해져 사용자가 못 찾는 것 방지. Codex는 최종 응답에 HTML 절대경로를 병기한다.
+- **공유 출력 위치 (사용자 설정)**: AI 산출물은 OneDrive 루트 말고 **프로젝트별 폴더** `<shared-output-root>/<project>/`에, 파일명 `<설명>-<날짜>.html` (폴더 없으면 만들어 그 안에). 루트·플랫이 난잡해져 사용자가 못 찾는 것 방지. Codex는 최종 응답에 HTML 절대경로를 병기한다.
 
 ## Codex·외부 실행자 위임
 

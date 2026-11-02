@@ -1,44 +1,7 @@
-# Interface Design
+# 대안 인터페이스 비교
 
-When the user wants to explore alternative interfaces for a chosen deepening candidate, use this parallel sub-agent pattern. Based on "Design It Twice" (Ousterhout) — your first idea is unlikely to be the best.
+첫 설계의 선택이 실제 호출 방식이나 유지 비용에 큰 차이를 만들 때 사용한다.
 
-Uses the vocabulary in [LANGUAGE.md](LANGUAGE.md) — **module**, **interface**, **seam**, **adapter**, **leverage**.
+실제 호출 예·제약·의존성을 고정하고 의미 있게 다른 대안을 비교한다. 각 안에서 호출자가 알아야 하는 것, 내부가 맡는 책임, 변경 영향과 비용을 보여주고 권고한다. 가상의 확장 시나리오를 늘리지 않는다.
 
-## Process
-
-### 1. Frame the problem space
-
-Before spawning sub-agents, write a user-facing explanation of the problem space for the chosen candidate:
-
-- The constraints any new interface would need to satisfy
-- The dependencies it would rely on, and which category they fall into (see [DEEPENING.md](DEEPENING.md))
-- A rough illustrative code sketch to ground the constraints — not a proposal, just a way to make the constraints concrete
-
-Show this to the user, then immediately proceed to Step 2. The user reads and thinks while the sub-agents work in parallel.
-
-### 2. Spawn sub-agents
-
-Spawn 3+ sub-agents in parallel using the Agent tool. Each must produce a **radically different** interface for the deepened module.
-
-Prompt each sub-agent with a separate technical brief (file paths, coupling details, dependency category from [DEEPENING.md](DEEPENING.md), what sits behind the seam). The brief is independent of the user-facing problem-space explanation in Step 1. Give each agent a different design constraint:
-
-- Agent 1: "Minimize the interface — aim for 1–3 entry points max. Maximise leverage per entry point."
-- Agent 2: "Maximise flexibility — support many use cases and extension."
-- Agent 3: "Optimise for the most common caller — make the default case trivial."
-- Agent 4 (if applicable): "Design around ports & adapters for cross-seam dependencies."
-
-Include both [LANGUAGE.md](LANGUAGE.md) vocabulary and CONTEXT.md vocabulary in the brief so each sub-agent names things consistently with the architecture language and the project's domain language.
-
-Each sub-agent outputs:
-
-1. Interface (types, methods, params — plus invariants, ordering, error modes)
-2. Usage example showing how callers use it
-3. What the implementation hides behind the seam
-4. Dependency strategy and adapters (see [DEEPENING.md](DEEPENING.md))
-5. Trade-offs — where leverage is high, where it's thin
-
-### 3. Present and compare
-
-Present designs sequentially so the user can absorb each one, then compare them in prose. Contrast by **depth** (leverage at the interface), **locality** (where change concentrates), and **seam placement**.
-
-After comparing, give your own recommendation: which design you think is strongest and why. If elements from different designs would combine well, propose a hybrid. Be opinionated — the user wants a strong read, not a menu.
+독립 관점이 필요한 경우 허용된 subagent를 활용할 수 있지만 고정 인원·병렬 설계·검수를 요구하지 않는다. 이미 결정된 구현을 이 절차로 다시 열지 않는다.

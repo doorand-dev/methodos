@@ -1,5 +1,7 @@
 # Methodos shared planning contract
 
+현재 Codex 선택 설치 안내와 Codex wake는 [Codex 시작 안내](codex/START-HERE.md)에서 확인한다. 아래는 기존 planning 프로필을 사용하는 프로젝트의 계약이며 모든 Codex 작업에 자동 적용하지 않는다.
+
 이 문서는 `/grill-me`, `/plan`, `/impl`이 함께 읽는 최소 계약이다. 계약은
 실행 가능한 안전 조건만 정의하며, 별도 보고서·증명서·검증 산출물을 요구하지 않는다.
 

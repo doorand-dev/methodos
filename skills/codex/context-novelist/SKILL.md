@@ -1,159 +1,21 @@
 ---
 name: context-novelist
-description: |
-  Audit and design minimal sufficient context packets with progressive disclosure. A context novelist lives as the next reader of a context packet, not as the author: it walks the reader's first decision at the point of use and reports where the packet fails.
-  Use for a prompt, handoff, AGENTS.md, SKILL.md, lane, plan, review packet, live session, point-of-use route, or multi-agent workflow audit; for MSC-PD, progressive disclosure, fresh-context review, or context novelist requests; and when a change creates or alters persistent future-session context topology. Do not own immediate incident capture, scoped/full context garbage collection, or context-system architecture deepening; those belong to blame-context, context-gc, and improve-context-architecture. Apply this only as the focused point-of-use validation lens when those workflows change a route or packet.
-  Do not use this as the generic "novelist" reviewer for spec or implementation narrative dry-runs; those are the spec-novelist and impl-novelist agents.
+description: 프롬프트·인계·AGENTS·스킬·문맥 진입점을 다음 신규 세션이나 서브에이전트인 AI 독자 관점에서 검증하고, 다음 판단에 필요한 최소 충분 문맥을 설계한다. 특정 문맥의 전달·충분성 검토에 사용하며 일반 문서 편집에 자동 검수 단계를 붙이지 않는다.
 ---
 
 # Context Novelist
 
-Use this skill as a fresh-context audit lens. A context novelist lives as the
-next reader of a context packet, not as its author. It walks the reader's first
-decision at the point of use and reports where the packet fails.
+독자는 이전 대화를 공유하지 않는 다음 신규 AI 세션·서브에이전트 또는 압축 후 실제로 전달된 문맥만 가진 AI다. 작성자의 기억으로 빈칸을 채우지 않고, 그 AI가 처음 내려야 할 판단을 실제 입력에서 따라간다.
 
-Decide the smallest context packet that lets a future agent do the next task
-safely, without inheriting stale narrative or evidence dumps.
+- 대상 AI의 작업·첫 판단·사용 가능한 도구와 실제 시작 입력을 확인한다. 신규 세션, 인계, 압축 후 재개가 같은 문맥을 받는다고 가정하지 않는다.
+- AI가 처음 받는 안내에서 필요한 정본까지 실제로 도달할 수 있는지 확인한다. 파일이 존재하거나 검색 가능하다는 사실만으로 로딩을 보장하지 않는다. 링크를 언제 따라가는지, 접근할 수 없거나 자료가 오래됐을 때 어떻게 판단하는지도 본다.
+- 그 입력만으로 목표·권한·현재 상태·다음 행동을 구분할 수 있는지 실행해 본다. 부족한 근거, 충돌하는 정본, 불명확한 수명과 불필요하게 먼저 읽는 과거 기록을 구분한다.
+- 반복 작업이면 첫 실행과 종료 이력이 쌓인 재개를 따라간다. 실제 조회가 현재 판단에 필요한 항목을 반환하는지, 종료 기록은 언제 일상 조회에서 빠지고 상세 증거·중복 방지 이력은 어떤 조건에 다시 찾는지 확인한다. 파일 분리나 “필요한 것만 읽는다”는 선언만으로 충분하다고 판단하지 않는다. 파일 전체를 프로그램이 읽는 것과 그 내용을 AI 문맥에 출력하는 것을 구분한다.
+- 다음 판단에 필요한 내용은 진입 문맥에 두고, 조건부 세부 정보는 실제 읽기 조건이 있는 참조로 둔다. 필요한 정보까지 줄이지 않으며, 먼저 읽는 정보량과 AI가 추측해야 하는 양을 함께 줄인다.
+- 작성자의 의도나 이전 결론이 판단을 오염시킬 수 있으면 독립 read-only subagent를 이전 대화를 넘기지 않는 새 문맥(`fork_context=false`)으로 호출한다. 실제 시작 입력·작업·허용 도구와 범위만 주고, 작성자의 설명·정답·예상 결론은 주지 않는다. 독립 검토는 필요할 때만 한다.
 
-This is a skill, not a replacement for narrative novelist agents. Use
-independent review only when author intent, prior conclusions, or a proposed
-fix could bias semantic judgment and the target plus question can be closed as
-a standalone packet. If the user explicitly names an agent or isolation mode,
-follow that direction unless a higher-priority contract or runtime constraint
-prevents it. For independent review, spawn the subagent with
-`fork_turns="none"`, then send this skill and only the proposed packet or target
-files. Never use `all` or a recent turn count; the agent cannot discard
-inherited conversation after spawning.
-Context-novelist never satisfies or skips a required `spec-novelist` or
-`impl-novelist` check. When both checks apply, keep them independent and run
-them in parallel.
+결과에는 AI가 실제로 선택한 첫 행동과 근거, 막히거나 잘못 추론한 지점, 추가·삭제·지연 로딩할 최소 문맥을 제시한다. 검토 요청은 제안으로 끝내고, 수정이 승인됐으면 문맥과 참조를 고친 뒤 같은 첫 판단을 다시 확인한다. 정해진 출력 양식이나 의무 reviewer 수는 없다.
 
-## Trigger and routing boundary
+Codex의 로딩 시점·compaction·memory가 쟁점일 때만 공유 [로딩 수명 참고](../improve-context/references/codex-context-lifetimes.md)를 읽고 실제 환경과 대조한다.
 
-Apply this skill when the request audits a focused context packet or point of
-use, or when a change creates or changes how a future session discovers,
-selects, loads, or hands off persistent context. The latter includes AGENTS,
-skills, maps, indexes, resolvers,
-workmaps, handoffs, hooks, and multi-agent or job entry routes, even if the
-request does not say “context audit”.
-
-Keep companion ownership separate:
-
-- `blame-context` captures one live misread in the current session without a
-  subagent.
-- `context-gc` inventories and sweeps stale, unreachable, expired, duplicate,
-  or contradictory context over a named or full scope.
-- `improve-context-architecture` proposes a new context composition when the
-  existing topology itself is the limitation.
-
-Do not perform those workflows here. Re-enter this lens only to validate a
-specific reader's first decision or a proposed/changed point-of-use edge.
-
-Keep runtime-specific loading details lazy. Read [the Codex context lifetimes
-reference](references/codex-context-lifetimes.md) only when the runtime is Codex or when
-the task asks about Codex session, turn, skill, hook, compaction, or memory
-loading.
-
-## Graph audit
-
-Model the topology as a directed graph, not a fixed chain. Nodes may be any
-context artifact or runtime ingress: AGENTS, a global or project skill, a
-capability map, adapter, resolver, script, index, handoff, hook, plan, job
-entry, memory, or another named artifact. A skill may read a capability map,
-contain an adapter or resolver, invoke a script, or point to another skill.
-Do not prescribe a resolver, index, or `contract_ref`; describe only the
-composition that actually exists.
-
-For every edge, record and audit:
-
-```text
-From | Trigger | Action | To | Lifetime | Authority | Failure
-```
-
-Use the fields literally: identify the producer, the runtime or user event
-that activates it, the load/select/inject/hand-off action, the resulting target,
-how long the edge applies, which source wins, and what happens when it is
-missing, stale, duplicated, cyclic, or rejected. Distinguish an edge that is
-automatic from one that requires a real runtime ingress or an explicit user
-action.
-
-Core invariant: every non-automatic point-of-use (POU) target must be reachable
-from at least one real runtime ingress. Flag orphan targets, ambiguous or
-duplicate authority, cycles, stale edges, and silent fallback. An artifact that
-exists but has no reachable trigger is not complete; a target reached only by
-model memory or an undocumented convention is not reachable.
-
-Audit the next reader's first decision at each POU: reader, trigger, minimum
-packet, authority, lifetime, and failure behavior must be explicit. Preserve
-progressive disclosure: route first, then load only the contract, schema, test,
-artifact, or evidence required for that decision. Do not read cold history,
-archives, long evidence, or prior conclusions unless stale state or provenance
-is the target. Keep case-packet boundaries and fresh-context review principles
-when they remain compatible with the graph.
-
-### Controller-owned delegated task projection
-
-Any controller or distributed gate that chooses delegation owns selective
-projection into the delegated task packet. It must project the task intent,
-authority and write boundaries, required inputs, nested delegation/tool/model
-intent (or explicit none), output and verification contract, and stop or
-escalation behavior. An isolated worker must not be expected to infer omitted
-controller context. This is not full-session inheritance, a central router, a
-shared mutable pointer, or a new artifact schema.
-
-## Case packets
-
-Use the smallest matching packet. If several apply, start with the narrowest
-and add only named dependencies.
-
-| Case | Include | Exclude by default |
-|---|---|---|
-| Code change | User goal, touched files, nearest AGENTS.md, relevant tests/checkers, named contract/schema | Whole repo docs, old plans, unrelated dirty files |
-| Spec or plan | Approved spec/plan, acceptance criteria, directly named ADRs/contracts, open decisions | All ADRs, full chat history, implementation logs |
-| Lane/orchestration | Relevant lane header before History, active program block, named checker/contract, current call | Lane History, evidence logs, consumed calls |
-| External/fresh review | Objective, exact files/excerpts, audit questions, output contract, forbidden assumptions | Prior conclusion, intended fix, broad repo dump |
-| Evidence/data | Schema, manifest/hash, aggregate counts, failing examples, source authority | Full raw corpus unless sampling/provenance requires it |
-| UI/design | Target URL or screenshots, design-system entrypoint, current component files, acceptance criteria | Old mock archives, unrelated variants |
-| AGENTS/SKILL/knowledge | Target, consumer trigger, POU path, duplication/staleness checks | Mirror docs, process history |
-| Runtime/session audit | Current intent, injected routing context, loaded routing artifacts, recent actions, touched files, verification | Full chat history, unrelated rules, stale evidence |
-| Delegated task | Task intent, authority/write bounds, required inputs, nested delegation/tool/model intent or none, output/verification, stop/escalation | Full controller session, unrelated evidence, implicit shared state |
-
-## Audit questions
-
-- Is the reader and trigger explicit at the POU?
-- Can the reader act without cold history or an implicit convention?
-- Are authority and lifetime single-sourced where values can diverge?
-- Is each non-automatic target reachable from a real runtime ingress?
-- Are there orphan targets, duplicate authority, cycles, stale edges, or silent fallbacks?
-- Did the session load context at the POU, or rely on memory?
-- Did a skill, plan, or handoff trigger fire from evidence rather than name association?
-- Is missing context blocking action, or is the agent over-reading to feel safer?
-- Did the dispatching controller project every delegated-task field, including
-  nested delegation/tool/model intent or explicit none?
-
-## Mechanical vs. LLM judgment
-
-Prefer mechanical checks for file existence, required fields, line limits,
-forbidden live tokens, parser drift, schema coverage, hashes, fixture outcomes,
-and route-state consistency. Leave LLM judgment for semantic sufficiency,
-ownership ambiguity, product meaning, public copy, medical/evidence wording,
-and whether a packet would mislead a fresh reader. When a rule is crisp enough
-to test twice, recommend promoting it to a checker.
-
-## Output contract
-
-Return only:
-
-```text
-Verdict: minimal | under-context | over-context | stale-context | wrong-reader | drifted | wrong-trigger
-Reader/trigger:
-Required packet:
-Drop:
-Fresh-read needed:
-Mechanical guard:
-LLM judgment:
-Smallest next action:
-```
-
-Keep findings grounded in file paths, line numbers, commands, or exact packet
-fields when available. Do not rewrite the packet unless asked.
+역할 경계: 방금 발생한 사건의 원인과 수정은 [blame-context](../blame-context/SKILL.md), 요청 범위의 문맥 정리·구조 개선은 [improve-context](../improve-context/SKILL.md), 세션 전체의 반복 낭비 분석은 [retro](../retro/SKILL.md)가 맡는다. 이 참조는 후속 스킬을 자동 실행하는 단계가 아니다.

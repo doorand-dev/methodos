@@ -8,11 +8,11 @@
 여러 todo가 한 덩어리(버그 sweep·정리·한 기능)일 때 **줄에 공유 grep 토큰**을 박아 묶는다
 (예 `(roi8)`·`(sources-decomp)`). 별도 roadmap/status 문서 만들지 않는다.
 
-- **status는 저장 말고 파생** ([ADR 0019] 핵심): `rg '<토큰>' <todo_root>/todos.md` 후 `[x]`
+- **status는 저장 말고 파생** ([ADR 0019] 핵심): `rg '<토큰>' .claude/todos.md` 후 `[x]`
   카운트. status 컬럼/표/README 저장 금지 (저장 = todos와 drift). 파생값은 X/N 체크리스트일
   뿐 "holistically done" 아님 — `[ ]`도 미close일 수 있음(directive 누락·세션외·revert), 의심 시 수동 확인.
 - **`@unit:slug` 전용 문법 폐기 ([ADR 0026])**: 클러스터-식별은 결국 *공유 grep 토큰*이라
-  grep앵커 원칙의 한 사례로 흡수됨. 산문 토큰이 동일하게 grep·카운트됨 (youtube 실증:
+  grep앵커 원칙의 한 사례로 흡수됨. 산문 토큰이 동일하게 grep·카운트됨 (프로젝트 사례:
   `(ROI#8)`로 이미 묶음, @unit은 0건). 전용 문법은 ceremony였음 — 단, "status 파생·별도
   문서 금지" *원칙*은 위에 유지.
 
@@ -27,7 +27,7 @@ todo 줄 = 린 인덱스. 맥락(왜·시도·관점·결정·grep)이 ~3줄 넘
   자식불릿 벽을 구조적으로 못 잡았고, point-of-use 헤더 규약이 더 나은 예방 레버. 사이드카는
   *유지+강등*: 휘발 작업맥락은 findings([ADR 0024])/handoff가 안 덮는 고유 영역이라 삭제 X
   ("잉여" 아니라 "미채택").
-- **close 졸업**: 영속 *결정* → ADR(`decision`), 영속 *사실* → finding(`/finding`, [ADR 0024])
+- **close 졸업**: 영속 *결정* → ADR(의사결정 기록), 영속 *사실* → finding(`/finding`, [ADR 0024])
   로 졸업 *후* 사이드카 삭제. (휘발 맥락=사이드카, 영속=ADR/finding.) `gc`가 (`#NNN [x]`)
   또는 (`#NNN 줄 부재`)일 때 삭제.
 
@@ -38,7 +38,7 @@ todo 줄 = 린 인덱스. 맥락(왜·시도·관점·결정·grep)이 ~3줄 넘
 
 규약은 *쓰는 자리*에 있어야 따라진다. 사람/AI는 todo 추가 시 SKILL.md를 다시 안 읽고
 todos.md를 본다. 증거 [추정 n=2]: 헤더에 있는 `#NNN`·형식은 따라지고, SKILL.md-only 규약은
-안 따라진다 (youtube 자식불릿 벽 = 그 파일 헤더의 `(SKILL)` 태그를 따른 것). → 포맷 규약을
+안 따라진다 (프로젝트의 자식불릿 사례 = 그 파일 헤더의 `(SKILL)` 태그를 따른 것). → 포맷 규약을
 todos.md 헤더로 이주(SKILL.md lazy생성이 emit). grep앵커·finding 막힘과 같은 point-of-use 원칙.
 
 ## grep 발견성 — 미래 세션의 자연 grep에 걸리게 ([ADR 0020])
@@ -54,7 +54,7 @@ todo 회상 경로 = SessionStart 덤프가 아니라 *작업 중 모델이 치�
   읽힘. **우선순위·순서 = 저장 X**(생성 때 모름) → 합성회상 시점 AI 제안·사용자 확정.
 - **합성회상**: 매 세션 X. 핸드오프가 세션 *안 끌 때*(첫 메시지 막연) 또는 명시 호출 시만.
   `{열린 todo + 최근커밋}`로 "최근·중요도·순서" 제안, ctx는 고른 것만 lazy. 스코프됨
-  (ADR 0017 — 전체 재랭킹 X).
+  (ADR 0017 (원 설계 ADR: `0017-conv-scoped-reverify.md`, 이 배포본에는 미포함) — 전체 재랭킹 X).
 - **정비(triage)** = full 검토(rot 방지): "정비하자" 또는 열린 todo ~15건+ 넛지. *가치
   검토*(유효·중복·우선순위)지 기계적 재포맷 아님.
 - **마이그레이션**: 기존 todo 강제 전환 X. 린=유지, 비대=convert-on-touch(다음에 그 todo
@@ -69,9 +69,9 @@ false positive 방지. (코어가 강제하는 동작, WHY는 여기.)
 
 ## 관련 ADR
 
-- 0014 todo 단일 작업 layer
-- 0017 scoped (합성회상 전체 재랭킹 X)
-- 0019 단위·파생status·close넛지
-- 0020 린줄·사이드카·grep발견성·합성회상
-- 0024 finding 졸업처
-- 0026 경량화(@unit/@after 폐기·nudge 드롭·헤더 이주·이 분리)
+- 0014 (원 설계 ADR: `0014-conv-todo-single-layer-global.md`, 이 배포본에는 미포함) todo 단일 작업 layer
+- 0017 (원 설계 ADR: `0017-conv-scoped-reverify.md`, 이 배포본에는 미포함) scoped (합성회상 전체 재랭킹 X)
+- 0019 (원 설계 ADR: `0019-conv-unit-grouping-llm-close-nudge.md`, 이 배포본에는 미포함) 단위·파생status·close넛지
+- 0020 (원 설계 ADR: `0020-conv-todo-ctx-sidecar-synthesis.md`, 이 배포본에는 미포함) 린줄·사이드카·grep발견성·합성회상
+- 0024 (원 설계 ADR: `0024-conv-findings-as-folder-artifact.md`, 이 배포본에는 미포함) finding 졸업처
+- 0026 (원 설계 ADR: `0026-conv-todo-skill-leanify.md`, 이 배포본에는 미포함) 경량화(@unit/@after 폐기·nudge 드롭·헤더 이주·이 분리)

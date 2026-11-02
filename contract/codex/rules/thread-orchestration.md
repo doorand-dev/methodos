@@ -1,102 +1,38 @@
-# Delegated Thread Transport
+# Thread Messaging
 
-배포 경로: `~/.codex/rules/thread-orchestration.md`.
+새 채팅의 첫 메시지(`create_thread`), 채팅 사이의 메시지, 정기 예약 프롬프트에 적용한다. Built-in subagent 결과는 caller에게 직접 돌아오므로 해당하지 않는다. 역할·보관 조건은 프로젝트 계약이 정한다.
 
-이 계약은 explicit parent가 있는 delegated task의 dispatch·report-up·recovery에만
-적용한다. Parentless standalone automation은 이 계약을 읽거나 가짜 parent를 만들지
-않고 프로젝트가 선언한 durable state/output surface를 따른다. 프로젝트 adapter는
-role mapping과 archive/release eligibility를 소유한다.
+## 보내기
 
-## 도구 매핑
+- 첫 줄에 `[보내는 채팅→받는 채팅 · 에이전트 간 전달]`을 쓴다. 사용자 요청으로 보내면 그 요청의 사용자 원문을 따옴표로 인용하고 어느 채팅의 메시지인지 밝힌다. 자기 요약을 사용자 인용처럼 쓰지 않는다. 받는 쪽 처리는 전역 AGENTS를 따른다.
+- 목표와 필요한 경계만 쓴다. 받는 쪽이 직접 조회할 수 있는 경로·ID·로그는 조회 진입점만 적고, 추정은 추정이라고 표시한다.
+- 실행 중인 turn에 들어간 지시는 묻힐 수 있다. 보내기 전에 `wait_threads`(`timeoutMs: 0`)로 상태를 보고, 실행 중이면 끝난 뒤 보낸다. 전송 성공, 실제 시작, 완료를 구분해 보고한다.
+- 같은 문제는 담당 채팅 하나가 끝까지 맡는다. 다른 채팅은 같은 건을 다시 진단하거나 중계하지 않는다.
 
-- SPAWN = native thread/subagent spawn. Built-in subagent는 호출 parent의 현재 turn 안에서
-  결과를 회수할 때, 독립 thread는 사용자 표시나 session boundary가 필요할 때 쓴다.
-- SEND = Desktop `send_message_to_thread`. 오류 없이 반환한 대상 `threadId`가 전달
-  증거다. 전달 의도·assistant 문구·thread status는 SEND가 아니다.
-- WAKE = Desktop automation/event wake. WAKE 성공은 workload 완료 증거가 아니다.
-- PROVE = 실제 파일·commit·command result·required artifact/HITL이다.
+## 결과는 당겨 읽는다
 
-## Dispatch identity
+- 맡은 채팅은 일을 마치면 결과를 최종 메시지에 담고 turn을 끝낸다. 최종 메시지는 산출물·검증·미결·필요한 사용자 결정만 짧게 쓴다.
+- 부모나 사용자는 필요할 때 `wait_threads`로 최종 메시지만 읽는다. `timeoutMs: 0`은 즉시 스냅샷이고, cursor를 넘기면 이미 읽은 결과를 건너뛴다. 결과를 기다려야 하면 bounded wait를 쓰고 timeout만으로 취소·재발주하지 않는다.
+- `send_message_to_thread`로 부모에게 보고하는 것은 부모가 그 결과로 다음 일을 바로 이어가야 하거나, 사용자 결정이 필요한 blocker일 때만 한다. 보고 한 번은 부모 채팅의 전체 문맥을 다시 읽는 turn 하나를 쓴다. 받은 보고에는 회신하지 않는다.
+- 외부 서버·watcher가 조건 충족으로 채팅을 깨우는 재개는 `~/.codex/rules/codex-wake.md`를 따른다.
 
-**ORCH-OWNER-001** — explicit parent가 packet terminal의 단일 소비자이고 자기가 만든
-descendant의 transport 정리를 소유한다.
+## 기록 읽기
 
-발주 prompt는 explicit parent, lifecycle identity, packet/slice, attempt, terminal
-scope·대상, wake 경로를 명시한다. Worker와 reviewer는 별도 subrole이다. Worker는 closed packet만
-구현하고 reviewer는 fresh/read-only이며 acceptance나 repair ownership을 갖지 않는다.
+- 상태와 결과 확인은 `wait_threads` 스냅샷으로 충분하다.
+- 특정 부분은 `read_thread`의 `turnLimit`·`maxOutputCharsPerItem`으로 필요한 turn만 읽는다.
+- 긴 기록 전체 요약이나 "어디서 무엇을 정했는지" 찾기는 워커에게 맡기고 근거 turn·인용과 요약만 받는다(orch의 발췌 → triage). 원본 기록은 `~/.codex/sessions/YYYY/MM/DD/rollout-*-<threadId>.jsonl`이다.
 
-같은 worker/thread는 같은 open lifecycle·packet의 completion, correction,
-reverification에만 재사용한다. 새 goal·scope·risk는 새 packet이다. Terminal lifecycle
-뒤 같은 lead task를 재사용할 수는 있지만 새 lifecycle identity를 명시해야 하며 과거
-lifecycle을 다시 열지 않는다.
+## 중복 전송 방지
 
-## Report-up과 terminal scope
+compact·resume 뒤 전송 여부가 불확실하면 `read_thread`로 대상에 같은 입력이 있는지 한 번 확인한다. 없고 이전 실행이 끝났을 때만 한 번 보낸다. 실행 중이거나 대기 중이면 다시 보내지 않고 그 결과를 읽는다.
 
-**ORCH-TERM-001** — terminal은 scope와 evidence를 포함하며 status나 transport
-metadata만으로 완료를 주장하지 않는다.
+## 예약 프롬프트
 
-- Worker `COMPLETED|BLOCKED|NEEDS_USER`는 assigned packet만 닫는다.
-- Reviewer return은 finding/pass만 반환하며 packet이나 lifecycle을 닫지 않는다.
-- Lifecycle lead terminal은 worker result, 조건부 review, repair/re-review를 소비한 뒤
-  lifecycle을 닫는다.
-- Root terminal은 프로젝트 integration·HITL 이후 overall request를 닫는다.
+- 실행할 때마다 처음부터 읽히는 현재 지시다. 역할·점검 기준·알림 조건·금지 사항만 담고 경위·이력·커밋 ID는 프로젝트 상태에 둔다. 고칠 때는 덧붙이지 말고 전체를 다시 쓴다. 1,500자 안팎을 넘으면 세부를 정본 문서로 옮기고 참조만 남긴다.
+- 상태가 바뀌지 않았으면 조용히 끝내고, 의미 있는 변화·완료·실패·사용자 조치가 필요할 때만 알린다.
+- 정상 작업마다 polling heartbeat를 붙이지 않는다. 복구용 one-shot wake는 전달 유실·crash·의존성 재개에만 쓰고, 깨어나면 자기 one-shot부터 지운다. 자동화는 앱 도구로 만들고 RRULE은 설치된 앱 도구가 지원하는 형식으로 작성한다.
+- 대상 채팅을 바꿀 때는 id·주기·상태를 유지하고 대상만 바꾼 뒤 다시 조회해 확인한다.
 
-`PLAN_READY`는 lifecycle terminal이 아니라 approval을 위한 coordination output이다.
-Lead는 SEND 뒤 turn을 끝내고 parent follow-up으로 같은 lifecycle을 재개한다.
+## 보관
 
-Built-in subagent는 terminal을 caller에 direct return하고 caller가 소비한다. 독립 child는
-terminal과 evidence를 parent에 SEND한 뒤 자기 turn을 끝낸다. Parent의 follow-up/wake로만
-재개하며 `wait_threads`나 `read_thread`로 parent를 poll하지 않는다. Incomplete packet이나
-새 WHAT는 role을 확장하지 않고 explicit parent에 `BLOCKED|NEEDS_USER`로 반환한다.
-
-## Compact/resume recovery
-
-**ORCH-RECOVER-001** — compact/resume 뒤 unresolved outbound는 SEND를 가정하거나
-즉시 반복하지 않는다. 대상 `read_thread`의 최근 matching input·turn id·status를 한 번
-읽고 복구한다.
-
-- `pending outbound`: matching follow-up 입력이 없고 이전 turn이 terminal/idle이다.
-  한 번 SEND한다.
-- `sent-but-unconfirmed`: SEND는 성공했지만 matching turn 시작이 보이지 않거나 대상이
-  active/queued다. 재전송하지 않고 reply/wake로 회수한다.
-- `confirmed-active`: matching follow-up turn이 active/inProgress다. 재전송·polling하지
-  않는다.
-- `terminal-consumed`: parent가 matching lifecycle·packet·attempt terminal을 읽고
-  판정을 transcript에 남겼다. 같은 terminal을 다시 소비하지 않는다.
-
-현재 SEND에는 idempotency key가 없다. Matching input/terminal transcript가 중복 방지
-근거이고 cursor/revision은 증분 조회 토큰일 뿐 SEND나 소비 증거가 아니다. Compaction은
-lifecycle identity, packet, attempt, parentage를 바꾸지 않는다.
-
-`wait_threads`는 사용자가 현재 turn에서 결과를 기다리고 이번 응답에 필요할 때만 한
-번 bounded call로 사용한다. Timeout 뒤 반복 polling하지 않고 reply/wake로 전환한다.
-SEND 확인, active 확인, compact recovery에는 쓰지 않는다.
-
-## Wake mechanism
-
-One-shot heartbeat는 explicit-parent direct return 유실, crash, dependency wake의
-fallback이지 중간 보고·정기 polling workload가 아니다. Root의 deferred automation
-소유권은 `root-controller.md`가 정본이다.
-
-Active thread가 자기 다음 turn의 model transition을 위해 self-wake할 때는 exact marker를
-arm하고 같은 marker·model·thinking·packet을 self-message한 뒤 현재 turn을 끝낸다.
-Wake는 자기 automation을 먼저 삭제하고 marker가 정확히 하나일 때만 실행한다.
-
-**ORCH-WAKE-001** — Wake turn은 automation을 먼저 삭제하고 task transcript와
-프로젝트가 허용한 state를 read-only로 판정한다. User decision/HITL 대기를 crash로
-취급하거나 terminal task에 같은 packet을 재발주하지 않는다. RRULE 생성은
-`~/.codex/rules/scripts/codex-heartbeat-rrule.ps1`을 사용하며 automation 파일을 직접
-편집하지 않는다.
-
-## Archive mechanism
-
-독립 thread spawner는 자기가 만든 descendant만 native archive할 수 있다. Archive eligibility,
-retention, automation-origin 제외, worktree integration/release 조건은 프로젝트/role
-계약이 소유한다. Thread archive는 worktree 삭제가 아니며 idle status만으로 둘 중
-어느 것도 실행하지 않는다.
-
-## Compatibility
-
-Root-only `ORCH-ROOT-001`·`ORCH-AUTO-001`은 `root-controller.md`로 이동했다. 이 문장은
-legacy project pointer를 위한 비규범 compatibility 안내이며 root contract를 복제하지
-않는다.
+Thread archive와 worktree 삭제는 다르다. idle만으로 보관하지 않고 프로젝트의 결과 보존·통합 조건을 따른다. worktree 정리는 [worktree.md](worktree.md)를 따른다.

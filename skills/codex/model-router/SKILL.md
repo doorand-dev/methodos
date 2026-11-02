@@ -16,23 +16,23 @@ Keep the user's real task primary. Measure only enough to decide whether the wor
 
 ## Select a route
 
-Honor current user instruction, then project role/model contracts, then global defaults for the incumbent execution path. Resolve challenger eligibility through the project's model-catalog adapter when one is mandated; otherwise fetch `GET http://127.0.0.1:10100/v1/models?client_version=0.0.0` and use only `models[]` with `visibility=="list"`. Invoke the exact live `slug` and only a listed reasoning effort.
+Honor current user instruction, then project role/model contracts, then configured global defaults. Use the current spawning tool's supported model and effort list; an optional provider catalog must be explicitly configured by the adopter. Never assume a personal local endpoint.
 
-Static examples are not an allowlist. Use accumulated records and task fit first. Useful seed challengers, only when still eligible, include:
+Default routes and exclusions come from
+`~/.codex/rules/model-routing.json`. Select a challenger only within the user's
+explicit comparison scope and currently supported models. Do not promote a
+historical benchmark or provider example into a default route.
 
-- Luna medium for retrieval, transformation, and bounded review.
-- Terra medium for closed-context `synthesize + apply` work.
-- Qwen 3.8 when contradiction detection, fact cross-checking, or supported image understanding matters.
-- OpenCode Free DeepSeek high for text-only mechanical or retrieval slices.
-- OpenCode Go DeepSeek high for bounded verification slices. Controlled group `inventory-crosscheck-260805` (review/decide, n=1): it beat Sonnet medium and Sonnet high, and raising Sonnet effort above medium did not improve this task type.
-
-Use `executor + provider + model + effort + modality` as candidate identity. Never merge providers exposing the same model family. Treat DeepSeek routes as text-only for this benchmark policy; record direct image work as `unsupported`, or record a separate vision/OCR-to-text flow as `pipeline`.
+Use `executor + provider + model + effort + modality` as candidate identity.
+Never merge providers exposing the same model family. Unsupported modalities
+must be reported rather than silently adding another model or OCR pipeline.
 
 ### ChatGPT web (chatgpt.com) as a review route
 
-ChatGPT web, driven through the Codex in-app browser (skill `chatgpt-inapp-review`) or
-agbrowse (`ask-chatgpt-pro`, `web-ai`), is a separate route class from the OpenCodex
-model list above: it is not an API call, has no per-token cost visibility, and is
+ChatGPT web is a separate route class from the OpenCodex model list above.
+Browser selection follows the user's global rules and the selected transport's
+entrypoint; this skill does not select or authorize a browser adapter.
+It is not an API call, has no per-token cost visibility, and is
 selected by reasoning-effort label (즉시/중간/높음/매우높음/Pro) rather than a slug.
 Record it as `executor=orchestrator` (or `subagent` if a delegated agent drives the
 browser), `provider=chatgpt-web`, `model=<effort-label>`, with `plan_consumption`
@@ -44,23 +44,9 @@ ChatGPT web / in-app-browser / agbrowse review, not as a silent substitute for a
 OpenCodex model route. This is a second-opinion / cross-check surface, not a default
 execution path.
 
-**Which effort tier to use, from one comparison run (`inapp-review-effort-260805`,
-n=1 per tier, KIAS institutional-report review task — see
-`chatgpt-inapp-review/references/effort-comparison-260805.md` for full evidence):**
+Select effort using the user's request and comparable measured records. This publication includes no private benchmark, default provider ranking, or personal pricing values. Treat browser usage as unmeasured when the provider exposes no usage record.
 
-| Tier | Use when | Cost signal |
-|---|---|---|
-| 즉시/중간 | Fast sanity check; user needs an answer in under a minute | ~20-30s wall time |
-| 높음 | Default for a real review — best depth-per-minute; first tier to do concrete named-entity fact cross-checks | ~3 min wall time |
-| 매우높음 | Same cost tier as 높음 but reorganizes findings into finer sub-cases; lateral move, not a strict upgrade | ~2-3 min wall time |
-| Pro | Only for high-stakes review where one extra unique catch justifies several extra minutes and a UI trap (must not click the mid-generation "지금 답변 받기" button, which truncates the answer) | several min longer than 매우높음; no auto-retry if user force-answers early |
-
-Escalating effort did not change *what class* of problem was found (all tiers
-converged on the same core issues); it changed granularity, named-entity specificity,
-and the odds of one additional unique catch. Treat 높음 as the default; only escalate
-to Pro when the review feeds a high-stakes decision and the wait is acceptable. Do not
-assume this ordering holds for other task types (e.g. code review, math) without a
-separate comparison run — record a new group before generalizing.
+For an authorized ChatGPT Pro run, read the [completion and recovery contract](../ask-chatgpt-pro/references/common.md). The installed browser adapter must follow the user's browser choice; this reference does not grant messaging, uploads, or scheduled execution.
 
 ## Record one run
 
@@ -114,8 +100,8 @@ Read [pricing.md](references/pricing.md) only when finishing a measured run or c
 ## Commands
 
 ```powershell
-python scripts/usage_test.py start --task "작업명" --task-type diagnosis --task-shape decide --context-state selected_files --judgment-level reconcile --execution-shape isolated_candidate --executor subagent --dependency-span bounded_multifile --size medium --modality text --comparison-scope bounded-slice --comparison-group GROUP_ID --packet COMMON_PACKET.md --route-slug alibaba-token-plan-intl/qwen3.8-max --effort medium
-python scripts/usage_test.py finish --run-id RUN_ID --outcome minor-revision --revision-burden minor --quality-score 82 --rank 2 --evidence "사실 모순 1건 발견" --finish-notes "표 제목 수정 필요" --tool-rounds 6 --billing-mode subscription --api-equivalent-usd 0.14 --plan-consumption credits=0.67 --plan-consumption quota_7d_percent=0.02 --pricing-as-of 2026-08-05
+python scripts/usage_test.py start --task "작업명" --task-type diagnosis --task-shape decide --context-state selected_files --judgment-level reconcile --execution-shape isolated_candidate --executor subagent --dependency-span bounded_multifile --size medium --modality text --comparison-scope bounded-slice --comparison-group GROUP_ID --packet COMMON_PACKET.md --route-slug SUPPORTED_ROUTE --effort SUPPORTED_EFFORT
+python scripts/usage_test.py finish --run-id RUN_ID --outcome minor-revision --revision-burden minor --quality-score 82 --rank 2 --evidence "사실 모순 1건 발견" --finish-notes "표 제목 수정 필요" --tool-rounds 6 --billing-mode subscription
 python scripts/usage_test.py finish --run-id RUN_ID --outcome failed --availability rate-limited --failure-reason "429 Too Many Requests; retry limit exceeded"
 python scripts/usage_test.py summary --comparison-group GROUP_ID
 python scripts/usage_test.py refresh --min-samples 2

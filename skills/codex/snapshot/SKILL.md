@@ -1,14 +1,6 @@
 ---
 name: snapshot
-description: |
-  Right before compaction (/compact) in the same session, persist as JSON the **in-flight tasks, decisions, and unknowns whose priority must survive compaction**. Not a plain backup — a tool that **re-injects** these items into post-compact Codex's working context.
-
-  Always invoke this skill on these natural-language triggers:
-  - "컴팩트 전에 저장", "/compact 직전", "context 곧 잘릴 것 같아"
-  - "압축 전에 정리", "현재 진행 상황 영속화", "현재 in-flight snapshot"
-  - "우선순위 재주입", "snapshot"
-
-  **This is not for handing work to a new session** — it re-injects priorities after compaction within the same session. To split a task off for the next session, use the `handoff` skill.
+description: "같은 채팅에서 압축(/compact) 직전에 진행 중인 작업·결정·미확인 사항을 저장해 압축 뒤 다시 주입할 때 사용한다. “snapshot”, “컴팩트 전에 저장”, “context 곧 잘릴 것 같아” 같은 요청이 해당한다. 새 채팅으로 넘기는 일은 handoff를 쓴다."
 ---
 
 # Snapshot (전역 스킬)
@@ -82,13 +74,13 @@ snapshot은 단순 백업이 아니라 **압축 후 working context로 다시 �
 
 ## When to use
 
-- `/compact`가 **실제 임박**했을 때 — 긴 세션이라고 자동 아님. 1M 컨텍스트(Opus 4.8+)에선 compact가 드물어져 발동 구간이 좁아졌다. "오래 끌었으니 일단 snapshot"은 과발동 — compact가 임박하지 않으면 보류.
+- `/compact`가 **실제 임박**했을 때 — 긴 세션이라고 자동 아님. "오래 끌었으니 일단 snapshot"은 과발동 — compact가 임박하지 않으면 보류.
 - 진행 중인 task의 *고위험* 우선순위가 압축의 확률 요약으로 흐릿해지면 안 될 때 (못 믿을 in-flight 결정·미상)
 - 사용자가 "지금까지 저장", "압축 전 정리" 명시 요청
 
 ## When NOT to use
 
-- **새 세션으로 task 일부 분리** → `handoff` 스킬 (시작 프롬프트 추천 포함). 판별: *시작 프롬프트에 cwd·env·dev 서버 같은 전제조건을 적어줘야 하면* 환경이 안 살아있다는 뜻 → 새 세션 → handoff. snapshot은 환경이 그대로 살아있어 "스냅샷 읽고 이어가" 한 줄로 충분.
+- **새 세션으로 task 일부 분리** → [handoff](../handoff/SKILL.md). snapshot은 같은 세션의 압축 뒤 우선순위를 복원한다. 실행 환경이 살아 있는지는 선택 기준이 아니며, 복원 시 필요한 실행 전제는 별도로 확인한다.
 - 영속 할 일 관리 → `todo` 스킬
 - 단순 메모, 일회성 상태
 
@@ -262,11 +254,3 @@ python <installed-snapshot-skill>/scripts/write_context_snapshot.py --input snap
 - live ERP 쓰기·결재 동작은 스냅샷 후에도 fresh 확인 필요.
 
 ---
-
-## CONV-GATE 위임
-
-매핑 정본 → [`mine/CONV-GRAPH.md`](../../CONV-GRAPH.md).
-
-- 우선순위 큐레이션 시 → [2G] 라벨 [확신/추정/모름] 강제 (압축 후 재진입 시 신뢰도 보존)
-
-신규 시점 추가 시 CONV-GRAPH.md 매핑 표 한 줄 갱신.

@@ -268,4 +268,7 @@ def main():
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Audit the current project and write its GC report. Run only in the intended project.")
+    parser.parse_args()
     main()

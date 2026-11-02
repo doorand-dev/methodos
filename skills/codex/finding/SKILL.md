@@ -1,14 +1,13 @@
 ---
 name: finding
-description: |
-  Accumulate persistent knowledge that code cannot hold — "how reality actually behaves / what is blocked" (external system behavior, hard-won workarounds, tried-but-failed) — into `docs/findings/NNNN-slug.md`, file-per-finding. A *persistent reference-fact* artifact, distinct from decisions (ADR), friction (volatile backlog), and todo-ctx (volatile context). First-class explicit triggers (`/finding`, "finding 박아", "이거 발견 기록") plus a soft nudge on discovery remarks (automatic, opt-in recording). Preserves reverse-engineering knowledge of external systems from being re-dug next session.
+description: "외부 시스템의 실제 동작, 어렵게 찾은 우회법, 시도했다 실패한 방법처럼 코드에 남지 않는 사실을 docs/findings/에 기록할 때 사용한다. “finding”, “/finding”, “이거 발견 기록” 요청에 쓰고, 그런 발견이 나온 대화에서는 기록을 제안만 한다."
 ---
 
 # /finding (전역 스킬)
 
 어느 워크스페이스에서든 동작. *코드가 못 담는 발견*(택한 길이 아니라 *버린 길*·*막힌 길*)을 영속 파일로 박아 다음 세션의 재삽질을 차단.
 
-> **이름 vs 산출 분리**: 스킬 `finding`(자연 발화 "발견 기록"), 산출 `docs/findings/NNNN-<slug>.md`. `blame-code → friction.md`, `decision → docs/adr/`와 같은 분리 패턴.
+> **이름 vs 산출 분리**: 스킬 `finding`(자연 발화 "발견 기록"), 산출 `docs/findings/NNNN-<slug>.md`. `blame-code → friction.md`, 의사결정 기록 → `docs/adr/`와 같은 분리 패턴.
 
 > 도입 결정: `docs/adr/0024-conv-findings-as-folder-artifact.md`. 형태(file-per-finding) 외부조사 근거·생애주기 거기.
 
@@ -70,7 +69,7 @@ finding의 핵심 = **네거티브 스페이스**. 코드는 *택한 길*만 담
 ### 4. todo-ctx 졸업 수령 (둘째 출구)
 
 todo 닫을 때 `todo-ctx/NNN.json`의 load-bearing 내용이:
-- *결정*이면 → `decision` 스킬로 ADR 승격
+- *결정*이면 → 앞으로 판단에 필요한 내용만 기존 `docs/adr/` 규약에 따라 ADR로 기록
 - **사실 발견**이면(`do_not_redo`·`grep_pointers` 필드가 전형) → **여기로 졸업**(finding 작성)
 - 졸업 후 json 삭제 (휘발 맥락 → 영속 지식 이전 완료).
 
@@ -97,9 +96,3 @@ grep -rn "\[<태그>\]" docs/findings/
 | `root_override` | 산출 폴더 경로 override | `docs/findings/` (없으면 루트 `findings/`) |
 
 ---
-
-## CONV-GATE 위임
-
-매핑 정본 → [`mine/CONV-GRAPH.md`](../../CONV-GRAPH.md).
-
-- finding 기록 직전 → [1C] 누더기 거부(발견 합리화·중복 박기 방지) + [3J] 추출 시점(졸업 분기: 휘발 todo-ctx → 영속 finding은 *이전*이 가치 생길 때만)

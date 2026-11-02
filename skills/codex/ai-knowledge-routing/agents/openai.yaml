@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Knowledge Routing"
+  short_description: "Route automation, project knowledge, global ai-knowledge, and retrieval decisions."
+  default_prompt: "Evaluate whether this belongs in project docs, ai-knowledge, source/digest/claim routing, automation, retrieval, memory, or agent orchestration."
