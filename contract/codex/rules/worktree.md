@@ -10,6 +10,26 @@
 
 ## 정리
 
-앱 관리 worktree는 현재 앱의 `archive_worktree`를 우선한다. 작업 결과 통합, 필요한 tracked·untracked·ignored 파일 보존, active writer 종료와 사용자 정리 권한을 확인한다. 현재 cwd 대상은 밖으로 나온 뒤 처리한다. 통합 완료와 물리 정리 완료를 구분하고 push를 정리의 필수 조건으로 삼지 않는다.
+앱 관리 worktree는 `archive_worktree`를 우선하고 필요한 ignored 파일은 먼저 별도 보존한다. 앱 도구가 지원하지 않는 worktree는 아래 CLI의 queue를 사용한다. 현재 cwd 대상에 `git worktree remove`를 직접 시도하지 않는다.
 
-이 공개 규칙은 자동 삭제 훅을 설치하지 않는다. 저장소의 기존 cleanup 스크립트는 선택 자료이며 이 안내만 복사했다고 사용 가능하거나 승인된 것이 아니다. 별도 채택 시 지원 인수·복구·보존 조건과 설치 경로를 검토하고, 명시적으로 승인된 대상만 처리한다. 잠금·권한 거부는 강제 삭제나 다른 도구로 우회하지 않는다.
+| disposition | 사용 조건 |
+|---|---|
+| merged | clean이며 통합 완료. push는 정리 조건이 아님 |
+| verification | clean 검증 전용 worktree |
+| discarded | 사용자가 해당 worktree의 폐기를 명시. 미통합·미커밋 내용도 폐기 대상 |
+| preserved | 승인된 정리·통합 범위에서 통합 완료, 필요한 tracked·untracked·index 고유 내용·ignored의 외부 보존과 내용 일치, active writer 종료를 caller가 확인 |
+
+`preserved`의 실제 copy·compare는 caller 책임이며 queue 등록이 그 증거를 대신하지 않는다. 조건이 충족되면 dirty/untracked 자체로 재승인을 요구하지 않는다. CLI는 lease·worktree identity·HEAD·내용 snapshot과 필요한 통합 상태를 다시 확인하고, 변경된 항목은 보류한다. `preserved` snapshot에는 index·ignored도 포함된다.
+
+PowerShell에서 다음 변수를 정하고 필요한 동작 하나만 실행한다. `--base-ref`는 통합 대상이 primary의 현재 브랜치와 다를 때 지정한다.
+
+```powershell
+$cleanupScript = Join-Path $env:USERPROFILE '.codex/rules/scripts/worktree-cleanup.py'
+python $cleanupScript --enqueue '<absolute-worktree-path>' --disposition merged
+python $cleanupScript --dequeue '<absolute-worktree-path>'
+python $cleanupScript --reap
+```
+
+Queue(`~/.codex/worktrees/cleanup.md`)는 정리 승인과 identity-bound lease다. 재사용 전에 dequeue 성공을 확인하고, 재사용 종료 뒤 조건을 다시 확인해 새 lease로 enqueue한다.
+`--reap`은 정리 요청이나 해당 작업 종료 때 대상 밖에서만 실행하며 앱 시작·resume에서 자동 실행하지 않는다. 현재 cwd 항목을 만나면 CLI는 삭제 대신 queue·lease를 취소하므로 나중에 조건을 다시 확인해 등록한다. 잠금·변경으로 보류된 항목은 다음 승인된 정리에서 재처리한다.
+등록된/내용 있는 worktree는 queue 밖에서 제거하지 않는다. CLI는 `~/.codex/worktrees` 아래 빈 orphan 디렉터리도 정리할 수 있다. 잠금으로 남으면 경로·원인·다음 담당을 보고하고, 결과의 보존·통합 완료와 물리 정리 완료를 구분한다.

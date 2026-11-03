@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Queue and reap explicitly retired Codex worktrees with identity-bound leases."""
+"""Explicit CLI for queued Codex worktree retirement with identity-bound leases."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ LOCK = QUEUE.with_suffix(".lock")
 LEASE_MARKER = "codex-cleanup-lease"
 LINE = re.compile(
     r"^\s*- path: `(?P<path>[^`]+)` \| disposition: "
-    r"(?P<disposition>merged|discarded|verification) \| primary: "
+    r"(?P<disposition>merged|discarded|verification|preserved) \| primary: "
     r"`(?P<primary>[^`]+)` \| queued_at: (?P<queued_at>\d{4}-\d{2}-\d{2})"
     r"(?: \| source_head: `(?P<source_head>[0-9a-f]{40})`"
     r" \| gitdir: `(?P<gitdir>[^`]+)`"
@@ -115,7 +115,9 @@ def head_for(path: Path) -> str | None:
     return result.stdout.strip() if result.returncode == 0 else None
 
 
-def status_sha256(path: Path) -> str | None:
+def status_sha256(
+    path: Path, *, include_index_ignored: bool = False
+) -> str | None:
     diff = run_bytes(
         "git", "-C", str(path), "diff", "--binary", "--no-ext-diff", "HEAD", "--"
     )
@@ -124,6 +126,22 @@ def status_sha256(path: Path) -> str | None:
     )
     if diff.returncode or untracked.returncode:
         return None
+    index = None
+    ignored = None
+    if include_index_ignored:
+        index = run_bytes("git", "-C", str(path), "ls-files", "--stage", "-z")
+        ignored = run(
+            "git",
+            "-C",
+            str(path),
+            "ls-files",
+            "--others",
+            "--ignored",
+            "--exclude-standard",
+            "-z",
+        )
+        if index.returncode or ignored.returncode:
+            return None
     digest = hashlib.sha256()
     digest.update(b"tracked\0")
     digest.update(diff.stdout)
@@ -135,6 +153,20 @@ def status_sha256(path: Path) -> str | None:
         digest.update(relative.encode("utf-8", errors="surrogatepass"))
         digest.update(b"\0")
         digest.update(blob.stdout.strip().encode("ascii"))
+    if include_index_ignored:
+        digest.update(b"\0index\0")
+        digest.update(index.stdout)
+        digest.update(b"\0ignored\0")
+        for relative in sorted(item for item in ignored.stdout.split("\0") if item):
+            blob = run(
+                "git", "-C", str(path), "hash-object", "--no-filters", "--", relative
+            )
+            if blob.returncode or not blob.stdout.strip():
+                return None
+            digest.update(b"\0ignored-file\0")
+            digest.update(relative.encode("utf-8", errors="surrogatepass"))
+            digest.update(b"\0")
+            digest.update(blob.stdout.strip().encode("ascii"))
     return digest.hexdigest()
 
 
@@ -343,12 +375,16 @@ def validate(candidate: Candidate) -> tuple[bool, str]:
         return False, "cleanup lease changed"
     if head_for(candidate.path) != candidate.source_head:
         return False, "source HEAD changed"
-    current_status = status_sha256(candidate.path)
+    current_status = status_sha256(
+        candidate.path, include_index_ignored=candidate.disposition == "preserved"
+    )
     if current_status is None or current_status != candidate.status_sha256:
         return False, "worktree snapshot changed"
-    if candidate.disposition != "discarded" and not clean(candidate.path):
+    if candidate.disposition not in ("discarded", "preserved") and not clean(
+        candidate.path
+    ):
         return False, "worktree is not clean"
-    if candidate.disposition == "merged" and not integrated(
+    if candidate.disposition in ("merged", "preserved") and not integrated(
         candidate.source_head, candidate.primary, candidate.base_ref
     ):
         return False, "worktree is no longer integrated"
@@ -357,7 +393,7 @@ def validate(candidate: Candidate) -> tuple[bool, str]:
 
 def remove(candidate: Candidate) -> tuple[bool, str]:
     args = ["git", "-C", str(candidate.primary), "worktree", "remove"]
-    if candidate.disposition == "discarded":
+    if candidate.disposition in ("discarded", "preserved"):
         args.append("--force")
     args.append(str(candidate.path))
     result = run(*args)
@@ -396,15 +432,17 @@ def enqueue(path_arg: str, disposition: str, requested_base_ref: str | None) -> 
         return 2
     source_head = head_for(path)
     gitdir = gitdir_for(path)
-    status = status_sha256(path)
+    status = status_sha256(path, include_index_ignored=disposition == "preserved")
     base_ref = resolve_base_ref(primary, requested_base_ref)
     if not all((source_head, gitdir, status, base_ref)):
         print(f"worktree identity cannot be resolved: {path}", file=sys.stderr)
         return 2
-    if disposition != "discarded" and not clean(path):
+    if disposition not in ("discarded", "preserved") and not clean(path):
         print(f"worktree is not clean: {path}", file=sys.stderr)
         return 2
-    if disposition == "merged" and not integrated(source_head, primary, base_ref):
+    if disposition in ("merged", "preserved") and not integrated(
+        source_head, primary, base_ref
+    ):
         print(f"worktree is not integrated: {path}", file=sys.stderr)
         return 2
     candidate = Candidate(
@@ -455,15 +493,8 @@ def dequeue(path_arg: str) -> int:
     return 0
 
 
-def reap(cwd_override: str | Path | None = None) -> int:
-    if cwd_override is None:
-        try:
-            payload = json.load(sys.stdin)
-        except Exception:
-            payload = {}
-        cwd = canonical(payload.get("cwd") or os.getcwd())
-    else:
-        cwd = canonical(cwd_override)
+def reap(cwd: str | Path) -> int:
+    cwd = canonical(cwd)
     messages: list[str] = []
     try:
         with queue_lock():
@@ -501,29 +532,21 @@ def reap(cwd_override: str | Path | None = None) -> int:
     except (OSError, TimeoutError) as exc:
         messages.append(f"pending: cleanup queue unavailable ({exc})")
     if messages:
-        json.dump(
-            {
-                "hookSpecificOutput": {
-                    "hookEventName": "SessionStart",
-                    "additionalContext": "[worktree-cleanup]\n" + "\n".join(messages),
-                }
-            },
-            sys.stdout,
-        )
+        print("\n".join(messages))
     return 0
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--enqueue", metavar="PATH")
-    parser.add_argument("--dequeue", metavar="PATH")
+    action = parser.add_mutually_exclusive_group(required=True)
+    action.add_argument("--enqueue", metavar="PATH")
+    action.add_argument("--dequeue", metavar="PATH")
+    action.add_argument("--reap", action="store_true")
     parser.add_argument(
-        "--disposition", choices=("merged", "discarded", "verification")
+        "--disposition", choices=("merged", "discarded", "verification", "preserved")
     )
     parser.add_argument("--base-ref")
     args = parser.parse_args()
-    if args.enqueue and args.dequeue:
-        parser.error("--enqueue and --dequeue are mutually exclusive")
     if args.enqueue:
         if not args.disposition:
             parser.error("--enqueue requires --disposition")
@@ -534,7 +557,7 @@ def main() -> int:
         return dequeue(args.dequeue)
     if args.disposition or args.base_ref:
         parser.error("--disposition/--base-ref require --enqueue")
-    return reap()
+    return reap(os.getcwd())
 
 
 if __name__ == "__main__":

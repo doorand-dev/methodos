@@ -3,7 +3,7 @@
 본 레포 의존 0 — 어느 워크스페이스에서든 동작.
 
 /gc 스킬에서 호출. 프로젝트 전체 .py 파일을 AST 파싱하여:
-1. 정의되었지만 어디서도 참조되지 않는 함수/클래스 (죽은 코드)
+1. 정의 파일 밖에서 이름 토큰이 발견되지 않은 함수/클래스 (미사용 확정 아님)
 2. 함수 body가 동일한 cross-file 중복
 
 결과를 <root>/.claude/gc_report.md 에 기록. <root>/.claude/gc.toml 의
@@ -151,6 +151,7 @@ def _build_file_tokens(sources: dict[Path, str], root: Path) -> dict[str, set[st
 
 
 def _find_dead_code(defs: dict[str, list[dict]], file_tokens: dict[str, set[str]]) -> list[dict]:
+    """외부 파일 참조 미발견 목록. 정의 파일 내부 사용·동적 호출은 판정하지 않는다."""
     dead = []
     for name, entries in defs.items():
         if name in ("main", "setup", "teardown", "conftest"):
@@ -199,17 +200,18 @@ def main():
     dupes = _find_duplicates(defs)
     big_files, big_funcs = _find_oversized(sources, root, thresholds)
 
-    lines = ["# GC Audit Report\n"]
+    lines = ["# GC Audit Report\n",
+             "> 외부 파일 참조 미발견은 미사용 판정이 아니다. 정의 파일 내부 사용·동적 호출을 별도 확인해야 한다.\n"]
 
     if dead:
-        lines.append(f"## 죽은 코드 후보 ({len(dead)}건)\n")
+        lines.append(f"## 외부 파일 참조 미발견 ({len(dead)}건)\n")
         lines.append("| 이름 | 파일 | 줄 | 유형 |")
         lines.append("|------|------|-----|------|")
         for item in sorted(dead, key=lambda x: (x["file"], x["line"])):
             lines.append(f"| `{item['name']}` | `{item['file']}` | {item['line']} | {item['type']} |")
         lines.append("")
     else:
-        lines.append("## 죽은 코드 후보: 없음\n")
+        lines.append("## 외부 파일 참조 미발견: 없음\n")
 
     if dupes:
         lines.append(f"## Cross-file 중복 함수 ({len(dupes)}건)\n")
@@ -256,7 +258,7 @@ def main():
     report_path.write_text(report, encoding="utf-8")
 
     print(
-        f"[gc-audit] 죽은 코드 {len(dead)}건, 중복 {len(dupes)}건, "
+        f"[gc-audit] 외부 파일 참조 미발견 {len(dead)}건 (미사용 확정 아님), 중복 {len(dupes)}건, "
         f"큰 파일 {len(big_files)}건, 큰 함수 {len(big_funcs)}건"
     )
     if dead or dupes or big_files or big_funcs:

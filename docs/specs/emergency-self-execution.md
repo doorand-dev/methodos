@@ -10,7 +10,9 @@ out_of_scope: ["사용자 지정 실행 주체 변경", "승인 없는 외부 �
 
 # Superseded execution guidance
 
-Current routing lives in `skills/codex/impl/SKILL.md`. A simple closed change
+This superseded note does not define current routing. Select the needed Codex
+skills using `contract/codex/START-HERE.md` and the adopting project's rules.
+A simple closed change
 may run directly when its files, tests, and failure boundary are clear. Ask
 before changing user data, permissions, database/schema, public contracts,
 concurrency/migrations, or external state. Otherwise use the active runtime's

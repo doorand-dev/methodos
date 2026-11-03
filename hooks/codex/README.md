@@ -1,21 +1,29 @@
 # Codex Hook Registration
 
-Codex hook support is real. The Methodos hook scripts in this repository are
-inactive only because this reference kit does not install or register policy for
-you.
+The Methodos hook scripts are optional examples. They require Python 3.11+
+and a Codex version with the corresponding hook events and tool names. See
+the [official hook configuration guide](https://developers.openai.com/codex/hooks)
+for discovery, trust, matchers, and command fields. This repository does not
+register policy for you.
 
-Use `hooks.example.json` as the registration shape. It is intentionally named
+Use `hooks.example.json` as a reference registration shape. Select only the
+entries you have reviewed; this file is not a mirror of an active personal
+hook configuration. It is intentionally named
 `.example.json` so cloning this repository does not activate hooks by surprise.
 
 ## Activate Manually
 
-1. Copy `hooks.example.json` to one of Codex's hook config locations:
+1. Review selected entries from `hooks.example.json` and merge them into your
+   existing hook configuration, preserving unrelated entries. For a new
+   configuration, use one of the runtime-supported locations:
    - user-wide: `~/.codex/hooks.json`
    - project-local: `<target-repo>/.codex/hooks.json`
 2. Replace every `/absolute/path/to/methodos` and
    `C:\absolute\path\to\methodos` placeholder with this checkout path.
-3. Start a new Codex thread and review/trust the hook definitions when Codex
-   asks.
+3. Confirm that your installed Codex version supports these events, tool
+   matchers, and command fields. Start a new chat and review/trust the selected
+   definitions when Codex asks. Check a harmless matching event before relying
+   on a hook; a JSON parse or offline test is not runtime activation evidence.
 
 Copying `*.py` files alone does not activate anything. The registration file is
 what tells Codex which event should run which script.
@@ -28,7 +36,6 @@ what tells Codex which event should run which script.
 | `context_scenario_guard.py` | `PreToolUse` | `apply_patch` | Detect hot context targets mechanically and provide a placement self-check |
 | `spawn-resource-gate.py` | `PreToolUse` | Codex spawn and task creation | Block creation without explicit model resources or a resource-bearing fixed profile |
 | `worktree-advisory.py` | `SessionStart` | `startup|resume` | Show shared-checkout Git state with Codex-native ownership guidance |
-| `../common/worktree-cleanup.py` | `SessionStart` | `startup|resume` | Revalidate identity-bound retirement leases and remove only unchanged worktrees |
 
 The context scenario hook detects patch and move headers for `AGENTS.md`,
 `SKILL.md`, `MEMORY.md`, `hooks.json`, and context-contract files under rules,
@@ -48,20 +55,27 @@ The spawn resource gate checks only `multi_agent_v1__spawn_agent` and
 The gate does not choose a model or duplicate the routing contract; it only
 fails closed when the call reaches the creation boundary without those values.
 
-The cleanup queue is a terminal retirement approval, not a permanent path
-allowlist. New entries bind the worktree Git directory, HEAD, tracked/index
-diff, untracked content, base ref, and a lease marker. A queued worktree must
-not be reused. If new work is approved, dequeue it before dispatch:
+## Explicit worktree retirement CLI
 
-```powershell
-py -3 hooks/common/worktree-cleanup.py --dequeue "C:\absolute\worktree"
-```
+`../common/worktree-cleanup.py` follows the current
+[worktree rules](../../contract/codex/rules/worktree.md). It is not a
+`SessionStart` hook and is omitted from `hooks.example.json`. If you adopted an
+older example, remove its startup/resume cleanup registration; invoking the
+current script without an explicit action returns a usage error.
 
-Startup or resume also cancels retirement when its own cwd is inside a queued
-worktree as a last-resort safety net; it does not authorize reuse. Reaping
-repeats identity, content, cleanliness, and integration checks. Legacy unbound
-entries remain pending until explicitly re-enqueued. Only an unchanged
-`discarded` lease may use forced removal.
+For optional CLI use, follow the
+[Codex installation guide](../../contract/codex/START-HERE.md). The tool accepts
+`--enqueue PATH --disposition ...`, `--dequeue PATH`, or `--reap`. Reaping is
+explicit and must run outside the retired worktree after integration or
+preservation, writer shutdown, and cleanup authorization are confirmed.
+
+The queue binds worktree identity, HEAD, content, and a lease marker. A queued
+worktree must not be reused until dequeued. `preserved` additionally snapshots
+the index and ignored files; the caller must first copy and compare all needed
+content outside the worktree. Queue registration does not perform that backup.
+A changed lease remains pending, and an invocation from inside a queued
+worktree cancels its retirement. No deletion should be retried through another
+tool after a lock or permission rejection.
 
 ## Optional Windows Desktop MCP Reaper
 

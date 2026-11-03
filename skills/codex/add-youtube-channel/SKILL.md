@@ -23,7 +23,7 @@ description: Use this skill whenever a user asks to add, create, register, boots
 다음 순서를 지킨다. 각 단계는 현재 저장소를 다시 읽어야 하며, 이 스킬의 예시나 기억을 정본으로 삼지 않는다.
 
 1. `AGENTS.md`와 `.claude/rules/routing.md`를 읽고, 라우팅이 지시하는 문서·코드 소비자를 따른다.
-2. `docs/channel_matrix.md` §4.5를 읽어 현재 형식 식별, 숏↔롱 연결, CapCut 배경·시간축 공백, 채널 ID 열거, 외부 배포 검증, 재실행 규칙을 확인한다.
+2. `docs/operations.md#channel-onboarding`을 읽어 현재 형식 식별, 숏↔롱 연결, 외부 배포 검증, 재실행 기준을 확인한다. 채널 ID·분기 값은 `config.yaml`·`pipeline/channel_policy.py`에서 읽는다.
 3. 현재 코드에서 정의자·호출자·소비자를 `rg`로 다시 찾는다. 설정 블록 하나가 생겼다는 이유로 완료 처리하지 말고, 새 런타임·프로필·프롬프트·캐시·템플릿·업로드 대상이 실제 요청 경로에 전달되는지 추적한다.
 4. 입력과 현재 값을 비교해 충돌을 분류한다. 런타임명, 표시명, 외부 대상, CapCut 식별자가 기존 값과 같거나 모호하면 덮어쓰지 말고 신규 추가인지 기존 채널 보정인지 확인한다.
 5. 상태를 `new`(등록 없음), `partial`(일부 등록 또는 일부 검증), `candidate-complete`(요청 형식과 필수 산출물이 검증 직전까지 닫힘) 중 하나로 판정한다.

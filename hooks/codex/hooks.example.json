@@ -50,18 +50,6 @@
             "statusMessage": "Checking shared checkout state"
           }
         ]
-      },
-      {
-        "matcher": "startup|resume",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"/absolute/path/to/methodos/hooks/common/worktree-cleanup.py\"",
-            "commandWindows": "py -3 \"C:\\absolute\\path\\to\\methodos\\hooks\\common\\worktree-cleanup.py\"",
-            "timeout": 120,
-            "statusMessage": "Revalidating retired worktrees"
-          }
-        ]
       }
     ]
   }

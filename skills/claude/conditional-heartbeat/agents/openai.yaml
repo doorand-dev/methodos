@@ -1,4 +1,0 @@
-interface:
-  display_name: "Conditional Heartbeat"
-  short_description: "One-shot heartbeat fallback and acceleration"
-  default_prompt: "Use $conditional-heartbeat to create a one-shot Codex heartbeat with fallback and condition-based acceleration."

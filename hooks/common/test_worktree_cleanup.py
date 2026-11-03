@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib.util
-import json
 import os
 import subprocess
 import sys
@@ -147,7 +146,7 @@ def test_reap_holds_when_integration_is_lost(cleanup, integrated_worktree, capsy
     assert "worktree is no longer integrated" in capsys.readouterr().out
 
 
-def test_session_start_inside_queued_worktree_cancels_retirement(
+def test_reap_inside_queued_worktree_cancels_retirement(
     cleanup, integrated_worktree, capsys
 ):
     _primary, worktree = integrated_worktree
@@ -192,10 +191,10 @@ def test_two_process_reapers_remove_one_worktree(cleanup, integrated_worktree):
     primary, worktree = integrated_worktree
     assert cleanup.enqueue(str(worktree), "merged", None) == 0
     env = {**os.environ, "CODEX_HOME": str(cleanup.HOME)}
-    payload = json.dumps({"cwd": str(primary)})
     processes = [
         subprocess.Popen(
-            [sys.executable, str(SCRIPT)],
+            [sys.executable, str(SCRIPT), "--reap"],
+            cwd=primary,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -204,7 +203,7 @@ def test_two_process_reapers_remove_one_worktree(cleanup, integrated_worktree):
         )
         for _ in range(2)
     ]
-    results = [process.communicate(payload, timeout=30) for process in processes]
+    results = [process.communicate(timeout=30) for process in processes]
 
     assert [process.returncode for process in processes] == [0, 0]
     assert sum(output.count("removed:") for output, _error in results) == 1

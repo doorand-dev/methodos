@@ -5,8 +5,9 @@ status: superseded
 
 # Superseded plan
 
-Read `skills/codex/impl/SKILL.md` for current direct-execution and routing
-predicates. Keep direct work bounded by clear files, tests, and failure paths;
+This superseded plan is historical. Read `contract/codex/START-HERE.md`
+and the adopting project's rules for current routing. Keep direct work bounded
+by clear files, tests, and failure paths;
 obtain user approval for external effects. Use one optional risk review only
 when the current public-flow/contract/data/concurrency predicates apply.
 

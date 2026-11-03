@@ -1,6 +1,6 @@
 """GC 체크 — 프로젝트 내 불필요 파일/패턴 탐지 및 안전 정리.
 
-전역 스킬 (~/.claude/skills/gc/). 본 레포 의존 0 — 어느 워크스페이스에서든 동작.
+전역 스킬 (~/.agents/skills/gc/). 본 레포 의존 0 — 어느 워크스페이스에서든 동작.
 
 2등급 분리:
 - safe-fix: __pycache__, .pyc, *.tmp, .DS_Store 등 → 무조건 삭제 OK
@@ -262,7 +262,7 @@ def _scan_todo_ctx(root: Path) -> list[dict]:
 def _scan_review(root: Path) -> list[dict]:
     """review-fix 대상 탐지 (끝난 .plans + stale handoff + stale todo-ctx + ruff 위반).
 
-    ruff 없는 환경에선 silent skip.
+    Ruff 실행·출력 오류는 검사 누락으로 보고한다.
     """
     items = []
     items.extend(_scan_plans(root))
@@ -270,11 +270,19 @@ def _scan_review(root: Path) -> list[dict]:
     items.extend(_scan_todo_ctx(root))
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "ruff", "check", "--select", "F401,F841", "--format", "json", str(root)],
+            [sys.executable, "-m", "ruff", "check", "--select", "F401,F841", "--output-format", "json", str(root)],
             capture_output=True, text=True, timeout=30,
         )
-        if result.stdout.strip():
-            violations = json.loads(result.stdout)
+        if result.returncode not in (0, 1):
+            raise ValueError(f"exit {result.returncode}: {result.stderr.strip()}")
+        violations = json.loads(result.stdout)
+        if not isinstance(violations, list) or any(
+            not isinstance(v, dict) or not isinstance(v.get("filename"), str)
+            or not isinstance(v.get("location"), dict)
+            for v in violations
+        ):
+            raise ValueError("invalid Ruff JSON diagnostics")
+        if violations:
             for v in violations:
                 filepath = v.get("filename", "")
                 try:
@@ -289,8 +297,11 @@ def _scan_review(root: Path) -> list[dict]:
                     "message": v.get("message", ""),
                     "line": v.get("location", {}).get("row", 0),
                 })
-    except (subprocess.TimeoutExpired, FileNotFoundError, json.JSONDecodeError):
-        pass
+    except (subprocess.TimeoutExpired, OSError, ValueError) as exc:
+        items.append({
+            "path": str(root), "type": "check_incomplete", "category": "review",
+            "check": "ruff", "message": f"Ruff 검사 누락: {exc}",
+        })
     return items
 
 
@@ -427,12 +438,13 @@ def _delete_safe(items: list[dict], root: Path) -> int:
 
 def main():
     parser = argparse.ArgumentParser(description="GC check — 불필요 파일 탐지/정리 (전역 스킬)")
-    parser.add_argument("--safe-fix", action="store_true", help="safe 항목 자동 삭제")
-    parser.add_argument("--dry-run", action="store_true", help="전체 스캔 보고 (삭제 없음)")
-    parser.add_argument("--review-only", action="store_true", help="review 카테고리만 체크")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--safe-fix", action="store_true", help="safe 항목 자동 삭제")
+    modes.add_argument("--dry-run", action="store_true", help="전체 스캔 보고 (삭제 없음)")
+    modes.add_argument("--review-only", action="store_true", help="review 카테고리만 체크")
     parser.add_argument("--report-json", action="store_true", help="JSON 출력")
-    parser.add_argument("--detect-large-dirs", action="store_true", help="top-level 큰 폴더 후보 보고")
-    parser.add_argument("--state-files", action="store_true", help="큰 JSON·JSONL과 참조 코드 후보 보고")
+    modes.add_argument("--detect-large-dirs", action="store_true", help="top-level 큰 폴더 후보 보고")
+    modes.add_argument("--state-files", action="store_true", help="큰 JSON·JSONL과 참조 코드 후보 보고")
     parser.add_argument("--root", type=str, default=None, help="프로젝트 루트 지정 (기본: .git 탐색)")
     args = parser.parse_args()
 
@@ -514,6 +526,8 @@ def main():
                         print(f"  {item['path']} (stale todo-ctx, {item['reason']})")
                     elif item["type"] == "ruff":
                         print(f"  {item['path']}:{item['line']} {item['code']} {item['message']}")
+                    elif item["type"] == "check_incomplete":
+                        print(f"  {item['message']}")
                     else:
                         print(f"  {item['path']}")
 
