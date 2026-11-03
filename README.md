@@ -39,7 +39,7 @@ chat's working context. See the [complete example](contract/codex/QUICKSTART.md#
 
 ## More tasks
 
-The [catalog](contract/codex/START-HERE.md) covers 17 task skills and four
+The [catalog](contract/codex/START-HERE.md) covers task skills and four
 optional tools. It includes context review, product requirements, mistake
 analysis, code structure, reusable workflows, durable findings, writing, and
 research. Choose these as the need arises.
