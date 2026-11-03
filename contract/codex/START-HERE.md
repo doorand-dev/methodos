@@ -4,7 +4,7 @@
 
 처음 설치한다면 [영문 Quickstart](QUICKSTART.md)에서 `snapshot` 하나로 시작합니다. 같은 채팅의 압축 대비, 새 채팅 인계, 작업 분담을 각각 요청문 → 예상 결과 → 확인 방법으로 따라갈 수 있습니다. 스킬 본문과 이 목록은 현재 한국어이며, 영문 안내의 예제는 영어 응답을 요청합니다.
 
-이 문서는 전체 선택 목록과 추가 도구 안내입니다. 아래 작업별 스킬 17개와 선택 도구 4개 중 필요한 것만 설치합니다.
+이 문서는 전체 선택 목록과 추가 도구 안내입니다. 아래 작업별 스킬과 선택 도구 중 필요한 것만 설치합니다.
 
 | 하고 싶은 일 | 선택할 스킬 |
 |---|---|
@@ -14,6 +14,7 @@
 | 코드 구조의 오독 유발 확인 / 프로젝트 청소 | `blame-code` / `gc` |
 | 다음 AI 입력 검토 / 문맥 소비 경로 개선 | `context-novelist` / `improve-context` |
 | 제품 사용 흐름의 빠진 요구 찾기 | `product-novelist` |
+| UI 처음 만들기 / 화면 리뷰 / 기존 디자인 전후 비교·개선 | [`design-ui`](../../skills/codex/design-ui/SKILL.md) |
 | 코드 구조 개선 / 반복 실행 재사용 | `improve-codebase-architecture` / `workflow-reuse` |
 | 외부 시스템의 막힘·우회법 기록 / 지식 위치 선택 | `finding` / `ai-knowledge-routing` |
 | 독자가 이해하는 한국어 글 / 최신 사례와 적용 한계 조사 | `purposeful-writing` / `trend-research` |
@@ -51,6 +52,8 @@ Codex CLI·IDE에서는 `$snapshot`처럼 이름을 명시하거나 자연어로
 예약 helper의 `-Apply`는 대상 파일이나 상위 경로에 junction·symlink·hardlink가 있으면 거절합니다. 링크로 옮긴 사용자 폴더도 해당하므로 이 기능을 선택하기 전에 설치 경로를 확인합니다.
 
 `trend-research`는 사용자가 설치한 Aside 진입점을 사용합니다. 브라우저 스킬과 로그인 환경은 이 묶음에 포함하지 않습니다. `ai-knowledge-routing`의 `<knowledge-root>`는 자기 프로젝트 지도에 선언해야 합니다. 예시의 `.Codex/`·`.claude_context/` 같은 산출 위치는 스킬 계약이므로 임의로 바꾸기 전에 소비 경로를 확인합니다.
+
+`design-ui`는 생성·리뷰·개선 중 필요한 절차만 읽습니다. `references/`와 `agents/openai.yaml`을 함께 복사하고, 실제 화면 검증에는 자기 환경의 브라우저 진입점을 준비합니다. Aside를 쓰는 환경이면 별도 설치된 `aside-browser`를 따릅니다. Taste의 방향 설정·비평 절차를 참고했으며 Taste 설치나 독립 실행 스크립트는 필요하지 않습니다.
 
 ## 작업이 끝났을 때 채팅이 이어받게 하기
 

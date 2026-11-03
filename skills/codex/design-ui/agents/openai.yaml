@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design UI"
+  short_description: "UI 생성·리뷰·개선을 나누고 실제 화면으로 비교·검증합니다"
+  default_prompt: "$design-ui로 요청에 맞는 생성·리뷰·개선 흐름을 선택하고 실제 화면 근거로 작업해줘."

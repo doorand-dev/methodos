@@ -195,8 +195,7 @@ in this chat. Reply in English.
 ```
 
 **Expected result:** two scoped worker results, their verification and gaps,
-then the parent's combined answer. The current catalog distinguishes 17 task
-skills and four optional tools. Creating a worker is not task completion.
+then the parent's combined answer. Creating a worker is not task completion.
 
 **Check:** the actual spawn calls name `task-worker`, an available model and
 effort, and the assigned scope. The parent collects completed results, closes
