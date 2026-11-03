@@ -1,12 +1,8 @@
 # Worktree
 
-사용자가 승인한 범위와 프로젝트의 생성·통합·정리 담당을 따른다. 기존 checkout·worktree를 우선 재사용하고, 새로 필요하면 앱의 `create_worktree`를 우선한다. 기준 commit·목적을 정하고 미커밋 변경은 옮기지 않으며 새 브랜치는 worktree 안에서 만든다.
+이 파일은 우리 worktree 정리 CLI와 queue를 사용하는 경우의 계약이다. Git의 일반적인 생성·브랜치·병합 방법은 반복하지 않는다. 앱 관리 worktree는 앱 도구를 우선한다.
 
-## 통합
-
-검증이 끝난 source commit과 base, 통합할 범위·경로, 양쪽 staged·unstaged·untracked 상태를 확인한다. 양쪽 index에 staged 변경이나 진행 중인 merge·rebase·cherry-pick이 있으면 그 작업을 대신 정리하지 않고 통합을 멈춘다.
-기존 unstaged·untracked가 통합 경로·의미적 계약·검증 전제와 겹치지 않고 덮어쓰기·writer 경합 없이 보존되면 진행한다. Source 미커밋 변경에 의존한 검증은 commit의 검증으로 인정하지 않는다.
-충돌·소유권·기준 commit이 불명확하면 구체적인 blocker를 보고한다. Git의 로컬 변경 보호를 force나 자동 stash로 우회하지 않는다. 승인된 commit만 통합하고 ancestry 또는 patch 동등성, 기존 변경 보존, 영향받는 결과를 확인한다. clean 상태를 만들려고 다른 세션 변경을 복원·삭제·이동·stash·일괄 커밋하지 않는다.
+공유 checkout의 기존 변경·index·진행 중인 통합을 보존한다. 통합하려는 경로와 겹치거나 소유권이 불명확하면 멈추며, clean 상태를 만들기 위해 다른 세션 변경을 복원·삭제·stash하지 않는다.
 
 ## 정리
 

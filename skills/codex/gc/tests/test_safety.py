@@ -30,6 +30,23 @@ audit = load("gc_audit")
 
 
 class GcSafetyTests(unittest.TestCase):
+    def test_new_and_legacy_handoff_are_review_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            expected = set()
+            for folder in (".codex_context", ".claude_context"):
+                path = root / folder / "handoff" / "old.json"
+                path.parent.mkdir(parents=True)
+                path.write_text(json.dumps({"kind": "handoff", "next_task": {"summary": "keep evidence"}}), encoding="utf-8")
+                os.utime(path, (1, 1))
+                expected.add(str(path.relative_to(root)))
+                fresh = path.with_name("fresh.json")
+                fresh.write_text('{"kind": "handoff"}', encoding="utf-8")
+            result = check._scan_handoff(root)
+            self.assertEqual({item["path"] for item in result}, expected)
+            self.assertTrue(all(item["category"] == "review" for item in result))
+            self.assertTrue(all((root / path).is_file() for path in expected))
+
     def test_modes_rejected_before_any_scan_or_delete(self):
         modes = ["--dry-run", "--safe-fix", "--review-only",
                  "--detect-large-dirs", "--state-files"]

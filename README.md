@@ -1,45 +1,45 @@
 # Methodos
 
-Keep long Codex tasks moving through compaction, handoffs, and parallel work.
-Methodos packages the instructions, agent profiles, and local helpers behind
-those three jobs. Pick the one you need; each skill keeps its own trigger.
+Review the context an AI receives, hand a bounded task to a new chat, or divide
+independent work. Methodos provides task-specific instructions, agent profiles,
+and local helpers. Choose what fits your task; each skill keeps its own trigger.
 
 ## Start with one job
 
 | When you need to… | Use | What a successful run gives you |
 |---|---|---|
-| Continue the same chat after compaction | [`snapshot`](contract/codex/QUICKSTART.md#1-save-before-compaction) | Saved priorities, the next action, and a prompt to reload them after compaction |
-| Move a bounded task into a new chat | [`handoff`](contract/codex/QUICKSTART.md#2-move-work-to-a-new-chat) | A handoff file, a new chat, and its confirmed creation state |
+| Check whether the next AI has enough context | [`context-novelist`](contract/codex/QUICKSTART.md#1-review-a-context-entrypoint) | Missing decisions, ambiguous permissions, and concrete improvements tied to evidence |
+| Move a bounded task into a new chat | [`handoff`](contract/codex/QUICKSTART.md#2-move-work-to-a-new-chat) | A handoff file, an explicitly requested new chat, and its confirmed creation state |
 | Divide independent work inside the current task | [`orch`](contract/codex/QUICKSTART.md#3-divide-two-independent-checks) | Worker results, their checks and gaps, and the parent's combined answer |
 
-Start with `snapshot`; it needs no model policy or custom agent profile.
-The [English quickstart](contract/codex/QUICKSTART.md) gives a guarded copy
-command, prerequisites, and a request → result → check example for each job.
+The [English quickstart](contract/codex/QUICKSTART.md) starts with a read-only
+context review, a guarded copy command, and request → result → check examples.
 It also explains how to [update or remove your selections](contract/codex/QUICKSTART.md#update-or-remove-selected-components).
+The repository already includes an optional [global AGENTS example](contract/codex/AGENTS.example.md)
+and [custom agent TOMLs](agents/codex/); the quickstart maps each to its user installation path.
 
-**Language:** onboarding is available in English; the
-[full skill catalog and advanced setup notes](contract/codex/START-HERE.md)
-and the skill instructions are currently written in Korean. The example
-requests in the quickstart ask for English responses.
+**Language:** onboarding is in English; the [catalog](contract/codex/START-HERE.md)
+and skill instructions are currently in Korean. Example requests ask for English responses.
 
-## First run: preserve the next action
+## First run: review a context entrypoint
 
-After installing `snapshot`, use it in a real task when compaction is imminent:
+After installing `context-novelist`, try this in the current chat:
 
 ```text
-Use snapshot before compaction. Keep the next action, unresolved questions,
-and the constraints for this task. Reply in English and give me the exact
-prompt to paste after compaction.
+Use context-novelist to review README.md as the entrypoint for an AI helping
+someone select a Methodos skill. Check whether it can find the installation
+steps, permission boundaries, and completion checks. Read local references as
+needed. Reply in English with evidence and proposed improvements only.
+Do not edit files, run helpers, delegate, create chats, or send messages.
 ```
 
-Check the saved file and keep the returned reload prompt. After compaction,
-paste that prompt into the same chat and check that Codex resumes the recorded
-next action. Reload is a manual step; saving a file alone does not restore the
-chat's working context. See the [complete example](contract/codex/QUICKSTART.md#1-save-before-compaction).
+Check that each finding identifies the supplied context and the decision it
+supports or leaves unclear. This first review needs no custom agent, model
+policy, new chat, or helper execution. See the [complete example](contract/codex/QUICKSTART.md#1-review-a-context-entrypoint).
 
 ## More tasks
 
-The [catalog](contract/codex/START-HERE.md) covers task skills and four
+The [catalog](contract/codex/START-HERE.md) covers task skills and
 optional tools. It includes context review, product requirements, mistake
 analysis, code structure, reusable workflows, durable findings, writing, and
 research. Choose these as the need arises.
@@ -60,11 +60,11 @@ The combined Python suite needs Python 3.11+ and `pytest`. On Windows, the GC
 safety tests also use Windows PowerShell with a temporary user directory.
 
 ```powershell
-python -B -m pytest -q -p no:cacheprovider hooks/common hooks/codex skills/codex/gc/tests skills/codex/snapshot/tests
+python -B -m pytest -q -p no:cacheprovider hooks/common hooks/codex skills/codex/gc/tests
 ```
 
 These checks use disposable files and repositories and fake app responses.
-They verify the local helpers; actual compaction, new-chat creation, and event
+They verify the local helpers; actual new-chat creation and event
 delivery need confirmation in the adopting runtime. The quickstart lists the
 required capabilities and what to do when they are unavailable.
 

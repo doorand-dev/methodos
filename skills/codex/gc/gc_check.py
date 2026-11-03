@@ -44,7 +44,7 @@ DOD_UNCHECKED_RE = re.compile(r"^- \[ \]", re.MULTILINE)
 DOD_CHECKED_RE = re.compile(r"^- \[[xX]\]", re.MULTILINE)
 
 # handoff 정리 — 1회용·휘발성. 새 세션 부트스트랩 후 stale.
-HANDOFF_DIR = Path(".claude_context") / "handoff"
+HANDOFF_DIRS = (Path(".codex_context") / "handoff", Path(".claude_context") / "handoff")
 HANDOFF_AGE_THRESHOLD_DAYS = 14
 
 # todo-ctx 정리 (ADR 0020) — 사이드카는 age-out 아니라 연결 todo 종결/소멸 기준.
@@ -187,14 +187,11 @@ def _scan_handoff(root: Path) -> list[dict]:
     자동 삭제 X — review 항목으로 보고만.
     """
     items = []
-    handoff_dir = root / HANDOFF_DIR
-    if not handoff_dir.is_dir():
-        return items
-
     age_cutoff_sec = HANDOFF_AGE_THRESHOLD_DAYS * 86400
     now = time.time()
 
-    for path in handoff_dir.glob("*.json"):
+    paths = (path for directory in HANDOFF_DIRS for path in (root / directory).glob("*.json"))
+    for path in paths:
         if not path.is_file():
             continue
         age_sec = now - path.stat().st_mtime
@@ -224,7 +221,7 @@ def _scan_todo_ctx(root: Path) -> list[dict]:
     - 연결 todo `#NNN` 가 `[x]` (closed, Archive 포함) → stale
     - `#NNN` 줄이 todos.md 에 아예 없음 (orphan) → stale
     - `#NNN` 가 `[ ]` (open) → 유지
-    자동 삭제 X — review 항목으로 보고만 (close 전 load-bearing 결정 ADR 승격 = 졸업 게이트).
+    폐기된 todo 스킬의 기존 자료 호환용. 자동 삭제 없이 검토 후보만 보고한다.
     todos.md 없으면 판정 불가 → skip (오삭제 방지).
     NNN.json 규약 아닌 파일은 건드리지 않음.
     """

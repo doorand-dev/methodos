@@ -1,15 +1,15 @@
 # 필요한 작업부터 골라 쓰는 Codex 스킬
 
-긴 대화가 압축된 뒤 중요한 결정을 잊거나, 새 작업마다 같은 자동화를 다시 만들거나, 담당 채팅을 사람이 계속 깨워야 한다면 이 묶음에서 필요한 기능만 골라 쓸 수 있습니다. 스킬은 작업을 판단하는 지침이고, Codex wake는 실제 이벤트를 기존 채팅에 전달하는 Python 도구입니다.
+다음 AI에게 필요한 문맥이 전달됐는지 확인하거나, 새 작업마다 같은 자동화를 다시 만들거나, 담당 채팅을 사람이 계속 깨워야 한다면 이 묶음에서 필요한 기능만 골라 쓸 수 있습니다. 스킬은 작업을 판단하는 지침이고, Codex wake는 실제 이벤트를 기존 채팅에 전달하는 Python 도구입니다.
 
-처음 설치한다면 [영문 Quickstart](QUICKSTART.md)에서 `snapshot` 하나로 시작합니다. 같은 채팅의 압축 대비, 새 채팅 인계, 작업 분담을 각각 요청문 → 예상 결과 → 확인 방법으로 따라갈 수 있습니다. 스킬 본문과 이 목록은 현재 한국어이며, 영문 안내의 예제는 영어 응답을 요청합니다.
+처음 설치한다면 [영문 Quickstart](QUICKSTART.md)에서 `context-novelist`의 읽기 전용 검토로 시작합니다. 현재 채팅에서의 문맥 검토, 명시적으로 요청한 새 채팅 인계, 작업 분담을 각각 요청문 → 예상 결과 → 확인 방법으로 따라갈 수 있습니다. 스킬 본문과 이 목록은 현재 한국어이며, 영문 안내의 예제는 영어 응답을 요청합니다.
 
 이 문서는 전체 선택 목록과 추가 도구 안내입니다. 아래 작업별 스킬과 선택 도구 중 필요한 것만 설치합니다.
 
 | 하고 싶은 일 | 선택할 스킬 |
 |---|---|
 | 독립적인 작업을 나눠 맡기고 결과 회수 | `orch` |
-| 같은 채팅의 압축 대비 / 새 채팅 인계 / 장기 할 일 | `snapshot` / `handoff` / `todo` |
+| 범위가 정해진 작업을 새 채팅에 인계 | `handoff` |
 | 특정 실수 원인 확인 / 세션의 반복 낭비 개선 | `blame-context` / `retro` |
 | 코드 구조의 오독 유발 확인 / 프로젝트 청소 | `blame-code` / `gc` |
 | 다음 AI 입력 검토 / 문맥 소비 경로 개선 | `context-novelist` / `improve-context` |
@@ -32,36 +32,41 @@
 
 1. `skills/codex/<선택한 이름>/SKILL.md`에서 호출 조건과 산출물을 읽습니다. 필요한 supporting 파일까지 해당 폴더를 `~/.agents/skills/<이름>/`로 복사합니다. 이 묶음의 전역 규칙은 이 사용자 경로를 참조하므로, 프로젝트 범위의 `.agents/skills/`를 선택하면 참조도 함께 조정합니다. 이미 있으면 차이를 검토해 필요한 부분만 반영합니다.
 2. `agents/openai.yaml`이 있는 스킬은 해당 파일도 함께 둡니다. 설치가 기존 비활성 설정을 자동으로 해제하지는 않습니다. 자신의 Codex 설정과 새 채팅의 스킬 목록에서 노출 여부를 확인합니다.
-3. `snapshot` 단독에는 모델 정책이나 custom agent가 필요하지 않습니다. `orch`와 `handoff`의 최소 구성은 [Quickstart 설치 표](QUICKSTART.md#install-only-the-required-components)를 따릅니다. [모델 정책 예시](rules/model-routing.json)는 실제 사용하는 등급의 placeholder를 지원되는 모델·effort로 채우고 사용하지 않는 등급을 제외한 뒤 `configured`를 true로 바꿉니다. `blame-code`까지 선택하면 reader/judge 프로필과 그 작업에 필요한 모델 경로도 준비합니다.
-4. 규칙은 `contract/codex/rules/`에서 필요한 것만 `~/.codex/rules/`로 옮깁니다. [전역 AGENTS 예시](AGENTS.example.md)는 전체 덮어쓰기 대신 기존 권한·작업 방식에 맞게 합칩니다.
+3. `context-novelist`의 단독 검토에는 모델 정책이나 custom agent가 필요하지 않습니다. `orch`와 `handoff`의 최소 구성은 [Quickstart 설치 표](QUICKSTART.md#install-only-the-required-components)를 따릅니다. [모델 정책 예시](rules/model-routing.json)는 실제 사용하는 등급의 placeholder를 지원되는 모델·effort로 채운 뒤 `configured`를 true로 바꿉니다. `blame-code`까지 선택하면 reader/judge 프로필과 그 작업에 필요한 모델 경로도 준비합니다.
+4. 규칙은 `contract/codex/rules/`에서 필요한 것만 `~/.codex/rules/`로 옮깁니다. 저장소에 이미 포함된 [전역 AGENTS 예시](AGENTS.example.md)는 `~/.codex/AGENTS.md`에 필요한 항목만 합칩니다. `agents/codex/`의 TOML 프로필도 포함되어 있으며 선택한 파일을 같은 이름으로 `~/.codex/agents/`에 둡니다. 개인 `config.toml`을 통째로 복사하지 않고 기존 권한·작업 방식·활성 설정을 보존합니다.
 5. 작은 실제 작업에서 결과와 재작업을 확인합니다. 모델명이나 스킬 개수 자체가 품질을 보장하지는 않습니다.
 
-Codex CLI·IDE에서는 `$snapshot`처럼 이름을 명시하거나 자연어로 요청할 수 있습니다. `agents/openai.yaml`에 `allow_implicit_invocation: false`가 있으면 명시 호출이 필요합니다. 예를 들어 `gc`는 “gc”·“/gc”를 요청했을 때만, `handoff`는 새 채팅 인계가 필요할 때 읽습니다. 호출 문법과 발견 경로는 [공식 스킬 안내](https://developers.openai.com/codex/skills), 프로필 형식은 [공식 custom agent 안내](https://developers.openai.com/codex/subagents#custom-agents)에서 확인할 수 있습니다.
+Codex CLI·IDE에서는 `$context-novelist`처럼 이름을 명시하거나 자연어로 요청할 수 있습니다. `agents/openai.yaml`에 `allow_implicit_invocation: false`가 있으면 명시 호출이 필요합니다. 예를 들어 `gc`는 “gc”·“/gc”를 요청했을 때만, `handoff`는 새 채팅 인계가 필요할 때 읽습니다. 호출 문법과 발견 경로는 [공식 스킬 안내](https://developers.openai.com/codex/skills), 프로필 형식은 [공식 custom agent 안내](https://developers.openai.com/codex/subagents#custom-agents)에서 확인할 수 있습니다.
 
-서로 참조하는 스킬은 해당 기능을 사용할 때 함께 설치합니다. `context-novelist`의 로딩 참고는 `improve-context`, 문맥·재사용 개선의 HTML 기준은 `improve-codebase-architecture`에 있습니다. `blame-code`는 reader 2명과 judge 프로필이 필요합니다. 참조가 없으면 그 기능을 실행하기 전에 설치·경로를 확인합니다.
+서로 참조하는 스킬은 해당 기능을 사용할 때 함께 설치합니다. `context-novelist`에서 Codex 로딩 수명을 검토할 때 쓰는 참고는 `improve-context`, 문맥·재사용 개선의 HTML 기준은 `improve-codebase-architecture`에 있습니다. `blame-code`는 reader 2명과 judge 프로필이 필요합니다. 참조가 없으면 그 기능을 실행하기 전에 설치·경로를 확인합니다.
 
 `model-router`의 Pro 검토 참조에는 `ask-chatgpt-pro`가 필요합니다. 추가 실행 도구는 해당 기능을 선택할 때만 설치합니다. 아래 원본 경로는 저장소 루트 기준입니다.
 
 | 선택 기능 | 원본 → 설치 위치 | 확인할 점 |
 |---|---|---|
-| worktree 정리 CLI | `hooks/common/worktree-cleanup.py` → `~/.codex/rules/scripts/worktree-cleanup.py` | `--help`로 명시적 동작 인수를 확인합니다. 시작·resume 훅에는 등록하지 않습니다. |
+| worktree 정리 CLI/queue를 선택할 때만 | `hooks/common/worktree-cleanup.py` → `~/.codex/rules/scripts/worktree-cleanup.py` | [worktree 규칙](rules/worktree.md)도 `~/.codex/rules/worktree.md`에 둡니다. `--help`로 명시적 동작 인수를 확인하며 시작·resume 훅에는 등록하지 않습니다. |
 | wake 운영 안내 | `contract/codex/codex-wake.md` → `~/.codex/rules/codex-wake.md` | 코드 설치 위치는 안내에서 선택합니다. 저장소 상대 링크는 원본 저장소에서 엽니다. |
 | Pro 예약 보조 | `contract/codex/rules/scripts/codex-heartbeat-rrule.ps1` → `~/.codex/rules/scripts/codex-heartbeat-rrule.ps1` | `AutomationId`는 경로가 아닌 단일 ID입니다. 앱 도구와의 호환성과 예약·전송 권한을 별도로 확인합니다. 설치만으로 실행되지 않습니다. |
 
 
 예약 helper의 `-Apply`는 대상 파일이나 상위 경로에 junction·symlink·hardlink가 있으면 거절합니다. 링크로 옮긴 사용자 폴더도 해당하므로 이 기능을 선택하기 전에 설치 경로를 확인합니다.
 
-`trend-research`는 사용자가 설치한 Aside 진입점을 사용합니다. 브라우저 스킬과 로그인 환경은 이 묶음에 포함하지 않습니다. `ai-knowledge-routing`의 `<knowledge-root>`는 자기 프로젝트 지도에 선언해야 합니다. 예시의 `.Codex/`·`.claude_context/` 같은 산출 위치는 스킬 계약이므로 임의로 바꾸기 전에 소비 경로를 확인합니다.
+`trend-research`는 사용자가 설치한 Aside 진입점을 사용합니다. 브라우저 스킬과 로그인 환경은 이 묶음에 포함하지 않습니다. `ai-knowledge-routing`의 `<knowledge-root>`는 자기 프로젝트 지도에 선언해야 합니다. 새 handoff의 기본 저장 위치는 `<workspace>/.codex_context/handoff/<short-task-id>.json`입니다. 기존 `.claude_context/` 데이터는 읽기 호환을 유지하며 일괄 이동·삭제하지 않습니다. 작업 문맥이 공개되지 않도록 프로젝트 ignore 규칙을 확인합니다.
 
 `design-ui`는 생성·리뷰·개선 중 필요한 절차만 읽습니다. `references/`와 `agents/openai.yaml`을 함께 복사하고, 실제 화면 검증에는 자기 환경의 브라우저 진입점을 준비합니다. Aside를 쓰는 환경이면 별도 설치된 `aside-browser`를 따릅니다. Taste의 방향 설정·비평 절차를 참고했으며 Taste 설치나 독립 실행 스크립트는 필요하지 않습니다.
 
+모델 정책은 사용자 선호 모델·effort를 정하는 규칙이며 프록시 라우팅과 별개입니다. 회사 PC도 같은 사용자의 선호를 유지하되 그 환경의 create/spawn 도구가 실제로 지원하는 값을 확인합니다. 정책 전체를 지우거나 특정 모델을 강제하지 않습니다.
+
 ## 작업이 끝났을 때 채팅이 이어받게 하기
+
+같은 턴에서 다른 채팅의 결과가 필요하면 `wait_threads`로 회수합니다. A가 관리하고 B가 수행하는 장기 작업에서 idle A가 다음 단계를 이어가야 한다면 사용자 승인을 받은 B의 짧은 완료 통지로 깨웁니다. 독립 채팅은 불필요한 보고를 보내지 않습니다. [채팅 조율 규칙](rules/thread-orchestration.md)에 따라 기존 전송 권한을 유지하고, 이 흐름을 위해 자동 감시나 예약을 새로 설치하지 않습니다. Codex wake는 외부 서버 이벤트에만 사용합니다.
+
 
 [Codex wake 사용 안내](codex-wake.md)는 다운로드·빌드·외부 대기 조건이 끝났을 때 기존 담당 채팅을 재개하는 방법을 설명합니다. Python 표준 라이브러리 도구, 읽기 전용 probe, 오프라인 테스트를 함께 제공합니다. 설치된 앱 bridge를 이용하는 별도 도구이며 기본 Codex의 안정 API로 가정하지 않습니다.
 
 ## 업데이트와 선택 제거
 
-[Quickstart의 관리 절차](QUICKSTART.md#update-or-remove-selected-components)에서 설치한 스킬·프로필·공유 규칙별로 갱신과 제거 범위를 확인합니다. 기존 스냅샷·handoff 자료와 사용자 모델 정책은 설치 파일과 구분해 보존합니다. 공유 파일을 스킬 하나의 전용 파일로 보고 지우지 않습니다.
+[Quickstart의 관리 절차](QUICKSTART.md#update-or-remove-selected-components)에서 설치한 스킬·프로필·공유 규칙별로 갱신과 제거 범위를 확인합니다. 기존 작업 기록·handoff 자료와 사용자 모델 정책은 설치 파일과 구분해 보존합니다. 공유 파일을 스킬 하나의 전용 파일로 보고 지우지 않습니다.
 
 ## 공개 범위
 

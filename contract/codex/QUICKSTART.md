@@ -1,8 +1,8 @@
 # First run: keep a Codex task moving
 
-Start with **snapshot** to preserve a task before compaction. Add **handoff**
-when you want a new chat, or **orch** when independent work benefits from
-workers. These are separate choices, not a mandatory three-step pipeline.
+Start with **context-novelist** for a read-only review in the current chat.
+Choose **handoff** when you explicitly want a new chat, or **orch** when
+independent work benefits from workers. Each is a separate choice.
 
 This guide is in English. The [catalog](START-HERE.md) and skill instructions
 are currently in Korean; the practice requests below ask for English responses.
@@ -12,15 +12,13 @@ Expected outputs are examples to check against, not transcripts of a live run.
 
 | Job | Required capability | If it is unavailable |
 |---|---|---|
-| snapshot | Codex can read and write files in the selected workspace | Stop before saving and report the inaccessible path |
+| context-novelist | Codex can read the selected context and its local references | Report inaccessible references and limit conclusions to what was read |
 | handoff | Codex app tools can list chats/projects, create a chat, and inspect its creation state; sidebar tools are needed for the applicable location transfer | The automatic new-chat workflow is unavailable. Report the missing tool; a saved JSON file is not a completed handoff. Use the skill's manual-start fallback only after creation fails |
 | orch | Subagent spawn, wait, and close tools expose supported models/efforts and the `task-worker` role | Stop the worker example and report the missing capability; do not pretend that local work was delegated |
 
 The copy examples below use **Windows PowerShell**. On another OS, copy the same
-folders to the user locations in the installation table. The snapshot helper's
-Python requirement is documented in its [Script section](../../skills/codex/snapshot/SKILL.md#script).
-No Python package or model policy is needed when Codex writes the snapshot JSON
-itself. The full repository test suite requires Python 3.11+.
+folders to the user locations in the installation table. The first context
+review needs no Python helper. The full repository test suite requires Python 3.11+.
 
 Local helper checks use temporary files. App tools and their names vary by
 runtime; confirm they are available in the adopting session before the chat and
@@ -39,25 +37,27 @@ Set-Location methodos
 
 | Selection | Copy from this repository | Install at / merge into |
 |---|---|---|
-| snapshot | `skills/codex/snapshot/` | `~/.agents/skills/snapshot/` |
+| context-novelist | `skills/codex/context-novelist/` | `~/.agents/skills/context-novelist/` |
 | handoff | `skills/codex/handoff/` | `~/.agents/skills/handoff/` |
 | orch | `skills/codex/orch/` | `~/.agents/skills/orch/` |
 | handoff or orch | `contract/codex/rules/model-routing.json` | `~/.codex/rules/model-routing.json`; configure before use |
 | handoff | `contract/codex/rules/thread-orchestration.md` | `~/.codex/rules/thread-orchestration.md` |
 | orch | `agents/codex/task-worker.toml` | `~/.codex/agents/task-worker.toml` |
-| handoff or orch with worktrees | `contract/codex/rules/worktree.md` | `~/.codex/rules/worktree.md` |
+| Optional global instructions | `contract/codex/AGENTS.example.md` | Merge selected rules into `~/.codex/AGENTS.md` |
+| Optional blame-code reviewers | `agents/codex/blame-code-reader.toml`, `agents/codex/blame-code-judge.toml` | `~/.codex/agents/`, retaining each filename |
+| Only when selecting the worktree cleanup CLI/queue | `contract/codex/rules/worktree.md`, `hooks/common/worktree-cleanup.py` | `~/.codex/rules/worktree.md`, `~/.codex/rules/scripts/worktree-cleanup.py` |
 
 Copy complete skill folders, including any `agents/openai.yaml`, scripts, and
 references. Keep an existing file's activation policy. The table describes a
 user-level installation because the skills reference these user paths; a
-project-only adoption must adapt those references too. `snapshot` does not
+project-only adoption must adapt those references too. `context-novelist` does not
 require `task-worker`, the model policy, or any hook.
 
-For a first `snapshot` installation, run this from the checkout root. It refuses
+For a first `context-novelist` installation, run this from the checkout root. It refuses
 to overwrite an existing destination:
 
 ```powershell
-$skillName = 'snapshot'
+$skillName = 'context-novelist'
 $skillSource = Join-Path (Get-Location) "skills/codex/$skillName"
 $skillDestination = Join-Path $env:USERPROFILE ".agents/skills/$skillName"
 if (-not (Test-Path -LiteralPath (Join-Path $skillSource 'SKILL.md'))) {
@@ -75,18 +75,24 @@ copy, then copy its table dependencies individually after checking for existing
 files. The rule folders and your global `AGENTS.md` are shared surfaces; do not
 replace them wholesale. The [AGENTS example](AGENTS.example.md) is optional.
 A first run needs only the selected skill and its dependencies, not that whole
-example or any unrelated skills it mentions.
+example or any unrelated skills it mentions. These AGENTS and agent TOML examples
+are already included in the repository. Do not copy a personal `config.toml`
+wholesale; retain local settings and change only what the selected feature needs.
 
 ### Configure the model policy for handoff or orch
 
-If you installed only snapshot, [skip to its first run](#1-save-before-compaction).
+If you installed only context-novelist, [skip to its first run](#1-review-a-context-entrypoint).
 
-Copy the [policy template](rules/model-routing.json). Use only models and efforts
-listed by the current create/spawn tool. For the read-only examples below,
-configure `tiers.main`; remove unused `judgment`, `fast`, and `external_review`
-entries from your local copy. Fill `main.model`, `main.parent_effort`, and
-`main.worker_effort`, then set `configured` to `true`. No placeholder may remain
-in a route you use. Keep the template's other rules and `worker_agent_type`.
+The [model policy](rules/model-routing.json) records the user's preferred models
+and efforts for new owners and workers. It is separate from proxy or API request
+routing. Preserve existing preferences when adopting it on another machine,
+including a company PC used by the same person; verify actual model and effort
+support there before dispatch. Do not force one model or delete the whole policy.
+
+For a new installation, configure `tiers.main.model`, `main.parent_effort`, and
+`main.worker_effort` using values supported by the corresponding create/spawn
+tool, then set `configured` to `true`. Do not dispatch an unconfigured route.
+Retain other user routes and the template's rules and `worker_agent_type`.
 For these examples, the new handoff chat is an owner: pass `main.parent_effort`
 as its supported `thinking` value. Pass `main.worker_effort` as the effort for
 orch workers. Check each value against the corresponding tool before dispatch.
@@ -102,49 +108,26 @@ not prove it loaded. If it is missing, check the required TOML fields, the user
 agent directory, and runtime discovery, then restart if needed. Do not create
 more profile copies as a workaround.
 
-## 1. Save before compaction
+## 1. Review a context entrypoint
 
-In a chat opened on this Methodos checkout, use this small practice task when
-you intend to compact next. This checkout ignores `.claude_context/`, the
-retained storage directory for these Codex artifacts. In another project, review
-its ignore rules first: snapshots can contain local paths and private task
-context and should not be committed accidentally.
+Use this request in the current chat on the Methodos checkout:
 
 ```text
-I'm about to compact this chat. Use snapshot for this practice task.
-Task: check the Methodos continuity documentation.
-Decision: check only snapshot and handoff.
-Next action: read skills/codex/handoff/SKILL.md and compare its completion
-criteria with README.md.
-Open question: does saving a handoff JSON count as a completed handoff?
-Constraint: do not edit source files, create chats, or publish anything;
-only the snapshot artifact may be written. Reply in English and give me
-the exact prompt to paste after compaction.
+Use context-novelist to review README.md as the entrypoint for an AI helping
+someone select a Methodos skill. Check whether it can find the installation
+steps, permission boundaries, and completion checks. Read local references as
+needed. Reply in English with evidence and proposed improvements only.
+Do not edit files, run helpers, delegate, create chats, or send messages.
 ```
 
-**Expected result:** a JSON file under the skill's declared session directory
-and a reload prompt containing the actual saved path. It should preserve the
-four task facts above, not copy the whole conversation. The skill also reports
-its orphan check before the saved-path summary.
+**Expected result:** findings linked to the actual entrypoint and relevant
+references, explaining what the next AI can decide and where it would have to
+guess. The review can conclude that no change is needed.
 
-**Check:** open the returned file and confirm its `in_flight` task and next
-step, pending question, and active constraints. Compact using your runtime's
-supported action, then paste the returned reload prompt into the same chat.
-Codex should read the file and continue the recorded comparison within the
-read-only boundary. Compaction does not automatically reload the file. If the
-skill returns its retained Korean reload wording, the equivalent English prompt
-is:
-
-```text
-Read <the-actual-saved-path> and continue from in_flight.next_immediate_step,
-preserving the saved decisions, unresolved questions, and constraints.
-```
-
-The [snapshot contract](../../skills/codex/snapshot/SKILL.md) documents the JSON
-shape, storage paths, and optional Python writer. Reusing a session ID archives
-an existing snapshot by default; separate concurrent sessions need separate IDs.
-If your runtime has no compaction action, you can check saving and reloading,
-but that does not establish recovery across actual compaction.
+**Check:** findings distinguish evidence read from behavior inferred. The review
+stays in this chat and proposes changes without applying them. No custom agent,
+model policy, helper, or new-chat permission is needed. The skill's optional
+independent review does not override this request's no-delegation boundary.
 
 ## 2. Move work to a new chat
 
@@ -154,10 +137,10 @@ required chat tools. This request explicitly authorizes creating one new chat:
 ```text
 Use handoff to create a new chat for this read-only task:
 compare README.md with contract/codex/START-HERE.md and report any mismatch
-in the three starting jobs. This is a parallel split: keep the original
+in the starting jobs. This is a parallel split: keep the original
 chat's pin and sidebar position. Use this same local checkout; no new worktree.
 Do not archive the original chat or delete the handoff packet, even after
-completion. The new chat must not edit source files, update TODOs, create
+completion. The new chat must not edit source files, create
 GitHub issues, publish, or send messages to other chats. Include these
 constraints in its initial instructions. Use the configured model policy.
 Reply in English with the handoff path, new chat identity, and confirmed
@@ -165,8 +148,12 @@ creation state.
 ```
 
 **Expected result:** the scoped handoff JSON and a new chat that receives its
-path, role, and first documents to read. It receives that packet, not the old
-chat's full history. Optional GitHub issue integration is unnecessary here.
+path, role, and first documents to read. New packets use
+`<workspace>/.codex_context/handoff/<short-task-id>.json`. Existing
+`.claude_context/` data remains readable for compatibility; do not bulk-move or
+delete it. Check project ignore rules before saving private task context. The new
+chat receives only the selected context, without the old chat's full history.
+Optional GitHub issue integration is unnecessary here.
 
 **Check:** open the new chat, confirm that it reads the packet and performs the
 read-only comparison. A queued creation ID means creation was accepted; it is
@@ -185,9 +172,9 @@ can observe the complete dispatch and collection path:
 
 ```text
 Use orch with two task-worker agents for independent read-only checks.
-Worker A: read README.md and list the three starting jobs and their results.
-Worker B: read contract/codex/START-HERE.md and count the task skills and
-optional tools, explaining any ambiguous category.
+Worker A: read README.md and list the starting jobs and their results.
+Worker B: read contract/codex/START-HERE.md and identify the installation dependencies and
+permission boundaries for handoff and orch.
 Use only the configured main route. Do not edit files, create reports,
 create chats, use a worktree, or delegate again. Return each worker's result,
 what it checked, and any gaps; close both workers and combine the findings
@@ -202,6 +189,16 @@ effort, and the assigned scope. The parent collects completed results, closes
 the workers, and reconciles any disagreement. If tools or the role are missing,
 stop this example and report which capability is absent. In ordinary work,
 orch may keep small, tightly coupled tasks local when delegation adds no value.
+
+## Coordinate only when the next step depends on it
+
+When the current turn needs another chat's result, use `wait_threads` to collect
+it. For a long task where A manages and B performs the work, a user-authorized
+short completion notice from B can wake idle A to continue the next step.
+Independent chats do not send unnecessary reports. Follow the
+[thread messaging rules](rules/thread-orchestration.md) and preserve existing
+message permissions; do not create a watcher or schedule for routine coordination.
+[Codex wake](codex-wake.md) is for external server events, not ordinary chat completion.
 
 ## Update or remove selected components
 
@@ -224,7 +221,6 @@ appear; check the listed source path before changing another installation.
 
 | Selection being removed | Preserve / inspect separately |
 |---|---|
-| snapshot | Existing session snapshots and archives are task data, not installed skill files |
 | handoff | Keep packets needed by unfinished tasks; new chats have their own lifecycle |
 | orch | `task-worker` and the model policy may serve other work; remove only if no consumer remains |
 | any shared rule or AGENTS addition | Remove only references you added and no longer need; preserve unrelated rules and settings |

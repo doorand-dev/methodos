@@ -30,6 +30,6 @@ description: 지침·반복 작업 상태가 쌓여 읽는 부담이 커지거�
 | handoff·인계 JSON | [handoffs](references/handoffs.md) |
 | AGENTS·스킬·운영 문서 | 이 파일의 위 기준 |
 
-구조 변경은 [HTML 보고서](../improve-codebase-architecture/HTML-REPORT.md)로 실제 전후 경로·줄어드는 반복 판단·남는 비용을 보여준다. 단순 수정은 짧게 보고하고 HTML을 중간 승인 관문으로 만들지 않는다. 의무 스킬 연쇄·고정 후보 수·전체 회귀·독립 검수를 붙이지 않는다.
+구조 변경은 실제 전후 경로·줄어드는 반복 판단·남는 비용을 설명한다. 시각 비교가 판단에 도움이 될 때만 [HTML 보고서](../improve-codebase-architecture/HTML-REPORT.md)를 선택한다. 단순 수정은 짧게 보고하고 HTML을 중간 승인 관문으로 만들지 않는다. 의무 스킬 연쇄·고정 후보 수·전체 회귀·독립 검수를 붙이지 않는다.
 
 로딩·압축·memory 동작이 쟁점일 때만 [수명 참고](references/codex-context-lifetimes.md)를 읽는다. 특정 다음 AI의 시작 입력 검토는 [context-novelist](../context-novelist/SKILL.md), 방금 발생한 사건은 [blame-context](../blame-context/SKILL.md), 세션에서 어디가 낭비였는지부터 찾는 일은 [retro](../retro/SKILL.md)와 구분한다. 이미 확인한 문제를 이 링크로 다시 발주하지 않는다.
