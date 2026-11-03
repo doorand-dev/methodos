@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write a same-session pre-compact context snapshot (Claude).
+"""Write a same-session pre-compact context snapshot for Codex (Python 3.7+).
 
 Writes to ``<workspace>/.claude_context/sessions/<session-id>.json``. The
 ``resume_instruction`` field is tool-neutral; readers should accept either
@@ -16,9 +16,8 @@ from __future__ import annotations
 import argparse
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 
 def load_json(path: Path) -> dict:
@@ -37,12 +36,13 @@ def slugify(value: str) -> str:
 
 
 def now_local() -> datetime:
-    return datetime.now(ZoneInfo("Asia/Seoul"))
+    # Current KST is UTC+09:00; no system IANA database or tzdata is needed.
+    return datetime.now(timezone(timedelta(hours=9)))
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Write a session-specific .claude_context snapshot safely (Claude)."
+        description="Write a session-specific .claude_context snapshot safely (Codex)."
     )
     parser.add_argument("--input", required=True, help="Path to a JSON object to write as the snapshot.")
     parser.add_argument("--workspace", default=".", help="Workspace root. Defaults to current directory.")
@@ -68,7 +68,7 @@ def main() -> int:
     data.setdefault("kind", "context_snapshot")
     data.setdefault("workspace", str(workspace))
     data.setdefault("session_id", session_id)
-    data.setdefault("tool", "claude")
+    data.setdefault("tool", "Codex")
     data.setdefault("created_at_local", now_local().isoformat(timespec="seconds"))
     data.setdefault(
         "resume_instruction",

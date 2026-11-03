@@ -2,7 +2,9 @@
 
 긴 대화가 압축된 뒤 중요한 결정을 잊거나, 새 작업마다 같은 자동화를 다시 만들거나, 담당 채팅을 사람이 계속 깨워야 한다면 이 묶음에서 필요한 기능만 골라 쓸 수 있습니다. 스킬은 작업을 판단하는 지침이고, Codex wake는 실제 이벤트를 기존 채팅에 전달하는 Python 도구입니다.
 
-이 문서는 현재 Codex 공개 구성의 진입점입니다. 아래 작업별 스킬 17개와 선택 도구 4개 중 필요한 것만 설치합니다.
+처음 설치한다면 [영문 Quickstart](QUICKSTART.md)에서 `snapshot` 하나로 시작합니다. 같은 채팅의 압축 대비, 새 채팅 인계, 작업 분담을 각각 요청문 → 예상 결과 → 확인 방법으로 따라갈 수 있습니다. 스킬 본문과 이 목록은 현재 한국어이며, 영문 안내의 예제는 영어 응답을 요청합니다.
+
+이 문서는 전체 선택 목록과 추가 도구 안내입니다. 아래 작업별 스킬 17개와 선택 도구 4개 중 필요한 것만 설치합니다.
 
 | 하고 싶은 일 | 선택할 스킬 |
 |---|---|
@@ -29,7 +31,7 @@
 
 1. `skills/codex/<선택한 이름>/SKILL.md`에서 호출 조건과 산출물을 읽습니다. 필요한 supporting 파일까지 해당 폴더를 `~/.agents/skills/<이름>/`로 복사합니다. 이 묶음의 전역 규칙은 이 사용자 경로를 참조하므로, 프로젝트 범위의 `.agents/skills/`를 선택하면 참조도 함께 조정합니다. 이미 있으면 차이를 검토해 필요한 부분만 반영합니다.
 2. `agents/openai.yaml`이 있는 스킬은 해당 파일도 함께 둡니다. 설치가 기존 비활성 설정을 자동으로 해제하지는 않습니다. 자신의 Codex 설정과 새 채팅의 스킬 목록에서 노출 여부를 확인합니다.
-3. `orch`·`handoff`·`blame-code`를 쓰면 [모델 정책 예시](rules/model-routing.json)의 placeholder를 현재 도구가 지원하는 모델·effort로 채우고 `configured`를 true로 바꿉니다. 값이 미설정인 채 실행하지 않습니다. `task-worker`와 blame-code의 reader/judge 프로필은 `agents/codex/`에서 필요한 것만 `~/.codex/agents/`로 복사하고 새 채팅의 생성 도구에 해당 역할이 노출되는지 확인합니다.
+3. `snapshot` 단독에는 모델 정책이나 custom agent가 필요하지 않습니다. `orch`와 `handoff`의 최소 구성은 [Quickstart 설치 표](QUICKSTART.md#install-only-the-required-components)를 따릅니다. [모델 정책 예시](rules/model-routing.json)는 실제 사용하는 등급의 placeholder를 지원되는 모델·effort로 채우고 사용하지 않는 등급을 제외한 뒤 `configured`를 true로 바꿉니다. `blame-code`까지 선택하면 reader/judge 프로필과 그 작업에 필요한 모델 경로도 준비합니다.
 4. 규칙은 `contract/codex/rules/`에서 필요한 것만 `~/.codex/rules/`로 옮깁니다. [전역 AGENTS 예시](AGENTS.example.md)는 전체 덮어쓰기 대신 기존 권한·작업 방식에 맞게 합칩니다.
 5. 작은 실제 작업에서 결과와 재작업을 확인합니다. 모델명이나 스킬 개수 자체가 품질을 보장하지는 않습니다.
 
@@ -53,6 +55,10 @@ Codex CLI·IDE에서는 `$snapshot`처럼 이름을 명시하거나 자연어로
 ## 작업이 끝났을 때 채팅이 이어받게 하기
 
 [Codex wake 사용 안내](codex-wake.md)는 다운로드·빌드·외부 대기 조건이 끝났을 때 기존 담당 채팅을 재개하는 방법을 설명합니다. Python 표준 라이브러리 도구, 읽기 전용 probe, 오프라인 테스트를 함께 제공합니다. 설치된 앱 bridge를 이용하는 별도 도구이며 기본 Codex의 안정 API로 가정하지 않습니다.
+
+## 업데이트와 선택 제거
+
+[Quickstart의 관리 절차](QUICKSTART.md#update-or-remove-selected-components)에서 설치한 스킬·프로필·공유 규칙별로 갱신과 제거 범위를 확인합니다. 기존 스냅샷·handoff 자료와 사용자 모델 정책은 설치 파일과 구분해 보존합니다. 공유 파일을 스킬 하나의 전용 파일로 보고 지우지 않습니다.
 
 ## 공개 범위
 

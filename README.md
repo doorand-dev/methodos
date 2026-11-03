@@ -1,87 +1,85 @@
 # Methodos
 
-Methodos is a reference kit for Codex: reusable skills, custom agent profiles,
-rule examples, and optional local tools. Choose the pieces that fit your work,
-adapt their dependencies, and verify them in your environment.
+Keep long Codex tasks moving through compaction, handoffs, and parallel work.
+Methodos packages the instructions, agent profiles, and local helpers behind
+those three jobs. Pick the one you need; each skill keeps its own trigger.
 
-Skills keep their own triggers; Methodos does not add a central runtime
-router. Cloning this repository does not install skills, enable hooks, or start
-automations.
+## Start with one job
 
-## Start with the task you have
+| When you need to… | Use | What a successful run gives you |
+|---|---|---|
+| Continue the same chat after compaction | [`snapshot`](contract/codex/QUICKSTART.md#1-save-before-compaction) | Saved priorities, the next action, and a prompt to reload them after compaction |
+| Move a bounded task into a new chat | [`handoff`](contract/codex/QUICKSTART.md#2-move-work-to-a-new-chat) | A handoff file, a new chat, and its confirmed creation state |
+| Divide independent work inside the current task | [`orch`](contract/codex/QUICKSTART.md#3-divide-two-independent-checks) | Worker results, their checks and gaps, and the parent's combined answer |
 
-The [Codex selection and installation guide](contract/codex/START-HERE.md)
-lists the available skills, dependencies, installation paths, and invocation
-rules. Start with one task rather than copying the whole kit.
+Start with `snapshot`; it needs no model policy or custom agent profile.
+The [English quickstart](contract/codex/QUICKSTART.md) gives a guarded copy
+command, prerequisites, and a request → result → check example for each job.
+It also explains how to [update or remove your selections](contract/codex/QUICKSTART.md#update-or-remove-selected-components).
 
-| What you need | Start with |
-|---|---|
-| Preserve work before compaction / move work to a new chat | `snapshot` / `handoff` |
-| Divide independent work and collect the results | `orch` |
-| Check what the next AI reader needs / improve context loading | `context-novelist` / `improve-context` |
-| Find missing product requirements | `product-novelist` |
-| Investigate a specific mistake / recurring process waste | `blame-context` / `retro` |
-| Inspect code-misreading friction / clean a project | `blame-code` / `gc` |
-| Improve code structure / reuse a repeated workflow | `improve-codebase-architecture` / `workflow-reuse` |
-| Record external facts / choose where knowledge belongs | `finding` / `ai-knowledge-routing` |
-| Write clear Korean prose / investigate current examples | `purposeful-writing` / `trend-research` |
-| Keep work across sessions | `todo` |
+**Language:** onboarding is available in English; the
+[full skill catalog and advanced setup notes](contract/codex/START-HERE.md)
+and the skill instructions are currently written in Korean. The example
+requests in the quickstart ask for English responses.
 
-Optional tools are `model-router`, `ask-chatgpt-pro`, `report-kit`, and
-`add-youtube-channel`. They have additional environment or project requirements;
-read their conditions in the guide before selecting them.
+## First run: preserve the next action
 
-## Install and invoke one skill
+After installing `snapshot`, use it in a real task when compaction is imminent:
 
-1. Read `skills/codex/<name>/SKILL.md`, then copy the selected folder, including
-   supporting files, to `~/.agents/skills/<name>/`. Compare existing files before
-   updating them.
-2. Follow the [installation guide](contract/codex/START-HERE.md) for any required
-   profiles under `~/.codex/agents/`, configured model policy, and rule files.
-   Keep existing activation settings and permission boundaries.
-3. Confirm that your runtime discovers the skill. In Codex CLI or the IDE,
-   mention a skill with `$snapshot`, or ask for it by name in your request.
-   Each skill's description and invocation policy determine when it applies.
-   `gc` and `blame-code`, for example, require explicit requests.
-4. Try one small task, run relevant checks, and inspect the exact changed paths.
-   A model name, report, or transport receipt does not prove completion.
-
-[Codex wake](contract/codex/codex-wake.md) is a separate, unofficial Windows
-Python helper for resuming an authorized existing chat after a real event.
-It needs a compatible installed app bridge and queue CLI. Offline tests do not
-establish compatibility with your installed app version.
-
-## Optional hooks and local verification
-
-Review selected entries in the [Codex hook guide](hooks/codex/README.md) before
-registration. Worktree retirement uses an explicit CLI action; it is not a
-startup hook. Nothing in this repository grants permission for deletion,
-scheduling, browser access, or message delivery.
-
-The hook test suite needs Python 3.11+ and `pytest`. It uses disposable test
-repositories and fake bridge responses. The GC safety suite also starts
-PowerShell with an isolated temporary user directory; it does not change real
-automations.
-
-```powershell
-python -B -m pytest -q -p no:cacheprovider hooks/common hooks/codex skills/codex/gc/tests
+```text
+Use snapshot before compaction. Keep the next action, unresolved questions,
+and the constraints for this task. Reply in English and give me the exact
+prompt to paste after compaction.
 ```
 
-Actual app delivery, external review, login, scheduling, and hook registration
-need checks in the adopting environment.
+Check the saved file and keep the returned reload prompt. After compaction,
+paste that prompt into the same chat and check that Codex resumes the recorded
+next action. Reload is a manual step; saving a file alone does not restore the
+chat's working context. See the [complete example](contract/codex/QUICKSTART.md#1-save-before-compaction).
+
+## More tasks
+
+The [catalog](contract/codex/START-HERE.md) covers 17 task skills and four
+optional tools. It includes context review, product requirements, mistake
+analysis, code structure, reusable workflows, durable findings, writing, and
+research. Choose these as the need arises.
+
+`model-router`, `ask-chatgpt-pro`, `report-kit`, and `add-youtube-channel` have
+additional environment or project requirements described in the catalog.
+[Codex wake](contract/codex/codex-wake.md) is a separate, unofficial Windows
+helper that delivers a real event to an authorized existing chat. Its app bridge
+and queue CLI must be compatible with the installed environment.
+
+## Local checks and optional hooks
+
+[Hook registration](hooks/codex/README.md) is opt-in. Worktree retirement uses
+an explicit CLI action. Installing a skill does not activate hooks, create a
+schedule, or grant permission to send messages or delete data.
+
+The combined Python suite needs Python 3.11+ and `pytest`. On Windows, the GC
+safety tests also use Windows PowerShell with a temporary user directory.
+
+```powershell
+python -B -m pytest -q -p no:cacheprovider hooks/common hooks/codex skills/codex/gc/tests skills/codex/snapshot/tests
+```
+
+These checks use disposable files and repositories and fake app responses.
+They verify the local helpers; actual compaction, new-chat creation, and event
+delivery need confirmation in the adopting runtime. The quickstart lists the
+required capabilities and what to do when they are unavailable.
 
 ## Repository layout
 
 ```text
 skills/codex/          Task-specific skills and optional tools
-agents/codex/          task-worker and blame-code reader/judge profiles
-contract/codex/        Installation guide, rule examples, and wake guide
+agents/codex/          Custom worker and blame-code reader/judge profiles
+contract/codex/        Quickstart, catalog, rules, and wake guide
 hooks/common/         Local helpers, explicit worktree cleanup CLI, and wake
-hooks/codex/          Optional hook registration examples and tests
-docs/specs/           Superseded design notes, not active installation rules
-.Codex/plans/         Superseded plans, not active execution instructions
+hooks/codex/          Optional hook examples and tests
+docs/specs/           Superseded design notes
+.Codex/plans/         Superseded plans
 ```
 
 Public examples omit personal accounts, chat identifiers, project data, model
-assignments, and login state. Configure your own paths, supported models, and
-permissions. MIT; see [LICENSE](LICENSE).
+assignments, and login state. Keep your own paths, supported models, permissions,
+and activation settings. MIT; see [LICENSE](LICENSE).

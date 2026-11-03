@@ -219,6 +219,9 @@ ASCII 우선. 한글 등 non-ASCII는 UTF-8 valid로 유지.
 
 `scripts/write_context_snapshot.py`로 저장·검증·백업 자동화:
 
+실행 조건: Python 3.7 이상. 표준 라이브러리만 사용하며 추가 패키지나
+시스템 시간대 데이터 없이 현재 KST(`+09:00`)로 기록한다.
+
 ```powershell
 python <installed-snapshot-skill>/scripts/write_context_snapshot.py --input snapshot.json --workspace . --session-id <task-id>
 ```
