@@ -2,7 +2,7 @@
 
 긴 대화가 압축된 뒤 중요한 결정을 잊거나, 새 작업마다 같은 자동화를 다시 만들거나, 담당 채팅을 사람이 계속 깨워야 한다면 이 묶음에서 필요한 기능만 골라 쓸 수 있습니다. 스킬은 작업을 판단하는 지침이고, Codex wake는 실제 이벤트를 기존 채팅에 전달하는 Python 도구입니다.
 
-이 문서는 이번 Codex 게시본의 진입점입니다. 저장소 루트의 공통 프로필과 이전 스킬은 별도 기존 자료이며, 모두 설치할 필요는 없습니다. Claude 영역은 이번 갱신 대상이 아닙니다.
+이 문서는 현재 Codex 공개 구성의 진입점입니다. 아래 작업별 스킬 17개와 선택 도구 4개 중 필요한 것만 설치합니다. 저장소 루트의 기존 planning 프로필은 현재 Codex 설치 목록이 아닙니다. Claude 영역과 공용 planning 도구는 별도 소비자를 위해 유지합니다.
 
 | 하고 싶은 일 | 선택할 스킬 |
 |---|---|
@@ -18,6 +18,17 @@
 
 ## 먼저 하나만 적용하기
 
+### 선택 도구
+
+| 도구 | 남기는 용도와 실행 조건 |
+|---|---|
+| `model-router` | 명시적으로 요청한 실행 관측·모델 비교. 계측 환경과 모델 지원을 확인하고 API 단가는 실행 시 공식 자료에서 확인합니다. |
+| `ask-chatgpt-pro` | 명시적으로 요청한 ChatGPT Pro 검토. 로그인과 별도 브라우저 어댑터가 필요하며 현재 연결 호환성은 설치 환경에서 확인합니다. 사용자 브라우저 정책이 우선입니다. |
+| `report-kit` | 명시적으로 선택하는 HTML 템플릿 시제품. 표본 데이터는 사용자의 실제 자료로 교체합니다. |
+| `add-youtube-channel` | 채널 매트릭스·CapCut 연결을 갖춘 YouTube 파이프라인용 지침. 범용 채널 생성 도구가 아니며 적용 전 프로젝트 구조와 필수 입력을 확인합니다. |
+
+### 설치
+
 1. `skills/codex/<선택한 이름>/SKILL.md`에서 호출 조건과 산출물을 읽습니다. 필요한 supporting 파일까지 해당 폴더를 `~/.agents/skills/<이름>/`로 복사합니다. 이미 있으면 차이를 검토해 필요한 부분만 반영합니다.
 2. `agents/openai.yaml`이 있는 스킬은 해당 파일도 함께 둡니다. 설치가 기존 비활성 설정을 자동으로 해제하지는 않습니다. 자신의 Codex 설정과 새 채팅의 스킬 목록에서 노출 여부를 확인합니다.
 3. `orch`·`handoff`·`blame-code`를 쓰면 [모델 정책 예시](rules/model-routing.json)의 placeholder를 현재 도구가 지원하는 모델·effort로 채우고 `configured`를 true로 바꿉니다. 값이 미설정인 채 실행하지 않습니다. `task-worker`와 blame-code의 reader/judge 프로필은 `agents/codex/`에서 필요한 것만 `~/.codex/agents/`로 복사하고 새 채팅의 생성 도구에 해당 역할이 노출되는지 확인합니다.
@@ -25,6 +36,8 @@
 5. 작은 실제 작업에서 결과와 재작업을 확인합니다. 모델명이나 스킬 개수 자체가 품질을 보장하지는 않습니다.
 
 서로 참조하는 스킬은 해당 기능을 사용할 때 함께 설치합니다. `context-novelist`의 로딩 참고는 `improve-context`, 문맥·재사용 개선의 HTML 기준은 `improve-codebase-architecture`에 있습니다. `blame-code`는 reader 2명과 judge 프로필이 필요합니다. 참조가 없으면 그 기능을 실행하기 전에 설치·경로를 확인합니다.
+
+`model-router`의 Pro 검토 참조에는 `ask-chatgpt-pro`가 필요합니다. `ask-chatgpt-pro`의 예약 보조 기능을 선택할 때만 `rules/scripts/codex-heartbeat-rrule.ps1`을 같은 구조로 `~/.codex/rules/scripts/`에 설치합니다. 예약과 전송 권한은 별도로 확인하며 설치만으로 실행되지 않습니다.
 
 `trend-research`는 사용자가 설치한 Aside 진입점을 사용합니다. 브라우저 스킬과 로그인 환경은 이 묶음에 포함하지 않습니다. `ai-knowledge-routing`의 `<knowledge-root>`는 자기 프로젝트 지도에 선언해야 합니다. 예시의 `.Codex/`·`.claude_context/` 같은 산출 위치는 스킬 계약이므로 임의로 바꾸기 전에 소비 경로를 확인합니다.
 

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Context GC"
-  short_description: "지정 범위의 컨텍스트 계약을 체계적으로 감사합니다"
-  default_prompt: "Use $context-gc to audit context contracts in the requested scope."

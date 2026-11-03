@@ -1,4 +1,0 @@
-interface:
-  display_name: "Improve Context Architecture"
-  short_description: "컨텍스트 체계의 구조적 개선 후보를 탐색합니다"
-  default_prompt: "Use $improve-context-architecture to find structural improvements in the context system."
