@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "scope": "new_owners_and_subagents",
-  "precedence": "Current user instruction, then project contract, then this file. Do not replace a running owner.",
-  "support_check": "Use only models and efforts listed by the current spawn/create tool. Do not silently substitute.",
+  "precedence": "Current user instruction, then project contract, then this file. Do not replace a running owner. A user-requested model need not belong to these preference tiers; verify its support before use.",
+  "support_check": "Start with the current execution tool model and effort information. Do not assume advertised examples are a complete allowlist. Only when a requested model is missing or information is insufficient, query that model in the configured provider catalog. For OpenCodex, resolve model_catalog_json from config.toml (usual path: ~/.codex/opencodex-catalog.json). Parse it in code and return only matching IDs, visibility, supported/default reasoning levels and collaboration compatibility; never load the whole catalog into AI context or enumerate it on every task. Respect explicit tool argument restrictions. Recheck missing, stale or conflicting catalog data through the current provider lookup; distinguish catalog eligibility from successful execution and never silently substitute.",
   "worker_agent_type": "task-worker",
   "tiers": {
     "main": {
