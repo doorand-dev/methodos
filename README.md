@@ -44,7 +44,7 @@ optional tools. It includes context review, product requirements, mistake
 analysis, code structure, reusable workflows, durable findings, writing, and
 research. Choose these as the need arises.
 
-`model-router`, `ask-chatgpt-pro`, `report-kit`, and `add-youtube-channel` have
+`ask-chatgpt-pro`, `report-kit`, and `add-youtube-channel` have
 additional environment or project requirements described in the catalog.
 [Codex wake](contract/codex/codex-wake.md) is a separate, unofficial Windows
 helper that delivers a real event to an authorized existing chat. Its app bridge
