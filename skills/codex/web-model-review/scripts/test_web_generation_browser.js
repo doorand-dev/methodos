@@ -82,3 +82,117 @@ test('rendered review packets preserve every source block and all prose', () => 
   assert.equal(driver.promptMatches(history, prompt), false);
   assert.equal(driver.promptMatches(history, '# arbitrary Markdown'), false);
 });
+
+test('ChatGPT can verify long input, submit once and require final controls beyond the snapshot', async () => {
+  const {driver} = fixture();
+  driver.service = 'chatgpt';
+  let value = '', clicks = 0, stop = false, done = false;
+  const editor = {count: async () => 1, fill: async text => {value = text;}, evaluate: async fn => fn({value})};
+  driver.page.getByRole = (role, {name}) => {
+    if (role === 'textbox' && name === 'ChatGPT에게 물어보세요') return editor;
+    if (role === 'button') return {
+      count: async () => name === '보내기' ? 1 : name === 'Stop generating' ? Number(stop) : name === 'Regenerate' ? Number(done) : 0,
+      click: async () => {assert.equal(name, '보내기'); clicks++;},
+    };
+    throw Error('Unexpected ChatGPT control');
+  };
+  driver.gate = async () => ({});
+  driver.history = async () => ({users: [], answers: []});
+  const prompt = 'source line\n'.repeat(4000);
+  assert.equal((await driver.fill(prompt)).input_matches, true);
+  await driver.submit(prompt);
+  assert.equal(clicks, 1);
+  driver.history = async () => ({users: [prompt], answers: ['answer']});
+  assert.equal((await driver.collect(prompt)).complete, false);
+  done = true; stop = true;
+  assert.equal((await driver.collect(prompt)).complete, false);
+  stop = false;
+  assert.equal((await driver.collect(prompt)).complete, true);
+  await assert.rejects(driver.submit(prompt), /Existing conversation/);
+  assert.equal(clicks, 1);
+});
+
+test('hidden generic quota descriptions do not block Pro, while a visible quota notice does', async () => {
+  const {driver} = fixture();
+  const attributes = {};
+  const parent = {hidden: false, parentElement: null, getAttribute: key => attributes[key] ?? null,
+    classList: {contains: () => false}, style: {display: 'block', visibility: 'visible', opacity: '1'}};
+  let srOnly = true;
+  const notice = {textContent: '사용 한도에 도달했습니다', children: [], parentElement: parent,
+    hidden: false, getClientRects: () => [{}], getAttribute: () => null,
+    classList: {contains: name => name === 'sr-only' && srOnly},
+    style: {display: 'block', visibility: 'visible', opacity: '1'}};
+  const thumb = {getAttribute: attr => ({'aria-valuemin': '0', 'aria-valuemax': '4', 'aria-valuenow': '4'})[attr]};
+  const row = {querySelector: () => thumb, getAttribute: () => 'false'};
+  const el = {parentElement: null, querySelectorAll: selector => selector === '*' ? [notice] : [],
+    querySelector: selector => selector.includes('picker') ? {innerText: 'Pro'} : row,
+    ownerDocument: {defaultView: {getComputedStyle: node => node.style}}};
+  const menu = {evaluate: async (fn, selectors) => fn(el, selectors)};
+  assert.equal((await driver.readChatPicker(menu)).slider.quota_notice, false);
+  srOnly = false; attributes['aria-hidden'] = 'true';
+  assert.equal((await driver.readChatPicker(menu)).slider.quota_notice, false);
+  attributes['aria-hidden'] = 'false'; parent.style.opacity = '0';
+  assert.equal((await driver.readChatPicker(menu)).slider.quota_notice, false);
+  parent.style.opacity = '1';
+  assert.equal((await driver.readChatPicker(menu)).slider.quota_notice, true);
+});
+
+test('ChatGPT paragraph input preserves URL literals, indentation and empty lines', async () => {
+  const {driver} = fixture();
+  driver.service = 'chatgpt';
+  const lines = ['line 1', 'url = "https://example.com/"', '', '  indented', ''];
+  driver.page.getByRole = () => ({count: async () => 1, evaluate: async fn => fn({
+    innerText: 'line 1\n\nurl = "\nhttps://example.com/"\n\n\n\n\n  indented\n\n\n',
+    childNodes: lines.map(textContent => ({nodeType: 1, tagName: 'P', textContent})),
+  })});
+  assert.equal(await driver.editorText(), lines.join('\n'));
+});
+
+test('ChatGPT history resolves the observed main DOM when the conversation snapshot ref is missing', async () => {
+  const {driver} = fixture();
+  driver.service = 'chatgpt';
+  driver.tree = '[snapshot truncated at 16 KiB]';
+  driver.page.locator = selector => {
+    if (selector === '[data-user-message-bubble]') return {count: async () => 1};
+    if (selector === '[data-user-message-bubble] button') return {count: async () => 0};
+    assert.equal(selector, 'main');
+    return {first: () => ({evaluate: async fn => fn({querySelectorAll: query =>
+      query === '[data-user-message-bubble]' ? [{querySelector: () => ({nodeType: 1, tagName: 'DIV', hidden: false,
+        getAttribute: () => null, childNodes: [{nodeType: 3, textContent: 'exact prompt'}]})}] : []})})};
+  };
+  const history = await driver.history();
+  assert.deepEqual(Array.from(history.users), ['exact prompt\n']);
+  assert.equal(history.answers.length, 0);
+});
+
+test('code string spaces and indentation cannot be accepted through whitespace normalization', async () => {
+  const {driver} = fixture();
+  driver.service = 'chatgpt';
+  const prompt = 'value = "a  b"\n';
+  driver.page.getByRole = () => ({count: async () => 1, fill: async () => {},
+    evaluate: async fn => fn({value: 'value = "a b"\n'})});
+  await assert.rejects(driver.fill(prompt), /Editor input differs/);
+  assert.equal(driver.promptMatches({users: ['value = "a b"\n']}, prompt), false);
+  driver.service = 'aistudio';
+  const packet = '# 검토 요청\n질문\n\n# 세부 자료\n```\n  value = "a  b"\n```\n';
+  assert.equal(driver.promptMatches({users: [packet.replace('a  b', 'a b')],
+    user_packets: [{codes: ['  value = "a b"'], prose: '검토 요청 질문 세부 자료'}]}, packet), false);
+});
+
+test('only the visible selectable final response is read, excluding hidden copies and progress surfaces', async () => {
+  const {driver} = fixture();
+  driver.service = 'chatgpt';
+  const visible = {closest: () => null, querySelectorAll: () => [], innerText: 'final answer'};
+  const hidden = {closest: () => ({hidden: true})};
+  Object.defineProperty(hidden, 'innerText', {get() {throw Error('Hidden response was read');}});
+  driver.page.locator = selector => {
+    if (selector === '[data-user-message-bubble]') return {count: async () => 0};
+    assert.equal(selector, 'main');
+    return {first: () => ({evaluate: async fn => fn({querySelectorAll: query => {
+      if (query === '[data-user-message-bubble]') return [];
+      assert.equal(query, '[data-chatgpt-selection-conversation-id] [data-markdown-text-style="assistant-message"]:not([data-markdown-text-tone])');
+      return [hidden, visible];
+    }})})};
+  };
+  assert.deepEqual(Array.from((await driver.history()).answers), ['final answer']);
+});

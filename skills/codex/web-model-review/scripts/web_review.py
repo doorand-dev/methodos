@@ -1,4 +1,4 @@
-"""Submit one AI Studio review in a detached REPL, collect its final, then wake.
+"""Submit one web model review in a detached REPL, collect its final, then wake.
 
 The worker owns its temporary tab until collection ends. Existing web_generation
 guards and web_review_wake delivery are reused; no API or retry submission exists.
@@ -34,27 +34,33 @@ def update(directory, state, status, **values):
 
 
 class ReviewBrowser(generation.Aside):
-    def __init__(self, account, directory):
+    def __init__(self, account, directory, service="aistudio"):
         self.directory = directory
         self.submitted_at = None
+        self.review_service = service
+        url = {"aistudio": "https://aistudio.google.com/",
+               "chatgpt": "https://chatgpt.com/?temporary-chat=true"}[service]
+        host = {"aistudio": "aistudio.google.com", "chatgpt": "chatgpt.com"}[service]
         super().__init__(account)
         try:
             # A new review is explicitly requested. Never reuse an existing chat.
             self.target = self.call(
                 'const before=new Set((await listBrowserTabs()).map(t=>t.targetId));'
-                'const own=await openTab("https://aistudio.google.com/");'
+                f'const own=await openTab({json.dumps(url)});'
                 'await snapshot(own,{interactive:true});'
                 'const added=(await listBrowserTabs()).filter(t=>!before.has(t.targetId)'
-                '&&new URL(t.url).hostname==="aistudio.google.com");'
+                f'&&new URL(t.url).hostname==={json.dumps(host)});'
                 'if(added.length!==1)throw Error("New review tab identity not found");'
                 'return added[0].targetId;')
-            event(directory, "tab_opened", target=self.target)
+            event(directory, "tab_opened", target=self.target, service=service)
         except Exception:
             self.close()
             raise
 
     def invoke(self, method, *args):
         if method == "attach":
+            if args[0] != self.review_service:
+                raise ValueError("Review service differs from the owned tab")
             args = (args[0], self.target)
         if method == "submit":
             self.submitted_at = time.monotonic()
@@ -78,6 +84,7 @@ def worker(directory):
         marker.write(str(os.getpid()))
         marker.flush()
         os.fsync(marker.fileno())
+    owned = []
     try:
         update(directory, state, "probing")
         if generation.digest((directory / "prompt.txt").read_text(encoding="utf-8")) != state["prompt_sha256"]:
@@ -87,12 +94,30 @@ def worker(directory):
             raise RuntimeError("Wake target probe failed; nothing submitted")
         update(directory, state, "reviewing")
         event(directory, "review_started")
-        command = ["--account", state["account"], "run", "aistudio",
+        service = state.get("service", "aistudio")
+        def browser_factory(account):
+            if not owned:
+                owned.append(ReviewBrowser(account, directory, service))
+            return owned[0]
+        command = ["--account", state["account"], "run", service,
                    "--model", state["model"], "--reasoning", state["reasoning"],
                    "--prompt", str(directory / "prompt.txt"), "--out", str(directory / "run"),
                    "--timeout", str(state["timeout"])]
-        code = generation.main(command, browser_factory=lambda account: ReviewBrowser(account, directory))
+        deadline = time.monotonic() + state["timeout"]
+        code = generation.main(command, browser_factory=browser_factory, close_browser=False)
         manifest = wake.read(directory / "run/manifest.json")
+        # Keep the owned REPL/tab after an uncertain collection failure. Recovery
+        # invokes only poll against the same run and browser, never run/send.
+        while (code and manifest.get("submissions_attempted") == 1
+               and manifest.get("status") in wake.PENDING and time.monotonic() < deadline):
+            event(directory, "collection_recovery", status=manifest["status"], error=manifest.get("error"))
+            time.sleep(min(wake.RECHECK_SECONDS, max(0, deadline - time.monotonic())))
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            code = generation.main(["poll", str(directory / "run"), "--timeout", str(min(30, remaining))],
+                                   browser_factory=browser_factory, close_browser=False)
+            manifest = wake.read(directory / "run/manifest.json")
         if code or not wake.final_answer(directory / "run", manifest):
             update(directory, state, "review_failed", review_status=manifest.get("status"))
             return
@@ -107,6 +132,9 @@ def worker(directory):
     except Exception as exc:
         update(directory, state, "failed", error=str(exc))
         event(directory, "failed", error=str(exc))
+    finally:
+        for browser in owned:
+            browser.close()
 
 
 def submit(args):
@@ -128,6 +156,7 @@ def submit(args):
     (directory / "prompt.txt").write_text(prompt, encoding="utf-8", newline="")
     (directory / "user-request.txt").write_text(request, encoding="utf-8", newline="")
     state = {"version": 1, "created_at": now(), "thread": thread, "account": args.account,
+             "service": args.service,
              "model": args.model, "reasoning": args.reasoning, "timeout": args.timeout,
              "wake_timeout": args.wake_timeout, "prompt_sha256": generation.digest(prompt)}
     update(directory, state, "starting")
@@ -147,9 +176,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     launch = sub.add_parser("submit", help="Send one authorized review, collect final, then wake")
+    launch.add_argument("--service", choices=("aistudio", "chatgpt"), default="aistudio")
     launch.add_argument("--account", required=True, help="Aside account:profile selector")
-    launch.add_argument("--model", required=True, help="Exact AI Studio model id observed in the UI")
-    launch.add_argument("--reasoning", default="Medium", help="Verify current AI Studio Thinking Level")
+    launch.add_argument("--model", required=True, help="Exact model name/id observed in the selected service UI")
+    launch.add_argument("--reasoning", default="Medium", help="ChatGPT: set effort; AI Studio: verify Thinking Level")
     launch.add_argument("--prompt", type=Path, required=True)
     launch.add_argument("--out", type=Path, required=True, help="New job directory; never reuse")
     launch.add_argument("--thread", required=True)

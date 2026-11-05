@@ -9,6 +9,7 @@ import argparse
 import base64
 from datetime import datetime, timezone
 import hashlib
+import html
 import json
 import math
 import os
@@ -169,9 +170,72 @@ def new_run(directory, service, model, prompt, prompt_path, account):
     }
 
 
-def observe(browser, state, prompt):
+def decode_user_copy(value):
+    # The UI copy action exports plain pasted text as escaped Markdown.
+    # Decode only standard HTML entities and one Markdown punctuation escape.
+    return re.sub(r"\\([!-/:-@\[-`{-~])", r"\1", html.unescape(value)).replace("\r\n", "\n").rstrip("\n")
+
+
+def clipboard_sequence():
+    import ctypes
+    return ctypes.windll.user32.GetClipboardSequenceNumber()
+
+
+def read_clipboard():
+    executable = shutil.which("pwsh") or shutil.which("powershell")
+    if not executable:
+        raise RuntimeError("PowerShell is required for the Windows user-copy verification")
+    completed = subprocess.run([executable, "-NoProfile", "-NonInteractive", "-Command",
+        "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); Get-Clipboard -Raw"],
+        capture_output=True, encoding="utf-8", errors="strict", timeout=5,
+        creationflags=subprocess.CREATE_NO_WINDOW)
+    if completed.returncode:
+        raise RuntimeError("Could not read the just-copied user message")
+    return completed.stdout
+
+
+def verify_user_copy(browser, state, prompt, result, directory):
+    rendered = result.get("user_snapshot")
+    if os.name != "nt" or state.get("service") != "chatgpt" or result.get("user_count") != 1 or not rendered:
+        return False
+    key = (result.get("url"), digest(rendered), digest(prompt))
+    proofs = getattr(browser, "_user_copy_proofs", {})
+    if key in proofs:
+        state["copied_input_verification"] = proofs[key]
+        return True
+    attempts = getattr(browser, "_user_copy_attempts", set())
+    attempt = (*key, bool(result.get("complete")))
+    if attempt in attempts:
+        return False
+    before = clipboard_sequence()
+    copied = browser.invoke("copyUserSource")
+    if not copied.get("copied"):
+        return False
+    attempts.add(attempt)
+    browser._user_copy_attempts = attempts
+    if clipboard_sequence() == before:
+        return False  # A stale clipboard value is not evidence of this UI action.
+    raw = read_clipboard()
+    if decode_user_copy(raw) != prompt.replace("\r\n", "\n").rstrip("\n"):
+        return False  # Never store unrelated clipboard contents.
+    proof = {"comparison": "user_copy_markdown_decoded", "url": result["url"],
+             "rendered_sha256": key[1], "prompt_sha256": key[2], "copy_sha256": digest(raw)}
+    if directory is not None:
+        target = directory / "user-source-copy.md"
+        target.write_text(raw, encoding="utf-8", newline="")
+        proof["copy_file"] = str(target)
+    proofs[key] = proof
+    browser._user_copy_proofs = proofs
+    state["copied_input_verification"] = proof
+    return True
+
+
+def observe(browser, state, prompt, directory=None):
     result = browser.invoke("collect", prompt)
-    state["last_observation"] = {k: v for k, v in result.items() if k != "output"}
+    if not result.get("prompt_matches") and verify_user_copy(browser, state, prompt, result, directory):
+        result["prompt_matches"] = True
+        result["input_comparison"] = "user_copy_markdown_decoded"
+    state["last_observation"] = {k: v for k, v in result.items() if k not in ("output", "user_snapshot")}
     # A ChatGPT tab can be reused for a different conversation between CLI calls.
     previous = state.get("url") or ""
     current = result.get("url") or ""
@@ -191,7 +255,19 @@ def collect(browser, directory, state, prompt, timeout, poll_interval):
     deadline = time.monotonic() + timeout
     previous = None
     while time.monotonic() < deadline:
-        result = observe(browser, state, prompt)
+        try:
+            result = observe(browser, state, prompt, directory)
+        except RuntimeError as exc:
+            # A transient conversation transition must not destroy the worker's
+            # temporary tab immediately after an uncertain click. This narrow
+            # legacy UI error may recover by observing, never by resubmitting.
+            if "Unrecognized conversation UI" not in str(exc):
+                raise
+            previous = None
+            state["collection_warning"] = str(exc)
+            save(directory, state)
+            time.sleep(min(poll_interval, max(0, deadline - time.monotonic())))
+            continue
         if result.get("blocked"):
             state["status"] = result["blocked"]
             break
@@ -203,6 +279,10 @@ def collect(browser, directory, state, prompt, timeout, poll_interval):
                 state["settings_after"] = observed
                 if state["model_requested"] not in (observed.get("model"), observed.get("model_id")):
                     state["status"] = "blocked_model_changed"
+                    break
+                expected_reasoning = state.get("settings", {}).get("reasoning")
+                if expected_reasoning and observed.get("reasoning") != expected_reasoning:
+                    state["status"] = "blocked_reasoning_changed"
                     break
                 (directory / "output.txt").write_text(output, encoding="utf-8", newline="")
                 state.update(status="completed", output_obtained=True,
@@ -258,7 +338,7 @@ def parser():
     return p
 
 
-def main(argv=None, *, browser_factory=None):
+def main(argv=None, *, browser_factory=None, close_browser=True):
     args = parser().parse_args(argv)
     if not math.isfinite(getattr(args, "timeout", 1)) or getattr(args, "timeout", 1) <= 0:
         raise SystemExit("--timeout must be positive")
@@ -336,7 +416,7 @@ def main(argv=None, *, browser_factory=None):
                 save(directory, state)
                 browser.invoke("submit", prompt)
                 if args.command == "send":
-                    observe(browser, state, prompt)
+                    observe(browser, state, prompt, directory)
                 else:
                     collect(browser, directory, state, prompt, args.timeout, 3)
         else:
@@ -353,7 +433,7 @@ def main(argv=None, *, browser_factory=None):
         print(json.dumps({"error": str(exc), "manifest": str(directory / "manifest.json") if directory else None}, ensure_ascii=False), file=sys.stderr)
         return 2
     finally:
-        if browser:
+        if browser and close_browser:
             browser.close()
         if tab_fd is not None:
             os.close(tab_fd)

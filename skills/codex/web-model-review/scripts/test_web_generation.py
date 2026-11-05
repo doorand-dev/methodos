@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 import uuid
 
 import web_generation as cli
@@ -48,6 +48,62 @@ class FakeAside:
 
 
 class GenerationSafetyTests(unittest.TestCase):
+    def test_ui_copy_proof_preserves_source_and_is_cached_for_the_same_rendering(self):
+        browser = Mock()
+        browser._user_copy_proofs = {}
+        browser._user_copy_attempts = set()
+        browser.invoke.return_value = {"copied": True}
+        state = {"service": "chatgpt"}
+        result = {"url": "https://chatgpt.com/c/fixture", "user_count": 1,
+                  "user_snapshot": "Env: Userprofile", "complete": True}
+        prompt = '# head\n  value = "a  b"\n$env:USERPROFILE\n'
+        raw = '\\# head\n&#x20; value = "a  b"\n$env:USERPROFILE\n'
+        with patch.object(cli, "clipboard_sequence", side_effect=[1, 2]) as sequence, \
+                patch.object(cli, "read_clipboard", return_value=raw):
+            self.assertTrue(cli.verify_user_copy(browser, state, prompt, result, self.root))
+            self.assertTrue(cli.verify_user_copy(browser, state, prompt, result, self.root))
+        self.assertEqual(sequence.call_count, 2)
+        browser.invoke.assert_called_once_with("copyUserSource")
+        self.assertEqual((self.root / "user-source-copy.md").read_text(encoding="utf-8"), raw)
+        self.assertEqual(state["copied_input_verification"]["prompt_sha256"], cli.digest(prompt))
+
+    def test_unchanged_clipboard_never_counts_as_copy_proof(self):
+        browser = Mock()
+        browser._user_copy_proofs = {}
+        browser._user_copy_attempts = set()
+        browser.invoke.return_value = {"copied": True}
+        result = {"url": "https://chatgpt.com/c/fixture", "user_count": 1, "user_snapshot": "alias"}
+        with patch.object(cli, "clipboard_sequence", side_effect=[1, 1]), \
+                patch.object(cli, "read_clipboard") as read:
+            self.assertFalse(cli.verify_user_copy(browser, {"service": "chatgpt"}, "expected", result, self.root))
+        read.assert_not_called()
+
+    def test_copy_with_changed_code_is_rejected_and_not_saved(self):
+        browser = Mock()
+        browser._user_copy_proofs = {}
+        browser._user_copy_attempts = set()
+        browser.invoke.return_value = {"copied": True}
+        result = {"url": "https://chatgpt.com/c/fixture", "user_count": 1, "user_snapshot": "alias"}
+        with patch.object(cli, "clipboard_sequence", side_effect=[1, 2]), \
+                patch.object(cli, "read_clipboard", return_value='value = "a b"'):
+            self.assertFalse(cli.verify_user_copy(browser, {"service": "chatgpt"}, 'value = "a  b"', result, self.root))
+        self.assertFalse((self.root / "user-source-copy.md").exists())
+
+    def test_conversation_transition_recovers_without_second_submission(self):
+        original = self.browser.invoke
+        observed = 0
+        def transition(method, *args):
+            nonlocal observed
+            if method == "collect":
+                observed += 1
+                if observed == 1:
+                    raise RuntimeError("Error: Unrecognized conversation UI")
+            return original(method, *args)
+        self.browser.invoke = transition
+        self.assertEqual(self.start(), 0)
+        self.assertEqual(self.browser.calls.count("submit"), 1)
+        self.assertGreaterEqual(observed, 3)
+
     def test_missing_driver_never_starts_a_browser_process(self):
         with patch.object(cli, "DRIVER", Path("missing-fixture/web_generation_browser.js")), \
                 patch.object(cli.subprocess, "Popen") as spawn:
@@ -82,6 +138,18 @@ class GenerationSafetyTests(unittest.TestCase):
         self.browser.prepare = {"blocked": "blocked_usage_limit"}
         self.assertEqual(self.run_cli([*args[:-1], "Pro"]), 2)
         self.assertEqual(self.browser.calls, ["attach", "prepare", "attach", "prepare"])
+
+    def test_reasoning_change_after_submission_blocks_final_output(self):
+        self.browser.prepare = {"reasoning": "Pro"}
+        original = self.browser.invoke
+        def changed(method, *args):
+            if method == "inspect":
+                return {"model": "GPT-5.6 Sol", "reasoning": "Medium"}
+            return original(method, *args)
+        self.browser.invoke = changed
+        self.assertEqual(self.start(), 2)
+        self.assertEqual(self.state()["status"], "blocked_reasoning_changed")
+        self.assertFalse((self.out / "output.txt").exists())
 
     def test_large_source_arguments_are_encoded_once_and_reused_on_poll(self):
         browser = cli.Aside.__new__(cli.Aside)

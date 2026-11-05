@@ -25,7 +25,8 @@ description: "Aside REPL로 AI Studio Gemini Flash 또는 ChatGPT Pro에 선택�
 
 | 필요한 흐름 | 진입점 |
 |---|---|
-| 새 Gemini 검토 후 턴 종료, 최종에서 이 채팅 재개 | [백그라운드 검토](references/operations.md#새-ai-studio-검토와-wake): `web_review.py submit` |
+| 새 Gemini 검토 후 턴 종료, 최종에서 이 채팅 재개 | [Gemini 실행](references/operations.md#새-ai-studio-검토와-wake): `web_review.py submit --service aistudio` |
+| 새 ChatGPT Pro 검토 후 턴 종료, 최종에서 이 채팅 재개 | [Pro 실행과 검증 범위](references/chatgpt.md): `web_review.py submit --service chatgpt --reasoning Pro` — 전체 무개입 순서는 미검증인 조건부 경로 |
 | 모델 확인 또는 같은 턴에서 제출·대기 | [직접 실행](references/operations.md#직접-실행): `web_generation.py inspect/configure/run` |
 | 이미 전송한 검토 회수 | 같은 job/run의 `status`·`poll`. 새 `send`나 `submit`을 만들지 않는다. |
 

@@ -2,7 +2,7 @@
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import web_review as cli
 
@@ -31,7 +31,7 @@ class ReviewTests(unittest.TestCase):
         cli.event(self.job, "observation", has_output=True, complete=False)
         self.notify.assert_not_called()
         run = self.job / "run"
-        state = cli.generation.new_run(run, "aistudio", "fixture-model", "검토", self.job / "prompt.txt", "fixture")
+        state = cli.generation.new_run(run, self.state.get("service", "aistudio"), "fixture-model", "검토", self.job / "prompt.txt", "fixture")
         (run / "output.txt").write_text("최종", encoding="utf-8", newline="")
         state.update(status="completed", output_obtained=True, submission_confirmed=True,
                      submissions_attempted=1, output_sha256=cli.generation.digest("최종"), tab_id="fixture-tab")
@@ -60,6 +60,29 @@ class ReviewTests(unittest.TestCase):
             cli.worker(self.job)
         generate.assert_not_called()
 
+    def test_chatgpt_uses_same_final_wake_path_and_exact_reasoning(self):
+        self.state.update(service="chatgpt", reasoning="Pro")
+        cli.update(self.job, self.state, "starting")
+        generate, notify = self.run_worker()
+        command = generate.call_args.args[0]
+        self.assertEqual(command[command.index("run") + 1], "chatgpt")
+        self.assertEqual(command[command.index("--reasoning") + 1], "Pro")
+        notify.assert_called_once()
+
+    def test_legacy_jobs_still_route_to_aistudio(self):
+        generate, _ = self.run_worker()
+        command = generate.call_args.args[0]
+        self.assertEqual(command[command.index("run") + 1], "aistudio")
+
+    def test_owned_tab_cannot_attach_to_another_service(self):
+        browser = cli.ReviewBrowser.__new__(cli.ReviewBrowser)
+        browser.review_service = "chatgpt"
+        browser.target = "fixture"
+        with patch.object(cli.generation.Aside, "invoke") as invoke:
+            with self.assertRaisesRegex(ValueError, "service differs"):
+                browser.invoke("attach", "aistudio", None)
+        invoke.assert_not_called()
+
     def test_changed_prompt_never_submits(self):
         (self.job / "prompt.txt").write_text("다른 내용", encoding="utf-8")
         generate, notify = self.run_worker()
@@ -70,6 +93,36 @@ class ReviewTests(unittest.TestCase):
         generate, notify = self.run_worker(probe=(2, {"error": "offline"}))
         generate.assert_not_called()
         notify.assert_not_called()
+
+    def test_uncertain_collection_reuses_owned_browser_and_polls_without_resend(self):
+        browser = Mock()
+        with patch.object(cli, "ReviewBrowser") as factory:
+            factory.return_value = browser
+            calls = []
+            def recover(command, **kwargs):
+                self.assertFalse(kwargs["close_browser"])
+                self.assertIs(kwargs["browser_factory"]("fixture"), browser)
+                calls.append(command)
+                run = self.job / "run"
+                if len(calls) == 1:
+                    run.mkdir()
+                    cli.wake.write(run / "manifest.json", {"status": "submission_uncertain", "submissions_attempted": 1})
+                    return 2
+                self.assertEqual(command[0], "poll")
+                self.assertNotIn("send", command)
+                self.assertNotIn("run", command)
+                state = cli.wake.read(run / "manifest.json")
+                (run / "output.txt").write_text("최종", encoding="utf-8", newline="")
+                state.update(status="completed", submissions_attempted=1, submission_confirmed=True,
+                             output_obtained=True, output_sha256=cli.generation.digest("최종"), tab_id="fixture")
+                cli.generation.save(run, state)
+                return 0
+            with patch.object(cli.time, "sleep"):
+                generate, notify = self.run_worker(generate=recover)
+            self.assertEqual(generate.call_count, 2)
+            self.assertEqual(factory.call_count, 1)
+            browser.close.assert_called_once()
+            notify.assert_called_once()
 
     def test_intermediate_or_timeout_never_wakes(self):
         def timeout(command, **kwargs):

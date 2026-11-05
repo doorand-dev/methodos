@@ -24,7 +24,7 @@
 | 도구 | 남기는 용도와 실행 조건 |
 |---|---|
 | `ask-chatgpt-pro` | 명시적으로 요청한 ChatGPT Pro 검토. 로그인과 별도 브라우저 어댑터가 필요하며 현재 연결 호환성은 설치 환경에서 확인합니다. 사용자 브라우저 정책이 우선입니다. |
-| [`web-model-review`](../../skills/codex/web-model-review/SKILL.md) | Aside REPL로 Gemini Flash·ChatGPT 검토 자료를 만들고 한 번 제출·최종 회수합니다. 새 Gemini 검토는 Windows worker가 REPL을 유지하고, 승인된 경우 최종 답변에서 Codex Wake로 원래 채팅을 재개합니다. Python·Aside와 별도 공통 Wake 도구가 필요합니다. |
+| [`web-model-review`](../../skills/codex/web-model-review/SKILL.md) | 하나의 진입점에서 Gemini·ChatGPT Pro 실행 세부를 나눕니다. 같은 Windows worker가 REPL을 유지해 한 번 제출·최종 회수하고, 승인된 기존 채팅에 Codex Wake를 요청합니다. Gemini는 턴 종료 후 최종 도착·재개를 실측했습니다. Pro는 최종 회수·완료 후 재개를 확인한 조건부 경로이며, 생성 중 턴 종료부터의 전체 무개입 실행은 미검증입니다. Python·Aside와 별도 공통 Wake 도구가 필요합니다. |
 | `report-kit` | 명시적으로 선택하는 HTML 템플릿 시제품. 표본 데이터는 사용자의 실제 자료로 교체합니다. |
 | `add-youtube-channel` | 채널 온보딩 문서·CapCut 연결을 갖춘 YouTube 파이프라인용 지침. 범용 채널 생성 도구가 아니며 적용 전 프로젝트 구조와 필수 입력을 확인합니다. |
 

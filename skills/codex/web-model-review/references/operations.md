@@ -89,6 +89,6 @@ python -B "$reviewTools/web_generation.py" poll '<run 폴더>'
 
 ## 확인한 범위
 
-2026-11-05 Windows 로컬에서 Gemini 3.8 Flash·Medium에 42,888자 검토를 실제 전송했다. 중간 본문 중에는 Wake 호출이 없었고, UI 완료·본문 안정성 확인 후 약 137초에 최종 저장, 이어 Wake 접수와 원래 채팅의 새 턴 재개를 확인했다. 이는 한 실행의 결과이며 다른 크기·모델·OS의 지연이나 동작을 보장하지 않는다. ChatGPT Pro의 전체 비동기 흐름은 이 실험에서 전송하지 않았다.
+2026-11-05 Windows 로컬에서 Gemini 3.8 Flash·Medium에 42,888자 검토를 실제 전송했다. 중간 본문 중에는 Wake 호출이 없었고, UI 완료·본문 안정성 확인 후 약 137초에 최종 저장, 이어 Wake 접수와 원래 채팅의 새 턴 재개를 확인했다. 이는 한 실행의 결과이며 다른 크기·모델·OS의 지연이나 동작을 보장하지 않는다. Pro의 별도 확인 범위와 미검증 구간은 [chatgpt.md](chatgpt.md#확인-상태)에서 확인한다.
 
 오프라인 검증은 scripts 폴더에서 `python -B -m unittest test_review_packet test_web_generation test_web_review test_web_review_wake -q`, `node --test test_web_generation_browser.js`로 실행한다. 모의 테스트는 실제 앱·브라우저 연결 호환성의 대체가 아니다.

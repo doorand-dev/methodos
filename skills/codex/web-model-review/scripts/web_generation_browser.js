@@ -54,27 +54,47 @@ globalThis.webgen = {
       if (await field.count() === 1) return field;
       throw Error('Prompt editor unavailable; login, loading, or UI change');
     }
-    const ref = this.ref('textbox', this.service === 'chatgpt' ? /^(ChatGPT에게 물어보세요|Ask anything)$/ : 'Enter a prompt');
-    if (!ref) throw Error('Prompt editor unavailable; login, loading, or UI change');
-    return this.page.locator(ref);
+    for (const name of ['ChatGPT에게 물어보세요', 'Ask anything']) {
+      const field = this.page.getByRole('textbox', {name, exact: true});
+      if (await field.count() === 1) return field;
+    }
+    throw Error('Prompt editor unavailable; login, loading, or UI change');
   },
   async editorText() {
-    return (await this.editor()).evaluate(el => 'value' in el ? el.value : el.innerText);
+    return (await this.editor()).evaluate(el => {
+      if ('value' in el) return el.value;
+      // ChatGPT creates one paragraph per pasted line. Generated URL mentions
+      // introduce layout-only breaks in innerText, including inside quoted
+      // source strings. Paragraph text preserves URLs, indentation and blanks.
+      const nodes = Array.from(el.childNodes);
+      if (nodes.every(n => n.nodeType === 1 && n.tagName === 'P')) {
+        return nodes.map(n => n.textContent).join('\n');
+      }
+      return el.innerText;
+    });
   },
   norm(s) { return s.replace(/\s+/g, ' ').trim(); },
+  sourceEqual(a, b) { return a.replace(/\r\n/g, '\n') === b.replace(/\r\n/g, '\n'); },
   promptMatches(history, prompt) {
     if (history.users.length !== 1) return false;
-    if (this.norm(history.users[0]) === this.norm(prompt)) return true;
+    const displayed = history.users[0].replace(/\r\n/g, '\n');
+    const raw = prompt.replace(/\r\n/g, '\n');
+    if (displayed.replace(/\n+$/, '') === raw.replace(/\n+$/, '')) return true;
     // AI Studio renders our generated Markdown packet instead of displaying
     // its delimiters. Verify every code block exactly and all remaining text;
     // never strip Markdown-like characters from the source code itself.
-    const raw = prompt.replace(/\r\n/g, '\n');
-    if (this.service !== 'aistudio' || !raw.startsWith('# 검토 요청\n') || !raw.includes('\n# 세부 자료\n')) return false;
-    const packet = history.user_packets?.[0];
-    if (!packet) return false;
+    if (!raw.startsWith('# 검토 요청\n') || !raw.includes('\n# 세부 자료\n')) return false;
     const fences = /^(`{3,})[^\n]*\n([\s\S]*?)\n\1(?=\n|$)/gm;
     const codes = Array.from(raw.matchAll(fences), m => m[2]);
     const normalizeCode = s => s.replace(/\r\n/g, '\n').replace(/\n+$/, '');
+    if (this.service === 'chatgpt') {
+      const shown = Array.from(displayed.matchAll(fences), m => m[2]);
+      if (!codes.length || codes.length !== shown.length ||
+          codes.some((code, i) => normalizeCode(code) !== normalizeCode(shown[i]))) return false;
+      return this.norm(raw.replace(fences, '')) === this.norm(displayed.replace(fences, ''));
+    }
+    const packet = history.user_packets?.[0];
+    if (this.service !== 'aistudio' || !packet) return false;
     if (!codes.length || codes.length !== packet.codes.length ||
         codes.some((code, i) => normalizeCode(code) !== normalizeCode(packet.codes[i]))) return false;
     const prose = raw.replace(fences, '').replace(/^(?:#{1,6} |- )/gm, '');
@@ -100,7 +120,14 @@ globalThis.webgen = {
     // Snapshot omits this popover's descendants. These DOM attributes were
     // verified against the visible menu on 2026-11-04, not app internal state.
     if (!(await this.page.locator(CHAT_PICKER).count())) {
-      await this.click('button', CHAT_PICKER_BUTTON);
+      let button = null;
+      for (const name of ['ChatGPT 모델 선택', 'ChatGPT model selector']) {
+        const candidate = this.page.getByRole('button', {name, exact: true});
+        if (await candidate.count() === 1) { button = candidate; break; }
+      }
+      if (!button) throw Error('ChatGPT model picker unavailable');
+      await button.click();
+      await this.snap();
     }
     return this.page.locator(`[role="menu"]:has(${CHAT_PICKER})`);
   },
@@ -119,13 +146,27 @@ globalThis.webgen = {
         return /^\d+$/.test(value ?? '') ? Number(value) : null;
       };
       const effort_label = toggle?.innerText.trim() || 'unknown';
-      const text = el.innerText;
+      // The closed model list retains generic sr-only "usage limit reached"
+      // descriptions under aria-hidden/opacity:0. They do not describe the
+      // active reasoning slider. Only a rendered notice may block this mode;
+      // selected model descriptions and slider aria-disabled are checked too.
+      const visible = node => {
+        if (!node.getClientRects().length) return false;
+        for (let current = node; current && current !== el.parentElement; current = current.parentElement) {
+          if (current.hidden || current.getAttribute('aria-hidden') === 'true' || current.classList.contains('sr-only')) return false;
+          const style = el.ownerDocument.defaultView.getComputedStyle(current);
+          if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false;
+        }
+        return true;
+      };
+      const quotaNotice = Array.from(el.querySelectorAll('*')).some(n => !n.children.length &&
+        /사용 한도에 도달|usage limit|limit reached/i.test(n.textContent) && visible(n));
       return {
         models: items, effort_label, reasoning: effort_label.split('\n').at(-1).trim(),
         slider: thumb ? {
           min: position('aria-valuemin'), max: position('aria-valuemax'), value: position('aria-valuenow'),
           disabled: row.getAttribute('aria-disabled') === 'true',
-          quota_notice: /사용 한도에 도달|usage limit|limit reached/i.test(text),
+          quota_notice: quotaNotice,
         } : null,
       };
     }, {picker: CHAT_PICKER, slider: CHAT_SLIDER});
@@ -300,22 +341,29 @@ globalThis.webgen = {
     catch (e) { warning = String(e); }
     await this.snap();
     const text = await this.editorText();
-    if (this.norm(text) !== this.norm(prompt)) throw Error('Editor input differs from prompt');
+    if (!this.sourceEqual(text, prompt)) throw Error('Editor input differs from prompt');
     return {input_matches: true, editor_text: text, fill_warning: warning,
-      comparison: text === prompt ? 'exact' : 'whitespace_normalized'};
+      comparison: text === prompt ? 'exact' : 'line_endings_normalized'};
   },
   async submit(prompt) {
     await this.snap();
     const existing = await this.history();
     if (existing.users.length || existing.answers.length) throw Error('Existing conversation; refusing duplicate submit');
-    if (this.norm(await this.editorText()) !== this.norm(prompt)) throw Error('Editor changed before submission');
+    if (!this.sourceEqual(await this.editorText(), prompt)) throw Error('Editor changed before submission');
     if (this.service === 'aistudio') {
       const run = this.page.locator('footer button.ctrl-enter-submits');
       if (await run.count() !== 1 || !/^Run\s/.test(await run.innerText())) throw Error('Run control unavailable');
       await run.click();
       await this.snap();
     } else {
-      await this.click('button', /^(보내기|Send prompt|Send)$/);
+      let send = null;
+      for (const name of ['보내기', 'Send prompt', 'Send']) {
+        const field = this.page.getByRole('button', {name, exact: true});
+        if (await field.count() === 1) { send = field; break; }
+      }
+      if (!send) throw Error('Send control unavailable');
+      await send.click();
+      await this.snap();
     }
     return {clicked: true};
   },
@@ -323,13 +371,30 @@ globalThis.webgen = {
     // The service-specific final response selectors are verified before use.
     // Initial empty conversations can be established by the visible UI.
     if (this.service === 'chatgpt') {
-      if (!this.ref('region', /^(대화|Conversation)$/)) {
-        if (/heading \[level=1\]: "(임시 채팅|Temporary Chat)"/.test(this.tree)) return {users: [], answers: []};
-        throw Error('Unrecognized conversation UI');
+      const bubbles = this.page.locator('[data-user-message-bubble]');
+      if (await bubbles.count() === 1) {
+        const more = this.page.locator('[data-user-message-bubble] button');
+        if (await more.count() === 1 && ['더 보기', 'Show more', 'Read more'].includes((await more.innerText()).trim())) {
+          await more.click(); await this.snap();
+        }
       }
-      return this.page.locator(this.ref('region', /^(대화|Conversation)$/)).evaluate(region => {
-      const users = Array.from(region.querySelectorAll('[data-user-message-bubble] [data-search-result-target]')).map(n => n.textContent);
-      const answers = Array.from(region.querySelectorAll('[data-markdown-text-style="assistant-message"]')).map(n => {
+      // Large input can remove the conversation ref from a truncated snapshot.
+      // The main element is the same observed root used by gate(), so resolve
+      // the DOM directly instead of inferring that the conversation disappeared.
+      return this.page.locator('main').first().evaluate(region => {
+      const text = node => {
+        if (node.nodeType === 3) return node.textContent;
+        if (node.nodeType !== 1 || node.hidden || node.getAttribute('aria-hidden') === 'true') return '';
+        if (node.tagName === 'BR') return '\n';
+        const value = Array.from(node.childNodes).map(text).join('');
+        return value + (/^(P|DIV|LI|PRE|H[1-6])$/.test(node.tagName) ? '\n' : '');
+      };
+      const users = Array.from(region.querySelectorAll('[data-user-message-bubble]')).map(n =>
+        text(n.querySelector('[data-search-result-target]') || n));
+      // Tone-marked progress summaries and hidden search-cache copies are not
+      // the public final answer. Only the selectable response surface is read.
+      const answers = Array.from(region.querySelectorAll('[data-chatgpt-selection-conversation-id] [data-markdown-text-style="assistant-message"]:not([data-markdown-text-tone])'))
+        .filter(n => !n.closest('[hidden], [inert], [aria-hidden="true"]')).map(n => {
         const blocks = n.querySelectorAll('[data-oai-writing-block-surface]');
         if (blocks.length === 1) {
           const block = blocks[0];
@@ -372,19 +437,34 @@ globalThis.webgen = {
       return {users, answers, user_packets};
     });
   },
+  async copyUserSource() {
+    const button = this.page.getByRole('button', {name: '메시지 복사', exact: true});
+    if (await button.count() !== 1) return {copied: false};
+    await button.click();
+    await this.snap();
+    return {copied: true};
+  },
   async collect(prompt) {
     await this.snap();
     const gate = await this.gate();
     if (gate.blocked) return {...gate, url: this.page.url()};
     const history = await this.history();
+    const hasButton = async names => {
+      for (const name of names) {
+        if (await this.page.getByRole('button', {name, exact: true}).count()) return true;
+      }
+      return false;
+    };
     const stop = this.service === 'aistudio'
       ? await this.page.locator('footer').evaluate(el => Array.from(el.querySelectorAll('button'))
         .some(n => n.getClientRects().length && /^Stop(?:\s|$)/.test(n.innerText.trim())))
-      : this.ref('button', /^(중지|Stop|Stop generating|Stop response)$/);
+      : await hasButton(['중지', 'Stop', 'Stop generating', 'Stop response']);
     const done = this.service === 'aistudio'
       ? await this.page.getByRole('button', {name: 'Good response', exact: true}).count()
-      : this.ref('button', /^(응답 다시 생성|Regenerate|Regenerate response)$/);
-    return {url: this.page.url(), prompt_matches: this.promptMatches(history, prompt),
+      : await hasButton(['응답 다시 생성', 'Regenerate', 'Regenerate response']);
+    const promptMatches = this.promptMatches(history, prompt);
+    return {url: this.page.url(), prompt_matches: promptMatches,
+      user_snapshot: !promptMatches && history.users.length === 1 ? history.users[0] : null,
       output: history.answers.length === 1 ? history.answers[0] : null,
       user_count: history.users.length, answer_count: history.answers.length,
       complete: Boolean(done && !stop), extraction: this.service === 'chatgpt' ? 'visible assistant DOM; writing-block clipboard text checked against visible editor' : 'Model turn > .turn-content > ms-prompt-chunk > ms-text-chunk.innerText; thought-panel excluded',
