@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Model Review"
+  short_description: "Aside 웹 검토를 한 번 전송하고 최종 답변에서 Codex를 재개"
+  default_prompt: "Use $web-model-review to prepare an authorized Gemini Flash review and wake this chat only after the final answer."
